@@ -1,0 +1,263 @@
+//@version=6
+strategy("即時突破進場策略（單次進出版）", overlay=true)
+
+// === 策略控制 ===
+start_time = input.time(timestamp("2025-01-01 00:00 +0800"), title="策略啟動時間", confirm=true, group="策略控制")
+trade_mode = input.string("只做多", title="交易方向", options=["只做多", "只做空"], group="策略控制")
+entry_mode = input.string("順勢突破進場", title="進場方式", options=["順勢突破進場", "逆勢拉回進場"], group="策略控制")
+
+// === 均線與移動停利設定 ===
+ma_mode = input.string("自適應平滑均線（KAMA）", title="移動停利均線模型", options=["自適應平滑均線（KAMA）", "動態轉折主體均線（Refined EMA）"], group="均線與移動停利")
+ma_len = input.int(60, title="移動平均線長度", group="均線與移動停利")
+use_long_ma_exit = input.bool(true, title="多方_均線移動停利", group="均線與移動停利")
+use_short_ma_exit = input.bool(true, title="空方_均線移動停利", group="均線與移動停利")
+
+// === 停利觸發啟用開關 ===
+use_long_trigger = input.bool(true, title="多方_移動停利觸發", group="停利觸發啟用開關")
+long_trigger_pts = input.int(100, minval=1, title="多方_觸發點數", group="停利觸發啟用開關")
+use_short_trigger = input.bool(true, title="空方_移動停利觸發", group="停利觸發啟用開關")
+short_trigger_pts = input.int(100, minval=1, title="空方_觸發點數", group="停利觸發啟用開關")
+
+// === 最大停損設定 ===
+use_long_sl = input.bool(true, title="多方_最大停損啟用", group="最大停損設定")
+long_sl_pts = input.int(80, minval=1, title="多方_最大停損點數", group="最大停損設定")
+use_short_sl = input.bool(true, title="空方_最大停損啟用", group="最大停損設定")
+short_sl_pts = input.int(80, minval=1, title="空方_最大停損點數", group="最大停損設定")
+
+// === 通道設定 ===
+upper_length = input.int(20, title="上軌計算期數", group="通道設定")
+lower_length = input.int(20, title="下軌計算期數", group="通道設定")
+offset = input.int(1, title="通道位移根數", group="通道設定")
+
+// === 通道計算 ===
+upper = ta.highest(high, upper_length)
+lower = ta.lowest(low, lower_length)
+upper_offset = upper[offset]
+lower_offset = lower[offset]
+
+// === 自適應平滑均線（KAMA） ===
+src_kama = hlc3
+volatility = 0.0
+for i = 0 to ma_len - 1
+    volatility := volatility + math.abs(src_kama[i] - src_kama[i + 1])
+direction = math.abs(src_kama - src_kama[ma_len])
+er = direction / volatility
+alpha = math.pow(er * (0.5 - 0.02) + 0.02, 2)
+var float kama = na
+kama := na(kama[1]) ? src_kama : kama[1] + alpha * (src_kama - kama[1])
+
+// === 動態轉折主體均線（Refined EMA） ===
+src_refined = hlc3
+var float refined = na
+refined := na(refined) ? src_refined :
+     src_refined > refined ? (open + high) / 2 :
+     src_refined < refined ? (open + low) / 2 : refined[1]
+tower_ema = ta.ema(refined, ma_len)
+
+// === 均線切換 ===
+final_ma = ma_mode == "自適應平滑均線（KAMA）" ? kama : tower_ema
+
+// === 狀態變數 ===
+is_trading_started = time >= start_time
+var bool is_finished = false // 新增：控制是否已經完成一次完整交易
+var bool has_long_entry = false
+var bool has_short_entry = false
+var int long_entry_bar = na
+var int short_entry_bar = na
+var int exit_bar_index = na
+var int last_time = na
+var bool show_ma = false
+var line cost_line = na
+var float cost_price = na
+var line trigger_line = na
+var float trigger_price = na
+var line stop_line = na
+var float stop_price = na
+
+// === 標籤變數 ===
+var label ma_label = na
+var label chan_label = na
+var label trigger_label = na
+var label stop_label = na
+
+// === 重置邏輯 ===
+if na(last_time)
+    last_time := start_time
+// 當使用者改變啟動時間時，重置所有狀態，包含 is_finished
+if start_time != last_time
+    is_finished := false
+    has_long_entry := false
+    has_short_entry := false
+    show_ma := false
+    long_entry_bar := na
+    short_entry_bar := na
+    exit_bar_index := na
+    cost_line := na
+    cost_price := na
+    trigger_line := na
+    trigger_price := na
+    stop_line := na
+    stop_price := na
+    last_time := start_time
+    // 刪除舊標籤，保持圖面乾淨
+    label.delete(ma_label)
+    label.delete(chan_label)
+    label.delete(trigger_label)
+    label.delete(stop_label)
+    ma_label := na
+    chan_label := na
+    trigger_label := na
+    stop_label := na
+
+// === 多空進場邏輯 ===
+// 進場條件增加 check: "not is_finished"
+if is_trading_started and not is_finished
+    if trade_mode == "只做多" and not has_long_entry
+        if (entry_mode == "順勢突破進場" and high > upper_offset) or (entry_mode == "逆勢拉回進場" and low < lower_offset)
+            strategy.entry("多單進場", strategy.long)
+            label.new(bar_index, low, "突破進場（多）", style=label.style_label_up, color=color.green, textcolor=color.white, size=size.small, yloc=yloc.belowbar)
+            has_long_entry := true
+            long_entry_bar := bar_index
+            cost_price := entry_mode == "順勢突破進場" ? upper_offset : lower_offset
+            cost_line := line.new(bar_index, cost_price, bar_index + 1, cost_price, color=color.black, style=line.style_dashed, width=2)
+            trigger_price := cost_price + long_trigger_pts
+            stop_price := cost_price - long_sl_pts
+            if use_long_trigger
+                trigger_line := line.new(bar_index, trigger_price, bar_index + 1, trigger_price, color=color.black, width=2)
+            if use_long_sl
+                stop_line := line.new(bar_index, stop_price, bar_index + 1, stop_price, color=color.green, width=2)
+            show_ma := true
+            exit_bar_index := na
+
+    if trade_mode == "只做空" and not has_short_entry
+        if (entry_mode == "順勢突破進場" and low < lower_offset) or (entry_mode == "逆勢拉回進場" and high > upper_offset)
+            strategy.entry("空單進場", strategy.short)
+            label.new(bar_index, high, "突破進場（空）", style=label.style_label_down, color=color.red, textcolor=color.white, size=size.small, yloc=yloc.abovebar)
+            has_short_entry := true
+            short_entry_bar := bar_index
+            cost_price := entry_mode == "順勢突破進場" ? lower_offset : upper_offset
+            cost_line := line.new(bar_index, cost_price, bar_index + 1, cost_price, color=color.black, style=line.style_dashed, width=2)
+            trigger_price := cost_price - short_trigger_pts
+            stop_price := cost_price + short_sl_pts
+            if use_short_trigger
+                trigger_line := line.new(bar_index, trigger_price, bar_index + 1, trigger_price, color=color.black, width=2)
+            if use_short_sl
+                stop_line := line.new(bar_index, stop_price, bar_index + 1, stop_price, color=color.green, width=2)
+            show_ma := true
+            exit_bar_index := na
+
+// === 線條延伸 ===
+final_bar = na(exit_bar_index) ? bar_index : exit_bar_index
+if not na(cost_line)
+    line.set_x2(cost_line, final_bar), line.set_y2(cost_line, cost_price)
+if not na(trigger_line) and na(exit_bar_index)
+    line.set_x2(trigger_line, bar_index), line.set_y2(trigger_line, trigger_price)
+if not na(stop_line) and na(exit_bar_index)
+    line.set_x2(stop_line, bar_index), line.set_y2(stop_line, stop_price)
+
+// === 出場條件 ===
+// 只有在還沒結束且有進場標記時才檢查出場
+if na(exit_bar_index) and not is_finished
+    if trade_mode == "只做多" and has_long_entry
+        trigger_ready = (final_ma > trigger_price or lower > trigger_price)
+        touch_ma = low <= final_ma
+        touch_chan = low <= lower
+        
+        // 條件：停利 (均線或通道)
+        if trigger_ready and (touch_ma or touch_chan)
+            strategy.close("多單進場")
+            exit_bar_index := bar_index
+            is_finished := true // 標記為已結束，不再交易
+            label.new(bar_index, low, "移動停利出場（多）", style=label.style_label_down, color=color.purple, textcolor=color.white, yloc=yloc.abovebar)
+        // 條件：最大停損
+        else if use_long_sl and low < stop_price
+            strategy.close("多單進場")
+            exit_bar_index := bar_index
+            is_finished := true // 標記為已結束，不再交易
+            label.new(bar_index, low, "最大停損出場（多）", style=label.style_label_down, color=color.red, textcolor=color.white, yloc=yloc.abovebar)
+
+    if trade_mode == "只做空" and has_short_entry
+        trigger_ready = (final_ma < trigger_price or upper < trigger_price)
+        touch_ma = high >= final_ma
+        touch_chan = high >= upper
+
+        // 條件：停利 (均線或通道)
+        if trigger_ready and (touch_ma or touch_chan)
+            strategy.close("空單進場")
+            exit_bar_index := bar_index
+            is_finished := true // 標記為已結束，不再交易
+            label.new(bar_index, high, "移動停利出場（空）", style=label.style_label_up, color=color.purple, textcolor=color.white, yloc=yloc.belowbar)
+        // 條件：最大停損
+        else if use_short_sl and high > stop_price
+            strategy.close("空單進場")
+            exit_bar_index := bar_index
+            is_finished := true // 標記為已結束，不再交易
+            label.new(bar_index, high, "最大停損出場（空）", style=label.style_label_up, color=color.red, textcolor=color.white, yloc=yloc.belowbar)
+
+// === 狀態區 (控制繪圖顯示範圍) ===
+// 確保只在該次交易範圍內顯示背景
+in_long_zone  = not na(long_entry_bar) and bar_index >= long_entry_bar and (na(exit_bar_index) or bar_index <= exit_bar_index)
+in_short_zone = not na(short_entry_bar) and bar_index >= short_entry_bar and (na(exit_bar_index) or bar_index <= exit_bar_index)
+// 在交易結束後，這些變數會因為 is_finished 而不再更新，但繪圖邏輯使用 bar_index 判斷，所以圖形會保留
+
+var float dynamic_lower = na
+dynamic_lower := in_long_zone ? math.max(nz(dynamic_lower[1]), lower) : lower
+var float dynamic_upper = na
+dynamic_upper := in_short_zone ? math.min(nz(dynamic_upper[1]), upper) : upper
+
+// === 繪圖 ===
+// 顯示邏輯微調：如果已結束 (is_finished) 且當前 K 線大於出場點，則不畫線
+plot_condition = (na(exit_bar_index) or bar_index <= exit_bar_index)
+
+plot(plot_condition and not in_short_zone and not in_long_zone ? upper_offset : na, title="上軌_正常", color=color.green, linewidth=1)
+plot(plot_condition and in_short_zone ? dynamic_upper : na, title="上軌_藍", color=color.blue, linewidth=1)
+plot(plot_condition and not in_short_zone and not in_long_zone ? lower_offset : na, title="下軌_正常", color=color.red, linewidth=1)
+plot(plot_condition and in_long_zone ? dynamic_lower : na, title="下軌_藍", color=color.blue, linewidth=1)
+
+plot(plot_condition and trade_mode == "只做多" and use_long_ma_exit and show_ma ? final_ma : na, title="多方_移動停利均線", color=color.blue, linewidth=1)
+plot(plot_condition and trade_mode == "只做空" and use_short_ma_exit and show_ma ? final_ma : na, title="空方_移動停利均線", color=color.blue, linewidth=1)
+
+bgcolor(in_long_zone ? color.new(color.green, 85) : na)
+bgcolor(in_short_zone ? color.new(color.red, 85) : na)
+
+// === 六組標籤 (只在交易進行中顯示動態標籤) ===
+if plot_condition
+    if show_ma and not is_finished // 交易結束後不再移動標籤
+        if na(ma_label)
+            ma_label := label.new(bar_index, final_ma, "", style=label.style_label_left, color=color.blue, textcolor=color.white, size=size.normal)
+        label.set_xy(ma_label, bar_index, final_ma)
+        label.set_text(ma_label, trade_mode == "只做多" ? "均線停利（多）" : "均線停利（空）")
+    else if is_finished
+        // 交易結束刪除動態標籤，避免留在最後一根 K 線
+        label.delete(ma_label), ma_label := na
+        label.delete(chan_label), chan_label := na
+        label.delete(trigger_label), trigger_label := na
+        label.delete(stop_label), stop_label := na
+
+    // 以下標籤邏輯同理，只在未結束時更新
+    chan_price = in_long_zone ? dynamic_lower : in_short_zone ? dynamic_upper : na
+    chan_text = in_long_zone ? "通道停利（多）" : in_short_zone ? "通道停利（空）" : ""
+    
+    if not na(chan_price) and not is_finished
+        if na(chan_label)
+            chan_label := label.new(bar_index, chan_price, chan_text, style=label.style_label_left, color=color.blue, textcolor=color.white, size=size.normal)
+        else
+            label.set_xy(chan_label, bar_index, chan_price)
+            label.set_text(chan_label, chan_text)
+
+    if not na(trigger_price) and not is_finished
+        trig_text = trade_mode == "只做多" ? "移動停利觸發點（多）" : "移動停利觸發點（空）"
+        if na(trigger_label)
+            trigger_label := label.new(bar_index, trigger_price, trig_text, style=label.style_label_left, color=color.black, textcolor=color.white, size=size.normal)
+        else
+            label.set_xy(trigger_label, bar_index, trigger_price)
+            label.set_text(trigger_label, trig_text)
+
+    if not na(stop_price) and not is_finished
+        stop_text = trade_mode == "只做多" ? "最大停損（多）" : "最大停損（空）"
+        if na(stop_label)
+            stop_label := label.new(bar_index, stop_price, stop_text, style=label.style_label_left, color=color.green, textcolor=color.white, size=size.normal)
+        else
+            label.set_xy(stop_label, bar_index, stop_price)
+            label.set_text(stop_label, stop_text)
+
