@@ -201,18 +201,23 @@ in_short_zone = not na(short_entry_bar) and bar_index >= short_entry_bar and (na
 // 在交易結束後，這些變數會因為 is_finished 而不再更新，但繪圖邏輯使用 bar_index 判斷，所以圖形會保留
 
 var float dynamic_lower = na
-dynamic_lower := in_long_zone ? math.max(nz(dynamic_lower[1]), lower) : lower
+dynamic_lower := in_long_zone ? math.max(nz(dynamic_lower[1]), lower_offset) : lower_offset
 var float dynamic_upper = na
-dynamic_upper := in_short_zone ? math.min(nz(dynamic_upper[1]), upper) : upper
+dynamic_upper := in_short_zone ? math.min(nz(dynamic_upper[1]), upper_offset) : upper_offset
 
 // === 繪圖 ===
 // 顯示邏輯微調：如果已結束 (is_finished) 且當前 K 線大於出場點，則不畫線
 plot_condition = (na(exit_bar_index) or bar_index <= exit_bar_index)
 
-plot(plot_condition and not in_short_zone and not in_long_zone ? upper_offset : na, title="上軌_正常", color=color.green, linewidth=1)
-plot(plot_condition and in_short_zone ? dynamic_upper : na, title="上軌_藍", color=color.blue, linewidth=1)
-plot(plot_condition and not in_short_zone and not in_long_zone ? lower_offset : na, title="下軌_正常", color=color.red, linewidth=1)
-plot(plot_condition and in_long_zone ? dynamic_lower : na, title="下軌_藍", color=color.blue, linewidth=1)
+// Upper Plot
+upper_val = in_short_zone ? dynamic_upper : (in_long_zone ? na : upper_offset)
+upper_col = in_short_zone ? color.blue : color.green
+plot(plot_condition ? upper_val : na, title="上軌", color=upper_col, linewidth=1)
+
+// Lower Plot
+lower_val = in_long_zone ? dynamic_lower : (in_short_zone ? na : lower_offset)
+lower_col = in_long_zone ? color.blue : color.red
+plot(plot_condition ? lower_val : na, title="下軌", color=lower_col, linewidth=1)
 
 plot(plot_condition and trade_mode == "只做多" and use_long_ma_exit and show_ma ? final_ma : na, title="多方_移動停利均線", color=color.blue, linewidth=1)
 plot(plot_condition and trade_mode == "只做空" and use_short_ma_exit and show_ma ? final_ma : na, title="空方_移動停利均線", color=color.blue, linewidth=1)
