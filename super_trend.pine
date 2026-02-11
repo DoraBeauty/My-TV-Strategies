@@ -126,11 +126,12 @@ if is_trading_started and not is_finished
         if strategy.position_size > 0 and not has_long_entry[1]
             has_long_entry := true
             long_entry_bar := bar_index
+
             // 進場價格修正：為了準確，使用 stop_price_entry 或是 strategy.position_avg_price
             cost_price := strategy.position_avg_price
             // 如果無法取得 (如實時)，則用計算值
             if na(cost_price)
-                 cost_price := stop_price_entry
+                cost_price := stop_price_entry
 
             // 重要：取消該方向的 pending stop order，避免重複掛單或意外觸發
             strategy.cancel("多單進場")
@@ -153,9 +154,11 @@ if is_trading_started and not is_finished
         if strategy.position_size < 0 and not has_short_entry[1]
             has_short_entry := true
             short_entry_bar := bar_index
-            cost_price := strategy.opentrades.entry_price(strategy.opentrades - 1)
+
+            // 進場價格修正
+            cost_price := strategy.position_avg_price
             if na(cost_price)
-                 cost_price := stop_price_entry
+                cost_price := stop_price_entry
 
             // 重要：取消該方向的 pending stop order，避免重複掛單或意外觸發
             strategy.cancel("空單進場")
