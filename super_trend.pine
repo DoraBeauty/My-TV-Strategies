@@ -110,15 +110,32 @@ if start_time != last_time
     stop_label := na
 
 // === 多空進場邏輯 ===
-// 進場條件增加 check: "not is_finished"
+// 使用 stop 參數改為即時突破進場，確保策略標籤（箭頭）正確顯示於突破 K 線
 if is_trading_started and not is_finished
     if trade_mode == "只做多" and not has_long_entry
-        if (entry_mode == "順勢突破進場" and high > upper_offset) or (entry_mode == "逆勢拉回進場" and low < lower_offset)
-            strategy.entry("多單進場", strategy.long)
-            label.new(bar_index, low, "突破進場（多）", style=label.style_label_up, color=color.green, textcolor=color.white, size=size.small, yloc=yloc.belowbar)
+        // 判斷是否需要掛單 (進場模式邏輯保留，但改為 stop 單)
+        // 注意：順勢突破時 stop 為 upper_offset，逆勢拉回時 stop 為 lower_offset
+        stop_price_entry = entry_mode == "順勢突破進場" ? upper_offset : lower_offset
+        // 發送預掛單 (stop order)
+        strategy.entry("多單進場", strategy.long, stop=stop_price_entry)
+
+        // 因為 strategy.entry 是預掛單，實際成交要等到條件滿足
+        // 我們這裡使用條件判斷來設定輔助線和變數 (模擬成交後的狀態更新)
+        // 為了避免重複設定，檢查是否已經成交 (strategy.position_size > 0)
+        // 注意：在回測中 strategy.position_size 會在成交的該根 K 線更新
+        if strategy.position_size > 0 and not has_long_entry[1]
             has_long_entry := true
             long_entry_bar := bar_index
-            cost_price := entry_mode == "順勢突破進場" ? upper_offset : lower_offset
+            // 進場價格修正：為了準確，使用 stop_price_entry 或是 strategy.opentrades.entry_price
+            cost_price := strategy.opentrades.entry_price(strategy.opentrades - 1)
+            // 如果無法取得 (如實時)，則用計算值
+            if na(cost_price)
+                 cost_price := stop_price_entry
+
+            // 重要：取消該方向的 pending stop order，避免重複掛單或意外觸發
+            strategy.cancel("多單進場")
+
+            label.new(bar_index, low, "突破進場（多）", style=label.style_label_up, color=color.green, textcolor=color.white, size=size.small, yloc=yloc.belowbar)
             cost_line := line.new(bar_index, cost_price, bar_index + 1, cost_price, color=color.black, style=line.style_dashed, width=2)
             trigger_price := cost_price + long_trigger_pts
             stop_price := cost_price - long_sl_pts
@@ -130,12 +147,20 @@ if is_trading_started and not is_finished
             exit_bar_index := na
 
     if trade_mode == "只做空" and not has_short_entry
-        if (entry_mode == "順勢突破進場" and low < lower_offset) or (entry_mode == "逆勢拉回進場" and high > upper_offset)
-            strategy.entry("空單進場", strategy.short)
-            label.new(bar_index, high, "突破進場（空）", style=label.style_label_down, color=color.red, textcolor=color.white, size=size.small, yloc=yloc.abovebar)
+        stop_price_entry = entry_mode == "順勢突破進場" ? lower_offset : upper_offset
+        strategy.entry("空單進場", strategy.short, stop=stop_price_entry)
+
+        if strategy.position_size < 0 and not has_short_entry[1]
             has_short_entry := true
             short_entry_bar := bar_index
-            cost_price := entry_mode == "順勢突破進場" ? lower_offset : upper_offset
+            cost_price := strategy.opentrades.entry_price(strategy.opentrades - 1)
+            if na(cost_price)
+                 cost_price := stop_price_entry
+
+            // 重要：取消該方向的 pending stop order，避免重複掛單或意外觸發
+            strategy.cancel("空單進場")
+
+            label.new(bar_index, high, "突破進場（空）", style=label.style_label_down, color=color.red, textcolor=color.white, size=size.small, yloc=yloc.abovebar)
             cost_line := line.new(bar_index, cost_price, bar_index + 1, cost_price, color=color.black, style=line.style_dashed, width=2)
             trigger_price := cost_price - short_trigger_pts
             stop_price := cost_price + short_sl_pts
