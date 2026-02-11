@@ -74,12 +74,19 @@ plotshape(is_bear_eng, title="Bear Eng", style=shape.triangledown, location=loca
 // RSI Divergence
 p_lb = 5
 src_rsi = rsi_val
+
+// Calculate Lowest/Highest outside of if condition to fix warnings
+low_min_30 = ta.lowest(low, 30)
+rsi_min_30 = ta.lowest(src_rsi, 30)
+high_max_30 = ta.highest(high, 30)
+rsi_max_30 = ta.highest(src_rsi, 30)
+
 // Bullish Divergence
 bull_div = false
 if show_div and in_session
     // Price Lower Low but RSI Higher Low
-    price_ll = low[p_lb] < ta.lowest(low, 30)[p_lb + 1]
-    rsi_hl = src_rsi[p_lb] > ta.lowest(src_rsi, 30)[p_lb + 1]
+    price_ll = low[p_lb] < low_min_30[p_lb + 1]
+    rsi_hl = src_rsi[p_lb] > rsi_min_30[p_lb + 1]
     if price_ll and rsi_hl and low[p_lb] < low
         bull_div := true
 
@@ -87,8 +94,8 @@ if show_div and in_session
 bear_div = false
 if show_div and in_session
     // Price Higher High but RSI Lower High
-    price_hh = high[p_lb] > ta.highest(high, 30)[p_lb + 1]
-    rsi_lh = src_rsi[p_lb] < ta.highest(src_rsi, 30)[p_lb + 1]
+    price_hh = high[p_lb] > high_max_30[p_lb + 1]
+    rsi_lh = src_rsi[p_lb] < rsi_max_30[p_lb + 1]
     if price_hh and rsi_lh and high[p_lb] > high
         bear_div := true
 
@@ -224,7 +231,7 @@ var box orb_box = na
 // 偵測開盤第一根K棒 (這裡假設 start_time 設定正確，或每日重置)
 // 為了簡單起見，我們偵測 session 的開始。
 // 台指期日盤 08:45，夜盤 15:00。我們可以用 time(timeframe.period, "0845-0900:1234567") 這種方式，但最簡單是依賴 session 變換
-is_new_session = time(timeframe.period, "0845-1345:1234567")
+is_session_time = not na(time(timeframe.period, "0845-1345:1234567"))
 if timeframe.isintraday and show_orb
     // 每日重置
     if ta.change(time("D"))
