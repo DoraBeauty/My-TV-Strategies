@@ -173,8 +173,42 @@ nav {
 /* Cards Grid */
 .grid-3 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 30px;
+}
+
+/* Responsive Grid Utility */
+.grid-split, .profile-grid, .contact-grid {
+    display: grid;
+    gap: 30px;
+}
+
+.grid-split {
+    grid-template-columns: 1fr;
+}
+
+.profile-grid {
+    grid-template-columns: 1fr;
+    align-items: center;
+}
+
+.contact-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+}
+
+@media (min-width: 769px) {
+    .grid-split {
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+    }
+    .profile-grid {
+        grid-template-columns: 1fr 2fr;
+    }
+    .contact-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+    }
 }
 
 .card {
@@ -254,6 +288,15 @@ footer {
 
     .hero h1 {
         font-size: 2.5rem;
+    }
+
+    .section {
+        padding: 50px 0;
+    }
+
+    .container {
+        width: 100%;
+        padding: 0 20px;
     }
 }
 
