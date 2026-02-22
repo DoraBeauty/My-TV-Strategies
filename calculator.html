@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DoraBeauty 費用試算系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #fdfaf0;
+            margin: 0; padding: 0;
+            overscroll-behavior-y: contain;
+            overflow-x: hidden; /* 防止愛心飄出產生卷軸 */
+        }
+        .tap:active { transform: scale(0.97); transition: 0.1s; }
+        .glass-card { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); }
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #d97706;
+            border-radius: 50%;
+            width: 20px; height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block; vertical-align: middle; margin-right: 8px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Modal 動畫與樣式 */
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal-animate { animation: modalFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .form-input {
+            width: 100%;
+            box-sizing: border-box; /* 核心修正：統一盒模型計算 */
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            font-size: 0.95rem;
+            color: #334155;
+            outline: none;
+            transition: all 0.2s;
+            margin: 0; /* 修正：移除預設外距 */
+            -webkit-appearance: none; /* 修正：移除 iOS 預設樣式 */
+            appearance: none;
+        }
+        .form-input:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+            background-color: #fff;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 0.4rem;
+        }
+        .section-title {
+            font-size: 1rem;
+            font-weight: 900;
+            color: #d97706;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        /* 隱藏 Scrollbar 但保持捲動 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Logo 特效動畫 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .logo-float { animation: float 6s ease-in-out infinite; }
+
+        /* 彩蛋愛心飄浮動畫 */
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg) scale(0.5); opacity: 0; }
+            10% { opacity: 1; transform: translateY(-20px) rotate(10deg) scale(1); }
+            100% { transform: translateY(-100vh) rotate(360deg) scale(1.2); opacity: 0; }
+        }
+        .heart-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            animation: floatUp 4s ease-in forwards;
+            font-size: 1.5rem;
+        }
+        /* 鼓勵小語 Toast */
+        .toast-enter { transform: translateY(20px); opacity: 0; }
+        .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
+        .toast-exit { transform: translateY(0); opacity: 1; }
+        .toast-exit-active { transform: translateY(-20px); opacity: 0; transition: all 0.3s ease-in; }
+
+        /* 自定義滑入動畫 (替代 tailwindcss-animate) */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-slide-up { animation: fadeSlideUp 0.5s ease-out forwards; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen text-pretty">
+
+    <!-- Return to Home Button -->
+    <a href="index.html" class="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-sm text-amber-600 px-4 py-2 rounded-full shadow-lg border border-amber-100 font-bold text-sm flex items-center gap-2 tap hover:bg-white transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        返回官網
+    </a>
+
+    <!-- Header -->
+    <header class="bg-amber-600 text-white pt-8 pb-24 rounded-b-[3.5rem] shadow-xl relative overflow-hidden text-center px-4">
+        <!-- 裝飾背景 -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+            <div class="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+            <div class="absolute top-10 -right-10 w-60 h-60 bg-amber-400/20 rounded-full blur-3xl"></div>
+        </div>
+
+        <div class="max-w-md mx-auto relative z-10 flex flex-col items-center">
+
+            <!-- 全新設計的 Logo 區塊 (含彩蛋觸發器) -->
+            <div class="relative group logo-float mb-1 select-none">
+                <!-- 1. 呼吸光暈 (Glow) -->
+                <div class="absolute -inset-2 bg-gradient-to-tr from-amber-200 to-pink-300 rounded-full blur opacity-40 animate-pulse group-hover:opacity-70 transition duration-500"></div>
+
+                <!-- 2. 圓形容器 + 邊框 -->
+                <div class="relative w-28 h-28 bg-white p-1.5 rounded-full shadow-[0_10px_30px_-5px_rgba(0,0,0,0.2)] flex items-center justify-center border-4 border-white/40 backdrop-blur-sm">
+                    <!-- 圖片 -->
+                    <img src="https://duk.tw/95wxTU.jpg" alt="DoraBeauty Logo" class="w-full h-full object-cover rounded-full border border-slate-100">
+                </div>
+
+                <!-- 3. 專業愛心徽章 (彩蛋開關) -->
+                <button id="easter-egg-btn" onclick="triggerLoveEgg(event)" class="absolute -bottom-2 -right-2 bg-gradient-to-br from-pink-500 to-rose-500 text-white p-2.5 rounded-full shadow-lg border-[3px] border-amber-600 flex items-center justify-center transform active:scale-90 hover:scale-110 transition-all duration-200 cursor-pointer z-20 outline-none ring-0 touch-manipulation">
+                     <svg id="heart-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="transition-transform duration-300"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+            </div>
+
+            <!-- 狀態標籤 -->
+            <div id="status-msg" class="inline-block px-5 py-1 bg-black/15 rounded-full text-[10px] font-bold uppercase tracking-widest leading-none mt-3 border border-white/10 backdrop-blur-md shadow-sm">系統就緒</div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-6 -mt-16 pb-20 relative z-20">
+        <div class="glass-card rounded-[3rem] p-8 shadow-2xl border border-white/60">
+
+            <!-- 問候語與提醒 -->
+            <div class="flex flex-col items-center text-center mb-8 mt-1">
+                <div class="w-16 h-16 bg-amber-100 rounded-[1.5rem] flex items-center justify-center text-amber-600 mb-4 shadow-sm border border-amber-200/30">
+                    <svg id="greet-icon-svg" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></svg>
+                </div>
+                <h2 id="big-greet" class="text-2xl font-black text-slate-800 tracking-tight leading-tight mb-3 italic">您好，辛苦的媽媽</h2>
+                <div class="bg-pink-50 p-5 rounded-[2rem] border border-pink-100 shadow-sm flex gap-3 items-start text-left w-full">
+                    <div class="bg-pink-500 p-1.5 rounded-full text-white shrink-0 mt-0.5 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </div>
+                    <p id="health-tip-content" class="text-sm text-pink-800 font-bold leading-relaxed italic opacity-95">正在準備貼心提醒...</p>
+                </div>
+            </div>
+
+            <!-- 地址輸入 -->
+            <div class="search-container mb-10 text-center">
+                <div class="flex items-center gap-2 mb-3 ml-2">
+                    <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse"></span>
+                    <p class="text-sm text-slate-500 font-black uppercase tracking-widest leading-none">到府服務地址</p>
+                </div>
+                <input id="addr-val" type="text" placeholder="輸入路名、社區或完整地址..." class="bg-slate-50 border-none rounded-[1.8rem] p-5 text-base font-bold outline-none focus:ring-2 focus:ring-amber-500 shadow-inner text-slate-700 w-full mb-5">
+                <button id="main-btn" onclick="handleSearch()" class="w-full bg-slate-800 text-white py-5 rounded-[1.8rem] font-black text-lg tap shadow-lg transition-all disabled:bg-slate-300">
+                    開始費用試算
+                </button>
+            </div>
+
+            <!-- 結果顯示區 -->
+            <div id="res-block" class="hidden mt-10 pt-10 border-t-2 border-dashed border-slate-100 fade-slide-up">
+                <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl border-t-4 border-amber-500">
+                    <div class="relative z-10 text-center">
+                        <p class="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">預估報價總額</p>
+                        <div class="flex items-baseline justify-center gap-1 mb-6">
+                            <span class="text-3xl text-amber-300 font-light">$</span>
+                            <span id="res-total" class="text-6xl font-black tracking-tighter">0</span>
+                        </div>
+
+                        <div class="space-y-4 border-t border-white/10 pt-6 text-sm text-left">
+                            <div class="flex justify-between items-center text-slate-400 font-bold tracking-tight">
+                                <span>基本服務費</span>
+                                <span class="text-slate-100 font-black text-base">$2,000</span>
+                            </div>
+                            <div class="flex justify-between items-center text-slate-400 font-bold tracking-tight">
+                                <span>里程車馬費 (<span id="res-dist" class="text-amber-400">0</span>km)</span>
+                                <span class="text-amber-400 font-black text-base">+$<span id="res-travel-fee">0</span></span>
+                            </div>
+                            <div class="bg-white/5 p-4 rounded-[1.5rem] mt-4 leading-relaxed border border-white/5 shadow-inner">
+                                <span class="text-amber-500 font-black text-xs uppercase block mb-1 tracking-widest">📍 預約地點</span>
+                                <div id="res-addr-container">
+                                     <span id="res-addr" class="text-white font-bold text-base break-words">--</span>
+                                </div>
+                                <div id="map-preview" class="w-full h-48 rounded-xl mt-4 bg-slate-800 hidden border border-white/10"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-3 mt-8">
+                            <button id="next-step-btn" onclick="openFormModal()" class="bg-amber-500 text-white py-5 rounded-2xl flex items-center justify-center gap-3 tap shadow-lg transition-all hover:bg-amber-400 w-full">
+                                <span class="text-lg font-black tracking-widest">下一步：填寫諮詢表單</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 費用說明區塊 -->
+        <div class="mt-8 p-6 bg-amber-50 rounded-[2.5rem] border border-amber-100 shadow-sm px-8">
+            <p class="text-xs text-amber-900 font-black mb-4 italic flex items-center gap-2 uppercase tracking-widest">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                服務費計費詳情
+            </p>
+            <ul class="text-sm text-amber-800 font-bold space-y-4 opacity-90 leading-relaxed">
+                <li class="flex justify-between items-center"><span>基本到府服務費</span><span class="text-amber-600 font-black">$2,000</span></li>
+                <li class="flex justify-between items-center border-t border-amber-200/50 pt-4"><span>來回里程 10km 內</span><span class="text-emerald-600 font-black font-black">免收車馬費</span></li>
+                <li class="flex justify-between items-center"><span>來回里程 10-20km</span><span class="text-amber-600 font-black">加收 $100</span></li>
+                <li class="flex justify-between items-center border-b border-amber-200/50 pb-4"><span>來回里程 20-30km</span><span class="text-amber-600 font-black">加收 $200</span></li>
+                <li class="text-[10px] text-slate-400 font-medium pt-2 text-center italic">※ 註：超過 10 公里後，每 10 公里加收 $100 元，以此類推。</li>
+            </ul>
+        </div>
+
+        <!-- 快速聯繫區塊 -->
+        <div class="mt-6 grid grid-cols-2 gap-4">
+            <a href="tel:0932122542" class="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2 tap transition-transform active:scale-95">
+                <div class="bg-slate-100 p-3 rounded-full text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                <span class="text-xs font-black text-slate-600">撥打電話</span>
+            </a>
+            <a href="https://line.me/R/ti/p/@bmy3560l" target="_blank" class="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2 tap transition-transform active:scale-95">
+                <div class="bg-[#06C755]/10 p-3 rounded-full text-[#06C755]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-4.587-4.825-8.317-10.764-8.317-5.938 0-10.764 3.73-10.764 8.317 0 4.108 3.821 7.545 8.995 8.21 0.35 0.075 0.825 0.231 0.945 0.531 0.108 0.273 0.071 0.7 0.035 0.976 0 0-0.128 0.772-0.156 0.938-0.047 0.272-0.219 1.065 0.944 0.582 1.163-0.483 6.279-3.698 8.564-6.335 1.564-1.801 2.205-3.555 2.205-4.902z"/></svg>
+                </div>
+                <span class="text-xs font-black text-slate-600">加 LINE 好友</span>
+            </a>
+        </div>
+    </main>
+
+    <!-- 諮詢表單 Modal -->
+    <div id="form-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[9999] overflow-hidden">
+        <div class="absolute inset-0 overflow-y-auto no-scrollbar py-10 px-4">
+            <div class="bg-white rounded-[2.5rem] w-full max-w-lg mx-auto modal-animate shadow-2xl relative min-h-[80vh]">
+
+                <!-- Modal Header -->
+                <div class="bg-amber-600 p-6 rounded-t-[2.5rem] flex justify-between items-center shadow-md">
+                    <div>
+                        <h3 class="text-white text-xl font-black">填寫諮詢資料</h3>
+                        <p class="text-amber-200 text-xs mt-1">Information Form</p>
+                    </div>
+                    <button onclick="closeFormModal()" class="bg-black/20 text-white p-2 rounded-full hover:bg-black/30 tap">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <!-- 隱私權聲明 -->
+                <div class="bg-amber-50 px-6 py-4 border-b border-amber-100">
+                    <p class="text-[10px] text-amber-800 leading-relaxed font-bold flex gap-2">
+                        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        個資保護聲明：本表單資料僅供 DoraBeauty 服務評估與聯繫使用，絕不外洩，請媽咪放心填寫。
+                    </p>
+                </div>
+
+                <!-- Form Content -->
+                <div class="p-6 sm:p-8 space-y-8">
+
+                    <!-- 1. 基本資料 -->
+                    <div class="space-y-4">
+                        <h4 class="section-title">
+                            <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span> 1. 媽咪基本資料
+                        </h4>
+                        <div>
+                            <label class="form-label">請問媽咪的姓名？</label>
+                            <input type="text" id="f-name" class="form-input" placeholder="例如：王小美">
+                        </div>
+                        <div>
+                            <label class="form-label">聯絡電話？</label>
+                            <input type="tel" id="f-phone" class="form-input" placeholder="09xx-xxx-xxx">
+                        </div>
+                    </div>
+
+                    <!-- 2. 生產資訊 (修正區塊) -->
+                    <div class="space-y-4">
+                        <h4 class="section-title">
+                            <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span> 2. 生產與哺乳經驗
+                        </h4>
+                        <!-- 維持手機垂直排列，確保不重疊 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="w-full min-w-0"> <!-- 加入 min-w-0 防止 grid item 溢出 -->
+                                <label class="form-label">生產日期</label>
+                                <!-- 移除 inline style，改用 Tailwind class 確保寬度一致 -->
+                                <input type="date" id="f-birthdate" class="form-input w-full max-w-full">
+                            </div>
+                            <div class="w-full min-w-0">
+                                <label class="form-label">生產方式</label>
+                                <select id="f-method" class="form-input w-full max-w-full">
+                                    <option value="自然產">自然產</option>
+                                    <option value="剖腹產">剖腹產</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">這是第幾胎？</label>
+                            <input type="text" id="f-parity" class="form-input" placeholder="例如：1">
+                        </div>
+                        <div>
+                            <label class="form-label">之前的哺乳經驗如何？</label>
+                            <textarea id="f-exp" class="form-input h-20 resize-none" placeholder="例如：第一胎親餵很順利，或這是第一胎無經驗"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 3. 地點資訊 -->
+                    <div class="space-y-4">
+                        <h4 class="section-title">
+                            <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span> 3. 所在位置
+                        </h4>
+                        <div>
+                            <label class="form-label">生產醫院</label>
+                            <input type="text" id="f-hospital" class="form-input" placeholder="例如：中國附醫">
+                        </div>
+                        <div>
+                            <label class="form-label">月子中心 (若在家請留空)</label>
+                            <input type="text" id="f-center" class="form-input" placeholder="例如：沁美產後護理之家">
+                        </div>
+                        <div>
+                            <label class="form-label">需要協助的地址 (可修改)</label>
+                            <textarea id="f-address" class="form-input h-20 resize-none"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 4. 寶寶資訊 -->
+                    <div class="space-y-4">
+                        <h4 class="section-title">
+                            <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span> 4. 寶寶資訊
+                        </h4>
+                        <!-- 同步修正：手機版垂直排列 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="form-label">出生體重</label>
+                                <input type="text" id="f-birth-weight" class="form-input" placeholder="例如：3000g">
+                            </div>
+                            <div>
+                                <label class="form-label">目前體重</label>
+                                <input type="text" id="f-current-weight" class="form-input" placeholder="例如：3200g">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. 餵奶狀況 -->
+                    <div class="space-y-4">
+                        <h4 class="section-title">
+                            <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span> 5. 目前餵奶方式 (選填)
+                        </h4>
+                        <!-- 手擠乳區塊 -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <p class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">A. 若有手擠乳</p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <input type="text" id="f-hand-freq" class="form-input text-sm" placeholder="頻率 (幾小時一次)">
+                                <input type="text" id="f-hand-vol" class="form-input text-sm" placeholder="一次擠奶量 (cc)">
+                            </div>
+                        </div>
+                        <!-- 親餵區塊 -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <p class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">B. 若有親餵</p>
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <input type="text" id="f-latch-freq" class="form-input text-sm" placeholder="頻率 (幾小時一次)">
+                                <input type="text" id="f-latch-duration" class="form-input text-sm" placeholder="一次餵多久 (分鐘)">
+                            </div>
+                            <input type="text" id="f-latch-feeling" class="form-input text-sm" placeholder="親餵感覺 (痛/順利/寶寶不含乳)">
+                        </div>
+                    </div>
+
+                    <!-- 6. 需求協助 -->
+                    <div class="space-y-4">
+                        <h4 class="section-title">
+                            <span class="w-1.5 h-5 bg-amber-500 rounded-full"></span> 6. 目前需要協助的問題
+                        </h4>
+                        <div>
+                            <label class="form-label">請描述目前狀況</label>
+                            <textarea id="f-issue" class="form-input h-24 resize-none" placeholder="例如：塞奶硬塊推不開、乳頭破皮疼痛..."></textarea>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="p-6 border-t border-slate-100 flex flex-col gap-2 rounded-b-[2.5rem]">
+                     <button onclick="submitFormToLine()" class="w-full bg-[#06C755] text-white py-4 rounded-2xl flex items-center justify-center gap-2 tap shadow-lg hover:bg-[#05b34c] transition-all">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" class="shrink-0"><path d="M24 10.304c0-4.587-4.825-8.317-10.764-8.317-5.938 0-10.764 3.73-10.764 8.317 0 4.108 3.821 7.545 8.995 8.21 0.35 0.075 0.825 0.231 0.945 0.531 0.108 0.273 0.071 0.7 0.035 0.976 0 0-0.128 0.772-0.156 0.938-0.047 0.272-0.219 1.065 0.944 0.582 1.163-0.483 6.279-3.698 8.564-6.335 1.564-1.801 2.205-3.555 2.205-4.902z"/></svg>
+                        <span class="text-lg font-black tracking-widest">複製資料並開啟 LINE</span>
+                    </button>
+                    <p class="text-[10px] text-slate-400 text-center">請於 LINE 聊天室「貼上」傳送即可</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center text-slate-300 text-xs tracking-[0.4em] uppercase py-12 font-black px-4">
+        DoraBeauty Maternal Pro v18.9
+    </footer>
+
+    <!-- 鼓勵小語 Toast 容器 -->
+    <div id="toast-container" class="fixed top-24 left-1/2 transform -translate-x-1/2 z-[10000] flex flex-col gap-2 items-center pointer-events-none w-full max-w-sm px-4"></div>
+
+    <script>
+        const GOOGLE_API_KEY = "AIzaSyAXSGaFCS3VcYghu3rUh4nmogf0qwJCuCo";
+        const CONFIG = {
+            brandName: "DoraBeauty",
+            lineId: "bmy3560l",
+            servicePhone: "0932122542",
+            storeLocation: "南投縣中寮鄉永福村10鄰永嘉新村23巷2弄38號",
+            storeLat: 23.895275, storeLng: 120.733264,
+            baseServiceFee: 2000, stepPrice: 100, freeAllowanceKm: 10
+        };
+
+        const MATERNAL_TIPS = [
+            "放鬆心情是幫助乳汁分泌的最佳良藥，媽媽辛苦了，記得多深呼吸唷！",
+            "正確的含乳姿勢可以避免乳頭受傷，讓哺餵過程更順利、更舒適。",
+            "產後記得多補充水分，溫開水對身體修復與母乳製造非常有幫助。"
+        ];
+
+        // 暖心鼓勵語錄 (彩蛋用)
+        const LOVE_QUOTES = [
+            "媽咪，您已經做得很棒了！❤️",
+            "因為有您，寶寶很幸福喔！👶",
+            "記得要給自己一個大大的擁抱！🫂",
+            "您的母愛是世界上最溫柔的力量 ✨",
+            "累的時候休息一下沒關係的 🌙",
+            "今天也要愛自己多一點喔！💖"
+        ];
+
+        let geocoder, distanceService, isGoogleReady = false;
+        let calculationResult = {
+            dist: 0, fee: 0, total: 0, rawAddress: "", source: ""
+        };
+
+        // --- 彩蛋功能邏輯 ---
+        function triggerLoveEgg(e) {
+            e.stopPropagation(); // 防止冒泡
+
+            // 1. 按鈕動畫
+            const btn = document.getElementById('easter-egg-btn');
+            const icon = document.getElementById('heart-icon');
+            icon.style.transform = "scale(1.4)";
+            setTimeout(() => icon.style.transform = "scale(1)", 200);
+
+            // 2. 產生隨機鼓勵小語 (Toast)
+            const quote = LOVE_QUOTES[Math.floor(Math.random() * LOVE_QUOTES.length)];
+            showLoveToast(quote);
+
+            // 3. 產生愛心雨
+            createHeartRain();
+        }
+
+        function showLoveToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-white/90 backdrop-blur-md text-pink-600 px-6 py-3 rounded-full shadow-xl border border-pink-100 font-bold text-sm tracking-wide toast-enter flex items-center gap-2';
+            toast.innerHTML = `<span class="text-xl">💝</span> ${msg}`;
+
+            container.appendChild(toast);
+
+            // 動畫進場
+            requestAnimationFrame(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-enter-active');
+            });
+
+            // 3秒後消失
+            setTimeout(() => {
+                toast.classList.remove('toast-enter-active');
+                toast.classList.add('toast-exit-active');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function createHeartRain() {
+            const heartColors = ['#ec4899', '#f43f5e', '#fb7185', '#fda4af', '#e11d48'];
+            const heartSymbols = ['❤', '💗', '💖', '✨', '🌸'];
+
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.className = 'heart-particle';
+                    heart.innerText = heartSymbols[Math.floor(Math.random() * heartSymbols.length)];
+                    heart.style.color = heartColors[Math.floor(Math.random() * heartColors.length)];
+                    heart.style.left = Math.random() * 100 + 'vw';
+                    heart.style.bottom = '-20px';
+                    // 隨機大小與速度
+                    const size = Math.random() * 1.5 + 1 + 'rem';
+                    const duration = Math.random() * 2 + 3 + 's';
+                    heart.style.fontSize = size;
+                    heart.style.animationDuration = duration;
+
+                    document.body.appendChild(heart);
+
+                    // 動畫結束後移除
+                    setTimeout(() => heart.remove(), 5000);
+                }, i * 100); // 錯開生成時間
+            }
+        }
+
+        // --- 以下為原有邏輯 ---
+
+        window.initGoogleServices = function() {
+            try {
+                geocoder = new google.maps.Geocoder();
+                distanceService = new google.maps.DistanceMatrixService();
+                new google.maps.places.Autocomplete(document.getElementById('addr-val'), {
+                    componentRestrictions: { country: "tw" },
+                    fields: ["formatted_address", "geometry"]
+                });
+                isGoogleReady = true; updateStatus("系統就緒");
+            } catch (e) { updateStatus("目前為備用模式"); }
+        };
+
+        window.handleSearch = () => {
+            const rawVal = document.getElementById('addr-val').value.trim();
+            if (!rawVal) return alert("請輸入地址");
+            const btn = document.getElementById('main-btn');
+            btn.disabled = true; btn.innerHTML = '<span class="loader"></span> 正在試算路徑...';
+
+            if (isGoogleReady && geocoder) {
+                geocoder.geocode({ address: rawVal, componentRestrictions: { country: 'tw' } }, (results, status) => {
+                    if (status === "OK" && results[0]) {
+                        calculateGoogleDistance(results[0].geometry.location, results[0].formatted_address);
+                    } else { useBackupSearch(rawVal); }
+                });
+            } else { useBackupSearch(rawVal); }
+        };
+
+        async function useBackupSearch(rawInput) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(rawInput)}&limit=1`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    calculateStandardDistance(parseFloat(data[0].lat), parseFloat(data[0].lon), rawInput);
+                } else { resetBtn(); alert("找不到該地址。"); }
+            } catch (e) { resetBtn(); alert("連線不穩。"); }
+        }
+
+        function calculateGoogleDistance(destLatLng, rawInput) {
+            distanceService.getDistanceMatrix({
+                origins: [{ lat: CONFIG.storeLat, lng: CONFIG.storeLng }],
+                destinations: [destLatLng],
+                travelMode: google.maps.TravelMode.DRIVING,
+                unitSystem: google.maps.UnitSystem.METRIC,
+            }, (response, status) => {
+                resetBtn();
+                if (status === "OK" && response.rows[0].elements[0].status === "OK") {
+                    let distanceKm = response.rows[0].elements[0].distance.value / 1000;
+                    if (distanceKm < 1.5 || rawInput.includes("永嘉新村")) distanceKm = 0;
+                    showResult(parseFloat((distanceKm * 2).toFixed(1)), rawInput, "Google Maps", destLatLng);
+                } else { calculateStandardDistance(destLatLng.lat(), destLatLng.lng(), rawInput); }
+            });
+        }
+
+        function calculateStandardDistance(lat, lng, rawInput) {
+            const R = 6371;
+            const dLat = (lat - CONFIG.storeLat) * Math.PI / 180;
+            const dLng = (lng - CONFIG.storeLng) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(CONFIG.storeLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            let d = R * c;
+            if (d < 1.5 || rawInput.includes("永嘉新村")) d = 0;
+            const roundTrip = parseFloat((d * 1.4 * 2).toFixed(1));
+            resetBtn();
+            showResult(roundTrip, rawInput, "備用機制", {lat: lat, lng: lng});
+        }
+
+        function showResult(dist, rawInput, source, location) {
+            let travelFee = 0;
+            if (dist > CONFIG.freeAllowanceKm) { travelFee = Math.ceil((dist - CONFIG.freeAllowanceKm) / 10) * CONFIG.stepPrice; }
+            const total = 2000 + travelFee;
+            calculationResult = { dist, fee: travelFee, total, rawAddress: rawInput, source };
+
+            document.getElementById('res-block').classList.remove('hidden');
+            document.getElementById('res-total').innerText = total.toLocaleString();
+            document.getElementById('res-dist').innerText = dist;
+            document.getElementById('res-travel-fee').innerText = travelFee;
+
+            let badgeClass = source === "Google Maps" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-amber-400 border-amber-500/30 bg-amber-500/10";
+            let badgeHtml = `<span class="inline-block ml-2 text-[10px] px-2 py-0.5 rounded-full border ${badgeClass} align-middle tracking-wider">${source}</span>`;
+            document.getElementById('res-addr').innerHTML = rawInput + badgeHtml;
+            document.getElementById('res-block').scrollIntoView({ behavior: 'smooth' });
+
+            const mapDiv = document.getElementById('map-preview');
+            if (mapDiv && location && window.google && window.google.maps) {
+                mapDiv.classList.remove('hidden');
+                const map = new google.maps.Map(mapDiv, {
+                    center: location,
+                    zoom: 15,
+                    disableDefaultUI: true,
+                    styles: [
+                        { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                        { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                        { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                        { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                        { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+                        { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] }
+                    ]
+                });
+                new google.maps.Marker({ position: location, map: map });
+            }
+        }
+
+        function resetBtn() {
+            const btn = document.getElementById('main-btn');
+            btn.disabled = false; btn.innerText = '開始費用試算';
+        }
+
+        function updateStatus(msg) { document.getElementById('status-msg').innerText = msg; }
+
+        window.openFormModal = () => {
+            if (calculationResult.total === 0) return alert("請先完成地址試算！");
+            document.getElementById('f-address').value = calculationResult.rawAddress;
+            const modal = document.getElementById('form-modal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeFormModal = () => {
+            const modal = document.getElementById('form-modal');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        };
+
+        window.submitFormToLine = () => {
+            const nameEl = document.getElementById('f-name');
+            const phoneEl = document.getElementById('f-phone');
+            const name = nameEl.value.trim();
+            const phoneRaw = phoneEl.value.replace(/-/g, '').trim();
+
+            // 重置錯誤樣式
+            nameEl.classList.remove('border-red-500', 'bg-red-50');
+            phoneEl.classList.remove('border-red-500', 'bg-red-50');
+
+            let isValid = true;
+            if (!name) {
+                nameEl.classList.add('border-red-500', 'bg-red-50');
+                isValid = false;
+            }
+            // 檢查電話：必須為 09 開頭且總長度為 10 碼 (去除去號後)
+            if (!phoneRaw || !/^09\d{8}$/.test(phoneRaw)) {
+                phoneEl.classList.add('border-red-500', 'bg-red-50');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                alert("請檢查「姓名」必填，且「聯絡電話」格式正確喔！(需為 09 開頭手機號碼)");
+                return;
+            }
+
+            const phone = phoneEl.value.trim();
+            const birthDate = document.getElementById('f-birthdate').value;
+            const method = document.getElementById('f-method').value;
+            const parity = document.getElementById('f-parity').value;
+            const exp = document.getElementById('f-exp').value;
+            const hospital = document.getElementById('f-hospital').value;
+            const center = document.getElementById('f-center').value;
+            const finalAddress = document.getElementById('f-address').value;
+            const issue = document.getElementById('f-issue').value;
+            const latchFeeling = document.getElementById('f-latch-feeling').value;
+
+            // --- 修正開始：自動補上單位邏輯 ---
+
+            // 定義一個小幫手函式：如果內容只有數字，就加上指定的單位
+            const addUnit = (val, unit) => {
+                if (!val) return '未填';
+                const strVal = String(val).trim();
+                // 正規表達式：檢查是否只包含數字和小數點
+                if (/^[\d.]+$/.test(strVal)) {
+                    return strVal + unit;
+                }
+                return strVal;
+            };
+
+            // 取得欄位值並套用單位
+            const f_birthWeight = addUnit(document.getElementById('f-birth-weight').value, 'g');
+            const f_currentWeight = addUnit(document.getElementById('f-current-weight').value, 'g');
+
+            const f_handFreq = addUnit(document.getElementById('f-hand-freq').value, '小時一次');
+            const f_handVol = addUnit(document.getElementById('f-hand-vol').value, 'cc');
+
+            const f_latchFreq = addUnit(document.getElementById('f-latch-freq').value, '小時一次');
+            const f_latchDuration = addUnit(document.getElementById('f-latch-duration').value, '分鐘');
+
+            let feedingDesc = "";
+
+            // 處理手擠乳資訊
+            if (f_handFreq !== '未填' || f_handVol !== '未填') {
+                feedingDesc += `\n   • 手擠乳：頻率「${f_handFreq}」，奶量「${f_handVol}」`;
+            }
+
+            // 處理親餵資訊
+            if (f_latchFreq !== '未填' || f_latchDuration !== '未填' || latchFeeling) {
+                feedingDesc += `\n   • 親餵：頻率「${f_latchFreq}」，時間「${f_latchDuration}」，感受「${latchFeeling || '未填'}」`;
+            }
+
+            if (!feedingDesc) feedingDesc = "尚未填寫";
+            // --- 修正結束 ---
+
+            const finalMessage = `您好，我想預約泌乳服務！\n\n【DoraBeauty 諮詢資料表】\n1. 媽咪資料\n👤 姓名：${name}\n📞 電話：${phone}\n\n2. 生產資訊\n📅 日期：${birthDate || '未填'}\n🏥 方式：${method} / 第 ${parity || '?'} 胎\n🍼 經驗：${exp || '無'}\n\n3. 地點\n🏠 地址：${finalAddress} (${calculationResult.source})\n🏥 醫院：${hospital || '未填'}\n🏨 月中：${center || '無'}\n\n4. 寶寶與餵奶\n👶 體重：出生 ${f_birthWeight}/ 目前 ${f_currentWeight}\n🥛 餵奶方式：${feedingDesc}\n\n5. 需求協助\n❓ 狀況：${issue || '當面說明'}\n\n-------------------\n【費用試算結果】\n🚗 預估路程：${calculationResult.dist} km\n💰 試算總額：$${calculationResult.total.toLocaleString()}\n(含基本費 $2,000 + 車馬費 $${calculationResult.fee})\n\n※ 資料僅供評估使用，實際報價以老師確認為主。`;
+
+            const fallbackCopy = (text) => {
+                const el = document.createElement('textarea');
+                el.value = text;
+                el.setAttribute('readonly', '');
+                el.style.position = 'absolute'; el.style.left = '-9999px';
+                document.body.appendChild(el);
+                el.select(); el.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                document.body.removeChild(el);
+            };
+
+            const proceed = () => {
+                closeFormModal();
+                const cleanId = CONFIG.lineId.replace('@','');
+                const encodedMsg = encodeURIComponent(finalMessage);
+                const autoFillUrl = `https://line.me/R/oaMessage/@${cleanId}/?${encodedMsg}`;
+
+                if (confirm("資料已複製！\n\n系統將嘗試自動帶入訊息至 LINE。\n\n若 LINE 開啟後文字未出現，請直接在對話框「貼上」即可。")) {
+                    window.location.href = autoFillUrl;
+                }
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(finalMessage)
+                    .then(proceed)
+                    .catch(() => {
+                        fallbackCopy(finalMessage);
+                        proceed();
+                    });
+            } else {
+                fallbackCopy(finalMessage);
+                proceed();
+            }
+        };
+
+        function setGreeting() {
+            const hour = new Date().getHours();
+            const sunPath = `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
+            const moonPath = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+            let currentPath = sunPath;
+            if (hour >= 5 && hour < 12) document.getElementById('big-greet').innerText = "早安，辛苦的媽媽";
+            else if (hour >= 12 && hour < 18) document.getElementById('big-greet').innerText = "午安，忙碌的下午";
+            else { document.getElementById('big-greet').innerText = "晚安，親愛的媽媽"; currentPath = moonPath; }
+            document.getElementById('greet-icon-svg').innerHTML = currentPath;
+        }
+
+        // Auto-save Logic
+        const FORM_IDS = [
+            'f-name', 'f-phone', 'f-birthdate', 'f-method', 'f-parity',
+            'f-exp', 'f-hospital', 'f-center', 'f-address',
+            'f-birth-weight', 'f-current-weight', 'f-hand-freq',
+            'f-hand-vol', 'f-latch-freq', 'f-latch-duration',
+            'f-latch-feeling', 'f-issue'
+        ];
+
+        function saveFormState() {
+            const data = {};
+            FORM_IDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) data[id] = el.value;
+            });
+            localStorage.setItem('dorabeauty_form_autosave', JSON.stringify(data));
+        }
+
+        function loadFormState() {
+            const saved = localStorage.getItem('dorabeauty_form_autosave');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    FORM_IDS.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && data[id] !== undefined) el.value = data[id];
+                    });
+                } catch (e) { console.error("Auto-load failed", e); }
+            }
+        }
+
+        function initAutoSave() {
+            FORM_IDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', saveFormState);
+                    el.addEventListener('change', saveFormState);
+                }
+            });
+        }
+
+        function formatPhoneNumber(e) {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length > 10) val = val.slice(0, 10);
+            if (val.length > 4) {
+                 val = val.slice(0, 4) + '-' + val.slice(4);
+            }
+            if (val.length > 8) {
+                 val = val.slice(0, 8) + '-' + val.slice(8);
+            }
+            e.target.value = val;
+        }
+
+        function initPhoneFormat() {
+            const phoneEl = document.getElementById('f-phone');
+            if (phoneEl) {
+                phoneEl.addEventListener('input', formatPhoneNumber);
+            }
+        }
+
+        window.onload = () => {
+            loadFormState();
+            initAutoSave();
+            initPhoneFormat();
+            setGreeting();
+            document.getElementById('health-tip-content').innerText = MATERNAL_TIPS[Math.floor(Math.random() * MATERNAL_TIPS.length)];
+            const script = document.createElement("script");
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places&callback=initGoogleServices&language=zh-TW`;
+            script.async = true; script.defer = true;
+            document.head.appendChild(script);
+        };
+    </script>
+</body>
+</html>
