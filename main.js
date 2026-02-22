@@ -35,10 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Define color themes
         const themes = {
-            'lavender': { bg: '#E6E6FA', text: '#4B0082', name: 'Relaxing Lavender' },
-            'mint': { bg: '#F0FFF0', text: '#2E8B57', name: 'Energizing Mint' },
-            'rose': { bg: '#FFE4E1', text: '#800000', name: 'Classic Rose' },
-            'ocean': { bg: '#F0F8FF', text: '#000080', name: 'Calm Ocean' }
+            'lavender': { bg: '#E6E6FA', text: '#4B0082', name: '放鬆薰衣草' },
+            'mint': { bg: '#F0FFF0', text: '#2E8B57', name: '活力薄荷' },
+            'rose': { bg: '#FFE4E1', text: '#800000', name: '經典玫瑰' },
+            'ocean': { bg: '#F0F8FF', text: '#000080', name: '寧靜海洋' }
         };
 
         colorButtons.forEach(btn => {
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (moodText) {
                         moodText.style.opacity = 0;
                         setTimeout(() => {
-                            moodText.textContent = `Current Mood: ${theme.name}`;
+                            moodText.textContent = `當前氛圍: ${theme.name}`;
                             moodText.style.opacity = 1;
                         }, 200);
                     }
@@ -81,12 +81,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = this.querySelector('button[type="submit"]');
             const originalText = btn.textContent;
 
-            btn.textContent = 'Sending...';
+            btn.textContent = '傳送中...';
             btn.disabled = true;
 
             // Simulate network delay
             setTimeout(() => {
-                alert('Thank you for your message! We will get back to you shortly.');
+                alert('感謝您的訊息！我們會盡快回覆您。');
                 this.reset();
                 btn.textContent = originalText;
                 btn.disabled = false;
