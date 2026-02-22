@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services | Elena's Care</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">Elena's Care</div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="services.html" class="active">Services</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="mobile-menu-btn">&#9776;</div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Page Title -->
+    <section class="section" style="background-color: var(--bg-color); text-align: center; padding-bottom: 20px;">
+        <div class="container">
+            <h1>Our Services</h1>
+            <p>Comprehensive care for your breastfeeding and postpartum recovery needs.</p>
+        </div>
+    </section>
+
+    <!-- Lactation Services -->
+    <section id="lactation" class="section">
+        <div class="container">
+            <h2 class="text-center" style="margin-bottom: 40px;">Lactation Consulting</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <h3>Initial Consultation</h3>
+                    <p class="price">$150 / 90 mins</p>
+                    <ul style="list-style: disc; margin-left: 20px; margin-top: 15px;">
+                        <li>Full history intake</li>
+                        <li>Breast exam & latch assessment</li>
+                        <li>Weighted feed</li>
+                        <li>Customized care plan</li>
+                    </ul>
+                    <a href="contact.html" class="btn btn-secondary" style="margin-top: 20px;">Book Now</a>
+                </div>
+                <div class="card">
+                    <h3>Follow-Up Visit</h3>
+                    <p class="price">$100 / 60 mins</p>
+                    <ul style="list-style: disc; margin-left: 20px; margin-top: 15px;">
+                        <li>Review of care plan</li>
+                        <li>Weight check for baby</li>
+                        <li>Adjustments to positioning</li>
+                        <li>Emotional support</li>
+                    </ul>
+                    <a href="contact.html" class="btn btn-secondary" style="margin-top: 20px;">Book Now</a>
+                </div>
+                <div class="card">
+                    <h3>Virtual Support</h3>
+                    <p class="price">$80 / 45 mins</p>
+                    <ul style="list-style: disc; margin-left: 20px; margin-top: 15px;">
+                        <li>Secure video call</li>
+                        <li>Q&A regarding pumping, supply, or weaning</li>
+                        <li>Perfect for quick check-ins</li>
+                    </ul>
+                    <a href="contact.html" class="btn btn-secondary" style="margin-top: 20px;">Book Now</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Body Sculpting Section with Interactive Visualizer -->
+    <section id="sculpting" class="section" style="background-color: #fff;">
+        <div class="container">
+            <h2 class="text-center" style="margin-bottom: 40px;">Medical-Grade Body Sculpting</h2>
+            <div class="grid-3" style="grid-template-columns: 1fr 1fr; align-items: center;">
+                <div>
+                    <h3>Postpartum Recovery Garment</h3>
+                    <p>Designed specifically for the postpartum body. Our garments provide gentle but firm compression to support abdominal muscle recovery (Diastasis Recti) and reduce swelling.</p>
+                    <p>Features:</p>
+                    <ul style="list-style: disc; margin-left: 20px; margin-bottom: 20px;">
+                        <li>Medical-grade compression fabric</li>
+                        <li>Breathable & moisture-wicking</li>
+                        <li>Adjustable hooks for changing size</li>
+                        <li>Discrete under clothing</li>
+                    </ul>
+                </div>
+
+                <!-- Interactive Visualizer Component -->
+                <div id="product-visualizer" class="text-center">
+                    <h3>Visualize Your Mood</h3>
+                    <p id="mood-text" style="transition: opacity 0.2s;">Select a theme to see the garment's vibe.</p>
+
+                    <img id="product-image" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" alt="Sculpting Garment" style="border-radius: 10px; margin: 20px auto; max-width: 80%; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+
+                    <div class="visualizer-controls">
+                        <button class="color-btn theme-lavender" data-theme="lavender" title="Relaxing Lavender" style="background-color: #E6E6FA;"></button>
+                        <button class="color-btn theme-mint" data-theme="mint" title="Energizing Mint" style="background-color: #F0FFF0;"></button>
+                        <button class="color-btn theme-rose" data-theme="rose" title="Classic Rose" style="background-color: #FFE4E1;"></button>
+                        <button class="color-btn theme-ocean" data-theme="ocean" title="Calm Ocean" style="background-color: #F0F8FF;"></button>
+                    </div>
+                    <p style="font-size: 0.8rem; margin-top: 10px; color: inherit;">* Click colors to change the theme</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col">
+                    <h3>Elena's Care</h3>
+                    <p>Supporting mothers with expert lactation advice and premium recovery wear.</p>
+                </div>
+                <div class="footer-col">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="services.html">Services</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3>Contact Us</h3>
+                    <p>📍 123 Wellness Blvd, Health City</p>
+                    <p>📧 contact@elenascare.com</p>
+                    <p>📞 (555) 123-4567</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 Elena's Care. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>
