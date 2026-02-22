@@ -3,23 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>體型雕塑與泌乳顧問服務</title>
+    <title>專業體雕與泌乳顧問 | 產後完美修復計畫</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div class="product-card">
-            <!-- 產品圖片：選用一張與女性健康、體態雕塑相關的示意圖 -->
-            <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" alt="體型雕塑衣展示" class="product-image">
+    <!-- Navigation (Optional but good for structure) -->
+    <nav class="navbar">
+        <div class="logo">MammaCare</div>
+        <ul class="nav-links">
+            <li><a href="#hero">首頁</a></li>
+            <li><a href="#lactation">泌乳顧問</a></li>
+            <li><a href="#sculpting">體雕塑身</a></li>
+            <li><a href="#why-us">為何選擇我們</a></li>
+        </ul>
+    </nav>
 
-            <div class="product-info">
-                <h2>完美曲線與產後護理</h2>
-                <p>專為產後媽媽設計的體雕衣與專業泌乳諮詢，重拾自信光彩。</p>
-            </div>
-
-            <button id="colorBtn">變換顏色</button>
+    <!-- Hero Section: The interactive part -->
+    <section id="hero" class="hero-section">
+        <div class="hero-content">
+            <h1>重拾自信光彩，綻放產後美麗</h1>
+            <p>專為產後媽媽打造的雙重呵護：專業泌乳諮詢 與 醫療級體雕衣</p>
+            <button id="colorBtn" class="cta-button">體驗色彩變換</button>
         </div>
-    </div>
+        <div class="hero-image-container">
+            <img src="https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="優雅女性形象" class="hero-image">
+        </div>
+    </section>
+
+    <!-- Lactation Consultant Section -->
+    <section id="lactation" class="feature-section">
+        <div class="container grid-layout">
+            <div class="text-content">
+                <h2>專業泌乳顧問 (IBCLC)</h2>
+                <p class="subtitle">讓哺乳不再疼痛，給寶寶最好的營養</p>
+                <ul class="benefit-list">
+                    <li><strong>無痛疏通技術：</strong> 告別石頭奶與乳腺炎的恐懼，手法輕柔有效。</li>
+                    <li><strong>親餵姿勢指導：</strong> 一對一教學，解決寶寶含乳不正確的問題。</li>
+                    <li><strong>產後乳腺照護：</strong> 定期保養，維持乳腺暢通，增加奶量分泌。</li>
+                    <li><strong>離乳規劃：</strong> 專業漸進式退奶，保護胸型不塌陷。</li>
+                </ul>
+            </div>
+            <div class="image-content">
+                <img src="https://images.unsplash.com/photo-1555252333-9f8e92e65df9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="溫馨哺乳指導" class="rounded-image">
+            </div>
+        </div>
+    </section>
+
+    <!-- Body Sculpting Section -->
+    <section id="sculpting" class="feature-section reverse-layout">
+        <div class="container grid-layout">
+            <div class="image-content">
+                <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="體雕衣展示" class="rounded-image">
+            </div>
+            <div class="text-content">
+                <h2>醫療級體雕衣</h2>
+                <p class="subtitle">針對產後身形設計，找回少女般的S曲線</p>
+                <ul class="benefit-list">
+                    <li><strong>腹直肌修復：</strong> 特殊加壓設計，輔助產後腹直肌閉合。</li>
+                    <li><strong>骨盆歸位：</strong> 改善產後骨盆前傾與變寬問題。</li>
+                    <li><strong>透氣親膚材質：</strong> 醫療級高彈力布料，穿著一整天也不悶熱。</li>
+                    <li><strong>提臀縮腹：</strong> 3D剪裁，瞬間提臀，收緊腰腹贅肉。</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose Us -->
+    <section id="why-us" class="why-us-section">
+        <div class="container">
+            <h2>為什麼選擇我們？</h2>
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>內外兼修</h3>
+                    <p>不僅關注外在體態的恢復，更重視內在泌乳系統的健康，提供全方位的產後護理。</p>
+                </div>
+                <div class="card">
+                    <h3>客製化方案</h3>
+                    <p>每位媽媽的體質與需求不同，我們量身打造專屬的泌乳與塑身計畫。</p>
+                </div>
+                <div class="card">
+                    <h3>專業團隊</h3>
+                    <p>由認證泌乳師與資深體雕設計師組成的團隊，給您最安心的服務。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials-section">
+        <div class="container">
+            <h2>媽媽們的真實見證</h2>
+            <div class="testimonial-slider">
+                <div class="testimonial">
+                    <p>「原本以為產後身材回不去了，沒想到穿了兩個月體雕衣，肚子真的平了！而且泌乳師手法超溫柔，救了我的塞奶地獄。」</p>
+                    <span>- 林小姐 (產後3個月)</span>
+                </div>
+                <div class="testimonial">
+                    <p>「很喜歡這邊的服務，不會強迫推銷。泌乳顧問教的親餵姿勢很實用，現在寶寶喝奶很順利！」</p>
+                    <span>- 張太太 (新手媽媽)</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 MammaCare 專業產後護理中心. All rights reserved.</p>
+    </footer>
 
     <script src="main.js"></script>
 </body>
