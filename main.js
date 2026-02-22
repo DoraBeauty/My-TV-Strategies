@@ -35,10 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Define color themes
         const themes = {
-            'lavender': { bg: '#E6E6FA', text: '#4B0082', name: '放鬆薰衣草' },
-            'mint': { bg: '#F0FFF0', text: '#2E8B57', name: '活力薄荷' },
-            'rose': { bg: '#FFE4E1', text: '#800000', name: '經典玫瑰' },
-            'ocean': { bg: '#F0F8FF', text: '#000080', name: '寧靜海洋' }
+            'nude': { bg: '#FFEBCD', text: '#5D4037', name: '隱形百搭膚' },
+            'black': { bg: '#333333', text: '#FFFFFF', name: '時尚神秘黑' },
+            'pink': { bg: '#FFB6C1', text: '#8B0000', name: '柔美氣質粉' },
+            'purple': { bg: '#E6E6FA', text: '#4B0082', name: '舒適薰衣草紫' }
         };
 
         colorButtons.forEach(btn => {
