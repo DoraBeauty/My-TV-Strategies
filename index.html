@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam 限免遊戲追蹤</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        steam: {
+                            bg: '#171d25',          /* Steam 整體背景深藍黑 */
+                            header: '#171a21',      /* 頂部導覽列色 */
+                            card: '#202d39',        /* 卡片底色，比背景稍亮 */
+                            text: '#c7d5e0',        /* 主要文字色 (淡灰藍) */
+                            highlight: '#66c0f4',   /* 強調文字色 (亮藍) */
+                            btnNormal: '#2a475e',   /* 按鈕漸層起始 (深藍) */
+                            btnHover: '#66c0f4',    /* 按鈕懸停 (亮藍) */
+                            green: '#a4d007'        /* 價格標籤綠色 */
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hidden-game {
+            display: none !important;
+        }
+        /* Loading 旋轉動畫 */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #66c0f4;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-steam-bg text-steam-text font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- 導覽列 -->
+    <header class="bg-steam-header shadow-md">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-2xl font-bold text-white mb-4 md:mb-0">
+                <span class="text-steam-highlight">Steam</span> 限免遊戲追蹤
+            </h1>
+
+            <!-- 開關 Toggle -->
+            <div class="flex items-center space-x-3 bg-steam-card px-4 py-2 rounded-lg">
+                <span class="text-sm">顯示永久免費遊戲</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="showFreeGamesToggle" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-steam-highlight"></div>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容 -->
+    <main class="container mx-auto px-4 py-8 flex-grow">
+
+        <!-- 狀態提示區 (Loading, Error, Empty) -->
+        <div id="statusArea" class="max-w-2xl mx-auto mt-8">
+            <!-- Loading -->
+            <div id="loadingMsg" class="flex flex-col items-center justify-center py-12">
+                <div class="loader mb-4"></div>
+                <p class="text-steam-text text-lg">正在載入最新限免資訊...</p>
+            </div>
+
+            <!-- Error -->
+            <div id="errorMsg" class="hidden bg-red-900/50 border border-red-500 text-red-200 px-6 py-4 rounded-lg text-center">
+                <p class="text-lg">無法獲取限免遊戲清單，請稍後再試。</p>
+            </div>
+
+            <!-- Empty (No Games from API at all) -->
+            <div id="emptyMsg" class="hidden bg-steam-card border border-steam-btnNormal px-6 py-8 rounded-lg text-center">
+                <p class="text-xl text-steam-highlight mb-2">目前尚無免費遊戲</p>
+                <p class="text-steam-text">請稍後再來查看最新限免資訊！</p>
+            </div>
+        </div>
+
+        <!-- 遊戲卡片網格 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden" id="gamesGrid">
+            <!-- 卡片會由 JS 動態生成插入於此 -->
+        </div>
+
+        <!-- 當所有卡片都被 Toggle 隱藏時的提示 -->
+        <div id="noVisibleGamesMessage" class="hidden bg-steam-card border border-steam-btnNormal px-6 py-8 rounded-lg text-center max-w-2xl mx-auto mt-8">
+            <p class="text-xl text-steam-highlight mb-2">目前沒有限時免費遊戲</p>
+            <p class="text-steam-text">你可以打開右上角的開關，查看永久免費的遊戲。</p>
+        </div>
+
+    </main>
+
+    <footer class="bg-steam-header py-6 mt-auto">
+        <div class="container mx-auto px-4 text-center text-sm text-gray-500">
+            <p>資料來源：<a href="https://apidocs.cheapshark.com/" target="_blank" class="hover:text-white transition-colors">CheapShark API</a></p>
+            <p class="mt-1">非 Steam 官方網站，僅供資訊參考使用。</p>
+        </div>
+    </footer>
+
+    <!-- 邏輯控制腳本 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggle = document.getElementById('showFreeGamesToggle');
+            const gamesGrid = document.getElementById('gamesGrid');
+            const statusArea = document.getElementById('statusArea');
+            const loadingMsg = document.getElementById('loadingMsg');
+            const errorMsg = document.getElementById('errorMsg');
+            const emptyMsg = document.getElementById('emptyMsg');
+            const noVisibleMsg = document.getElementById('noVisibleGamesMessage');
+
+            // 抓取資料
+            fetch('https://www.cheapshark.com/api/1.0/deals?storeID=1&upperPrice=0')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    loadingMsg.classList.add('hidden');
+
+                    if (data && data.length > 0) {
+                        renderGames(data);
+                        gamesGrid.classList.remove('hidden');
+                        updateVisibility(); // 初始化檢查一次 Toggle 狀態
+                    } else {
+                        emptyMsg.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch Error:', error);
+                    loadingMsg.classList.add('hidden');
+                    errorMsg.classList.remove('hidden');
+                });
+
+            // 渲染遊戲卡片
+            function renderGames(games) {
+                gamesGrid.innerHTML = ''; // 清空
+
+                games.forEach(game => {
+                    const normalPrice = parseFloat(game.normalPrice);
+                    const isPermanentFree = (normalPrice === 0.0);
+                    const tagText = isPermanentFree ? '免費' : '100% OFF';
+                    const dataPermanentFree = isPermanentFree ? 'true' : 'false';
+
+                    const cardHTML = `
+                        <div class="game-card bg-steam-card rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col"
+                             data-permanent-free="${dataPermanentFree}">
+
+                            <div class="relative h-48 w-full bg-black">
+                                <img src="${game.thumb}" alt="${game.title} 封面" class="w-full h-full object-cover">
+                                <div class="absolute top-2 right-2 bg-steam-green text-[#000000] font-bold px-2 py-1 rounded text-sm shadow-md">
+                                    ${tagText}
+                                </div>
+                            </div>
+
+                            <div class="p-4 flex flex-col flex-grow">
+                                <h2 class="text-lg font-bold text-white mb-2 line-clamp-2" title="${game.title}">${game.title}</h2>
+
+                                <div class="mt-auto pt-4 flex items-end justify-between">
+                                    <div>
+                                        <p class="text-xs text-gray-400 mb-1">原價</p>
+                                        <p class="text-sm text-gray-500 line-through bg-gray-800 px-2 py-0.5 rounded inline-block">
+                                            $${game.normalPrice}
+                                        </p>
+                                    </div>
+
+                                    <a href="https://store.steampowered.com/app/${game.steamAppID}"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="bg-gradient-to-r from-steam-btnNormal to-steam-btnHover hover:from-steam-btnHover hover:to-blue-400 text-white font-medium px-4 py-2 rounded transition-colors duration-200 text-sm whitespace-nowrap ml-2">
+                                        前往 Steam 領取
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    gamesGrid.insertAdjacentHTML('beforeend', cardHTML);
+                });
+            }
+
+            // 更新顯示狀態 (Toggle 邏輯)
+            function updateVisibility() {
+                const gameCards = document.querySelectorAll('.game-card');
+                if (gameCards.length === 0) return; // 還沒資料時不處理
+
+                const showPermanentFree = toggle.checked;
+                let visibleCount = 0;
+
+                gameCards.forEach(card => {
+                    const isPermanentFree = card.getAttribute('data-permanent-free') === 'true';
+
+                    if (isPermanentFree && !showPermanentFree) {
+                        card.classList.add('hidden-game');
+                    } else {
+                        card.classList.remove('hidden-game');
+                        visibleCount++;
+                    }
+                });
+
+                if (visibleCount === 0) {
+                    noVisibleMsg.classList.remove('hidden');
+                } else {
+                    noVisibleMsg.classList.add('hidden');
+                }
+            }
+
+            // 監聽開關變化
+            toggle.addEventListener('change', updateVisibility);
+        });
+    </script>
+</body>
+</html>
