@@ -1,0 +1,16 @@
+{
+  "name": "Steam 限免遊戲追蹤",
+  "short_name": "Steam 限免",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#171d25",
+  "theme_color": "#171d25",
+  "icons": [
+    {
+      "src": "icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
