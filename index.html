@@ -37,16 +37,6 @@
         .hidden-game {
             display: none !important;
         }
-        /* Loading 旋轉動畫 */
-        .loader {
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: #66c0f4;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-steam-bg text-steam-text font-sans antialiased min-h-screen flex flex-col">
@@ -59,6 +49,16 @@
             </h1>
 
             <div class="flex flex-col md:flex-row items-center gap-4">
+                <!-- 排序篩選 -->
+                <div class="flex items-center space-x-2 bg-steam-card px-3 py-2 rounded-lg">
+                    <span class="text-sm">排序：</span>
+                    <select id="sortFilter" class="bg-steam-header text-white text-sm rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-steam-highlight">
+                        <option value="default">預設</option>
+                        <option value="savings">原價最高</option>
+                        <option value="rating">評價最高</option>
+                    </select>
+                </div>
+
                 <!-- 商店篩選 -->
                 <div class="flex items-center space-x-2 bg-steam-card px-3 py-2 rounded-lg">
                     <span class="text-sm">商店：</span>
@@ -86,10 +86,28 @@
 
         <!-- 狀態提示區 (Loading, Error, Empty) -->
         <div id="statusArea" class="max-w-2xl mx-auto mt-8">
-            <!-- Loading -->
-            <div id="loadingMsg" class="flex flex-col items-center justify-center py-12">
-                <div class="loader mb-4"></div>
-                <p class="text-steam-text text-lg">正在載入最新限免資訊...</p>
+            <!-- 骨架屏載入動畫 (Skeleton Loading) -->
+            <div id="loadingMsg" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl mx-auto">
+                <!-- 產生 8 個骨架卡片 -->
+                <script>
+                    for(let i=0; i<8; i++){
+                        document.write(`
+                            <div class="bg-steam-card rounded-lg overflow-hidden shadow-lg animate-pulse h-80 flex flex-col">
+                                <div class="h-48 w-full bg-gray-700"></div>
+                                <div class="p-4 flex flex-col flex-grow">
+                                    <div class="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
+                                    <div class="mt-auto flex justify-between items-end">
+                                        <div>
+                                            <div class="h-3 bg-gray-700 rounded w-8 mb-2"></div>
+                                            <div class="h-4 bg-gray-700 rounded w-12"></div>
+                                        </div>
+                                        <div class="h-8 bg-gray-700 rounded w-20"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                    }
+                </script>
             </div>
 
             <!-- Error -->
@@ -127,6 +145,9 @@
     <!-- 邏輯控制腳本 -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            let globalGamesData = []; // 保存原始資料供排序使用
+
+            const sortFilter = document.getElementById('sortFilter');
             const toggle = document.getElementById('showFreeGamesToggle');
             const storeFilter = document.getElementById('storeFilter');
             const gamesGrid = document.getElementById('gamesGrid');
@@ -148,7 +169,8 @@
                     loadingMsg.classList.add('hidden');
 
                     if (data && data.length > 0) {
-                        renderGames(data);
+                        globalGamesData = data; // 保存資料
+                        renderGames(globalGamesData);
 
                         // 檢查是否有任何永久免費遊戲，如果有的話才顯示 Toggle
                         const hasPermanentFree = data.some(game => parseFloat(game.normalPrice) === 0.0);
@@ -167,6 +189,23 @@
                     loadingMsg.classList.add('hidden');
                     errorMsg.classList.remove('hidden');
                 });
+
+            // 翻譯 Steam 評價
+            function translateSteamRating(ratingText) {
+                if (!ratingText) return null;
+                const dict = {
+                    "Overwhelmingly Positive": "壓倒性好評",
+                    "Very Positive": "極度好評",
+                    "Positive": "好評",
+                    "Mostly Positive": "大多好評",
+                    "Mixed": "褒貶不一",
+                    "Mostly Negative": "大多負評",
+                    "Negative": "負評",
+                    "Very Negative": "極度負評",
+                    "Overwhelmingly Negative": "壓倒性負評"
+                };
+                return dict[ratingText] || ratingText;
+            }
 
             // 渲染遊戲卡片
             function renderGames(games) {
@@ -201,7 +240,21 @@
                             <div class="p-4 flex flex-col flex-grow">
                                 <h2 class="text-lg font-bold text-white mb-2 line-clamp-2" title="${game.title}">${game.title}</h2>
 
-                                <div class="mt-auto pt-4 flex items-end justify-between">
+                                <!-- 評價區塊 -->
+                                <div class="mb-3">
+                                    ${
+                                        (game.steamRatingPercent && game.steamRatingPercent !== "0" && game.steamRatingText)
+                                        ? `<span class="inline-flex items-center space-x-1 text-xs px-2 py-1 rounded bg-[#1b2838] border border-[#2a475e]">
+                                             <span class="${parseInt(game.steamRatingPercent) >= 70 ? 'text-[#66c0f4]' : (parseInt(game.steamRatingPercent) >= 40 ? 'text-yellow-500' : 'text-red-500')} font-medium">
+                                                ${translateSteamRating(game.steamRatingText)}
+                                             </span>
+                                             <span class="text-gray-400">(${game.steamRatingPercent}%)</span>
+                                           </span>`
+                                        : `<span class="inline-flex text-xs px-2 py-1 rounded bg-gray-800 text-gray-500 border border-gray-700">無評價資料</span>`
+                                    }
+                                </div>
+
+                                <div class="mt-auto pt-4 flex items-end justify-between border-t border-gray-700">
                                     <div>
                                         <p class="text-xs text-gray-400 mb-1">原價</p>
                                         <p class="text-sm text-gray-500 line-through bg-gray-800 px-2 py-0.5 rounded inline-block">
@@ -261,7 +314,29 @@
                 }
             }
 
-            // 監聽開關變化
+            // 處理排序邏輯
+            function handleSort() {
+                const sortType = sortFilter.value;
+                let sortedData = [...globalGamesData]; // 複製一份陣列
+
+                if (sortType === 'savings') {
+                    // 原價最高 (因為現在全免費，所以 normalPrice 越高代表省越多)
+                    sortedData.sort((a, b) => parseFloat(b.normalPrice) - parseFloat(a.normalPrice));
+                } else if (sortType === 'rating') {
+                    // 評價最高 (steamRatingPercent)
+                    sortedData.sort((a, b) => {
+                        const ratingA = parseInt(a.steamRatingPercent) || 0;
+                        const ratingB = parseInt(b.steamRatingPercent) || 0;
+                        return ratingB - ratingA;
+                    });
+                }
+
+                renderGames(sortedData);
+                updateVisibility(); // 重新渲染後需要再次套用過濾條件
+            }
+
+            // 監聽變化
+            sortFilter.addEventListener('change', handleSort);
             toggle.addEventListener('change', updateVisibility);
             storeFilter.addEventListener('change', updateVisibility);
         });
