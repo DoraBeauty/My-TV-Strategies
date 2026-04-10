@@ -66,6 +66,13 @@
                         <option value="all">全部</option>
                         <option value="1">僅 Steam</option>
                         <option value="25">僅 Epic</option>
+                        <option value="7">僅 GOG</option>
+                        <option value="11">僅 Humble Store</option>
+                        <option value="13">僅 Uplay</option>
+                        <option value="15">僅 Fanatical</option>
+                        <option value="30">僅 IndieGala</option>
+                        <option value="3">僅 GMG</option>
+                        <option value="other">其他</option>
                     </select>
                 </div>
 
@@ -130,7 +137,7 @@
         <!-- 當所有卡片都被 Toggle 隱藏時的提示 -->
         <div id="noVisibleGamesMessage" class="hidden bg-steam-card border border-steam-btnNormal px-6 py-8 rounded-lg text-center max-w-2xl mx-auto mt-8">
             <p class="text-xl text-steam-highlight mb-2">目前沒有限時免費遊戲</p>
-            <p class="text-steam-text">你可以打開右上角的開關，查看永久免費的遊戲。</p>
+            <p class="text-steam-text">請稍後再來查看，或切換其他商店篩選條件。</p>
         </div>
 
     </main>
@@ -158,7 +165,7 @@
             const noVisibleMsg = document.getElementById('noVisibleGamesMessage');
 
             // 抓取資料
-            fetch('https://www.cheapshark.com/api/1.0/deals?storeID=1,25&upperPrice=0')
+            fetch('https://www.cheapshark.com/api/1.0/deals?upperPrice=0')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -219,11 +226,46 @@
                     const storeID = game.storeID;
 
                     let storeBadgeHTML = '';
+                    let storeName = '';
+                    let bgColor = 'bg-[#313131]'; // Default dark grey
+                    let borderColor = 'border-[#4a4a4a]';
+
                     if (storeID === '1') {
-                        storeBadgeHTML = `<div class="absolute top-2 left-2 bg-[#1b2838] text-white text-xs font-bold px-2 py-1 rounded shadow-md border border-[#2a475e]">Steam</div>`;
+                        storeName = 'Steam';
+                        bgColor = 'bg-[#1b2838]';
+                        borderColor = 'border-[#2a475e]';
                     } else if (storeID === '25') {
-                        storeBadgeHTML = `<div class="absolute top-2 left-2 bg-[#313131] text-white text-xs font-bold px-2 py-1 rounded shadow-md border border-[#4a4a4a]">Epic</div>`;
+                        storeName = 'Epic';
+                        bgColor = 'bg-[#313131]'; // Dark greyish
+                    } else if (storeID === '7') {
+                        storeName = 'GOG';
+                        bgColor = 'bg-[#5c2b99]'; // GOG Purple
+                        borderColor = 'border-[#7a3bc7]';
+                    } else if (storeID === '11') {
+                        storeName = 'Humble Store';
+                        bgColor = 'bg-[#cb2c31]'; // Humble Red
+                        borderColor = 'border-[#e03d42]';
+                    } else if (storeID === '13') {
+                        storeName = 'Uplay';
+                        bgColor = 'bg-[#0070ff]'; // Uplay Blue
+                        borderColor = 'border-[#1a7dff]';
+                    } else if (storeID === '15') {
+                        storeName = 'Fanatical';
+                        bgColor = 'bg-[#d6411f]'; // Fanatical Orange
+                        borderColor = 'border-[#ed5a3b]';
+                    } else if (storeID === '30') {
+                        storeName = 'IndieGala';
+                        bgColor = 'bg-[#e53935]'; // IndieGala Red
+                        borderColor = 'border-[#f44336]';
+                    } else if (storeID === '3') {
+                        storeName = 'GMG';
+                        bgColor = 'bg-[#7eb238]'; // GreenManGaming Green
+                        borderColor = 'border-[#8fc24a]';
+                    } else {
+                        storeName = 'Other Store';
                     }
+
+                    storeBadgeHTML = `<div class="absolute top-2 left-2 ${bgColor} text-white text-xs font-bold px-2 py-1 rounded shadow-md border ${borderColor}">${storeName}</div>`;
 
                     const cardHTML = `
                         <div class="game-card bg-steam-card rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col"
@@ -238,7 +280,7 @@
                             </div>
 
                             <div class="p-4 flex flex-col flex-grow">
-                                <h2 class="text-lg font-bold text-white mb-2 line-clamp-2" title="${game.title}">${game.title}</h2>
+                                <h2 class="text-lg font-bold text-white mb-2 line-clamp-2" title="${game.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;')}">${game.title}</h2>
 
                                 <!-- 評價區塊 -->
                                 <div class="mb-3">
@@ -295,8 +337,15 @@
                         isVisible = false;
                     }
 
-                    if (selectedStore !== 'all' && storeID !== selectedStore) {
-                        isVisible = false;
+                    if (selectedStore !== 'all') {
+                        if (selectedStore === 'other') {
+                            const knownStores = ['1', '25', '7', '11', '13', '15', '30', '3'];
+                            if (knownStores.includes(storeID)) {
+                                isVisible = false;
+                            }
+                        } else if (storeID !== selectedStore) {
+                            isVisible = false;
+                        }
                     }
 
                     if (!isVisible) {
