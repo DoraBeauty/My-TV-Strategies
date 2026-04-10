@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steam 限免遊戲追蹤</title>
+    <title>跨平台限免遊戲追蹤</title>
 
     <!-- PWA & 主畫面圖示設定 -->
     <link rel="icon" type="image/jpeg" href="icon.jpg">
@@ -55,16 +55,28 @@
     <header class="bg-steam-header shadow-md">
         <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
             <h1 class="text-2xl font-bold text-white mb-4 md:mb-0">
-                <span class="text-steam-highlight">Steam</span> 限免遊戲追蹤
+                <span class="text-steam-highlight">跨平台</span> 限免遊戲追蹤
             </h1>
 
-            <!-- 開關 Toggle -->
-            <div class="flex items-center space-x-3 bg-steam-card px-4 py-2 rounded-lg">
-                <span class="text-sm">顯示永久免費遊戲</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="showFreeGamesToggle" class="sr-only peer" checked>
-                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-steam-highlight"></div>
-                </label>
+            <div class="flex flex-col md:flex-row items-center gap-4">
+                <!-- 商店篩選 -->
+                <div class="flex items-center space-x-2 bg-steam-card px-3 py-2 rounded-lg">
+                    <span class="text-sm">商店：</span>
+                    <select id="storeFilter" class="bg-steam-header text-white text-sm rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-steam-highlight">
+                        <option value="all">全部</option>
+                        <option value="1">僅 Steam</option>
+                        <option value="25">僅 Epic</option>
+                    </select>
+                </div>
+
+                <!-- 開關 Toggle -->
+                <div class="flex items-center space-x-3 bg-steam-card px-4 py-2 rounded-lg">
+                    <span class="text-sm">顯示永久免費遊戲</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="showFreeGamesToggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-steam-highlight"></div>
+                    </label>
+                </div>
             </div>
         </div>
     </header>
@@ -108,7 +120,7 @@
     <footer class="bg-steam-header py-6 mt-auto">
         <div class="container mx-auto px-4 text-center text-sm text-gray-500">
             <p>資料來源：<a href="https://apidocs.cheapshark.com/" target="_blank" class="hover:text-white transition-colors">CheapShark API</a></p>
-            <p class="mt-1">非 Steam 官方網站，僅供資訊參考使用。</p>
+            <p class="mt-1">非各平台官方網站，僅供資訊參考使用。</p>
         </div>
     </footer>
 
@@ -116,6 +128,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const toggle = document.getElementById('showFreeGamesToggle');
+            const storeFilter = document.getElementById('storeFilter');
             const gamesGrid = document.getElementById('gamesGrid');
             const statusArea = document.getElementById('statusArea');
             const loadingMsg = document.getElementById('loadingMsg');
@@ -124,7 +137,7 @@
             const noVisibleMsg = document.getElementById('noVisibleGamesMessage');
 
             // 抓取資料
-            fetch('https://www.cheapshark.com/api/1.0/deals?storeID=1&upperPrice=0')
+            fetch('https://www.cheapshark.com/api/1.0/deals?storeID=1,25&upperPrice=0')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -157,13 +170,22 @@
                     const isPermanentFree = (normalPrice === 0.0);
                     const tagText = isPermanentFree ? '免費' : '100% OFF';
                     const dataPermanentFree = isPermanentFree ? 'true' : 'false';
+                    const storeID = game.storeID;
+
+                    let storeBadgeHTML = '';
+                    if (storeID === '1') {
+                        storeBadgeHTML = `<div class="absolute top-2 left-2 bg-[#1b2838] text-white text-xs font-bold px-2 py-1 rounded shadow-md border border-[#2a475e]">Steam</div>`;
+                    } else if (storeID === '25') {
+                        storeBadgeHTML = `<div class="absolute top-2 left-2 bg-[#313131] text-white text-xs font-bold px-2 py-1 rounded shadow-md border border-[#4a4a4a]">Epic</div>`;
+                    }
 
                     const cardHTML = `
                         <div class="game-card bg-steam-card rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col"
-                             data-permanent-free="${dataPermanentFree}">
+                             data-permanent-free="${dataPermanentFree}" data-store-id="${storeID}">
 
                             <div class="relative h-48 w-full bg-black">
                                 <img src="${game.thumb}" alt="${game.title} 封面" class="w-full h-full object-cover">
+                                ${storeBadgeHTML}
                                 <div class="absolute top-2 right-2 bg-steam-green text-[#000000] font-bold px-2 py-1 rounded text-sm shadow-md">
                                     ${tagText}
                                 </div>
@@ -180,11 +202,11 @@
                                         </p>
                                     </div>
 
-                                    <a href="https://store.steampowered.com/app/${game.steamAppID}"
+                                    <a href="https://www.cheapshark.com/redirect?dealID=${game.dealID}"
                                        target="_blank"
                                        rel="noopener noreferrer"
                                        class="bg-gradient-to-r from-steam-btnNormal to-steam-btnHover hover:from-steam-btnHover hover:to-blue-400 text-white font-medium px-4 py-2 rounded transition-colors duration-200 text-sm whitespace-nowrap ml-2">
-                                        前往 Steam 領取
+                                        前往領取
                                     </a>
                                 </div>
                             </div>
@@ -200,12 +222,24 @@
                 if (gameCards.length === 0) return; // 還沒資料時不處理
 
                 const showPermanentFree = toggle.checked;
+                const selectedStore = storeFilter.value;
                 let visibleCount = 0;
 
                 gameCards.forEach(card => {
                     const isPermanentFree = card.getAttribute('data-permanent-free') === 'true';
+                    const storeID = card.getAttribute('data-store-id');
+
+                    let isVisible = true;
 
                     if (isPermanentFree && !showPermanentFree) {
+                        isVisible = false;
+                    }
+
+                    if (selectedStore !== 'all' && storeID !== selectedStore) {
+                        isVisible = false;
+                    }
+
+                    if (!isVisible) {
                         card.classList.add('hidden-game');
                     } else {
                         card.classList.remove('hidden-game');
@@ -222,6 +256,7 @@
 
             // 監聽開關變化
             toggle.addEventListener('change', updateVisibility);
+            storeFilter.addEventListener('change', updateVisibility);
         });
     </script>
 </body>
