@@ -38,6 +38,24 @@
             display: none !important;
         }
     </style>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #171d25;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2a475e;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #66c0f4;
+        }
+    </style>
+
 </head>
 <body class="bg-steam-bg text-steam-text font-sans antialiased min-h-screen flex flex-col">
 
@@ -49,6 +67,15 @@
             </h1>
 
             <div class="flex flex-col md:flex-row items-center gap-4">
+
+            <!-- 行事曆按鈕 -->
+            <button id="openCalendarBtn" class="bg-steam-header hover:bg-[#2a475e] text-steam-blue text-sm px-3 py-2 rounded flex items-center gap-2 border border-transparent focus:outline-none focus:border-steam-highlight transition-colors mr-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="hidden sm:inline">特賣行事曆</span>
+            </button>
+
                 <!-- 排序篩選 -->
                 <div class="flex items-center space-x-2 bg-steam-card px-3 py-2 rounded-lg">
                     <span class="text-sm">排序：</span>
@@ -59,22 +86,66 @@
                     </select>
                 </div>
 
-                <!-- 商店篩選 -->
-                <div class="flex items-center space-x-2 bg-steam-card px-3 py-2 rounded-lg">
+
+                <!-- 商店篩選 (Custom Dropdown) -->
+                <div class="flex items-center space-x-2 relative bg-steam-card px-3 py-2 rounded-lg" id="customStoreDropdown">
                     <span class="text-sm">商店：</span>
-                    <select id="storeFilter" class="bg-steam-header text-white text-sm rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-steam-highlight">
-                        <option value="all">全部</option>
-                        <option value="1">僅 Steam</option>
-                        <option value="25">僅 Epic</option>
-                        <option value="7">僅 GOG</option>
-                        <option value="11">僅 Humble Store</option>
-                        <option value="13">僅 Uplay</option>
-                        <option value="15">僅 Fanatical</option>
-                        <option value="30">僅 IndieGala</option>
-                        <option value="3">僅 GMG</option>
-                        <option value="other">其他</option>
-                    </select>
+                    <button id="storeDropdownBtn" class="bg-steam-header hover:bg-[#2a475e] text-white text-sm rounded px-3 py-1.5 flex items-center justify-between min-w-[140px] focus:outline-none transition-colors border border-transparent focus:border-steam-highlight">
+                        <span id="storeDropdownText" class="flex items-center gap-2">
+                            <span class="w-4 h-4 bg-gray-500 rounded-full inline-block"></span> 全部
+                        </span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div id="storeDropdownMenu" class="absolute top-full right-0 mt-2 w-48 bg-[#171d25] border border-[#2a475e] rounded shadow-xl hidden z-40 overflow-hidden">
+                        <ul class="text-sm text-gray-300 max-h-60 overflow-y-auto custom-scrollbar">
+                            <li data-value="all" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <span class="w-4 h-4 bg-gray-500 rounded-full inline-block"></span> 全部
+                            </li>
+                            <li data-value="1" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M11.979 0C5.353 0 0 5.353 0 11.979c0 4.673 2.684 8.74 6.643 10.686l3.197-4.662c-.066-.188-.112-.392-.112-.605 0-1.077.873-1.95 1.95-1.95.143 0 .28.017.412.046l3.411-4.945V10.5c0-1.848 1.498-3.346 3.346-3.346 1.848 0 3.346 1.498 3.346 3.346 0 1.848-1.498 3.346-3.346 3.346-.53 0-1.03-.124-1.472-.346l-3.35 4.856c.03.14.048.284.048.432 0 1.077-.873 1.95-1.95 1.95-1.077 0-1.95-.873-1.95-1.95 0-.46.162-.885.435-1.218l-3.23-4.71c-.742.37-1.574.453-2.386.236l-3.264 4.757c.725 1.107 1.91 1.874 3.284 2.012l.142.01c.216.015.434.022.653.022 6.626 0 11.979-5.353 11.979-11.979S18.605 0 11.979 0z"/></svg>
+                                僅 Steam
+                            </li>
+                            <li data-value="25" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 0C5.375 0 0 5.375 0 12.004c0 6.629 5.375 12.004 12.004 12.004 6.63 0 12.004-5.375 12.004-12.004C24.008 5.375 18.634 0 12.004 0zm6.924 16.892L14.77 19.34a.936.936 0 01-.832.138L8.236 17.58a.936.936 0 01-.587-.665L6.155 11.23a.936.936 0 01.198-.81l3.52-4.322a.936.936 0 01.815-.347l5.65.618a.936.936 0 01.815.717l1.39 5.568a.936.936 0 01-.385.918z"/></svg>
+                                僅 Epic
+                            </li>
+                            <li data-value="7" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <span class="w-4 h-4 bg-[#5c2b99] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">G</span>
+                                僅 GOG
+                            </li>
+                            <li data-value="11" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <span class="w-4 h-4 bg-[#cb2c31] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">H</span>
+                                僅 Humble
+                            </li>
+                            <li data-value="13" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <span class="w-4 h-4 bg-[#0070ff] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">U</span>
+                                僅 Uplay
+                            </li>
+                            <li data-value="15" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <span class="w-4 h-4 bg-[#d6411f] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">F</span>
+                                僅 Fanatical
+                            </li>
+                            <li data-value="30" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <span class="w-4 h-4 bg-[#e53935] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">IG</span>
+                                僅 IndieGala
+                            </li>
+                            <li data-value="3" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
+                                <span class="w-4 h-4 bg-[#7eb238] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">G</span>
+                                僅 GMG
+                            </li>
+                            <li data-value="other" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors border-t border-gray-700 mt-1 pt-1">
+                                <span class="w-4 h-4 bg-gray-700 rounded-full inline-block"></span> 其他
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Hidden input to store value -->
+                    <input type="hidden" id="storeFilter" value="all">
                 </div>
+
 
                 <!-- 開關 Toggle -->
                 <div id="toggleContainer" class="flex items-center space-x-3 bg-steam-card px-4 py-2 rounded-lg hidden">
@@ -96,9 +167,13 @@
             <!-- 骨架屏載入動畫 (Skeleton Loading) -->
             <div id="loadingMsg" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl mx-auto">
                 <!-- 產生 8 個骨架卡片 -->
-                <script>
+            </div>
+            <script>
+                (function() {
+                    const loadingContainer = document.getElementById('loadingMsg');
+                    let skeletonHTML = '';
                     for(let i=0; i<8; i++){
-                        document.write(`
+                        skeletonHTML += `
                             <div class="bg-steam-card rounded-lg overflow-hidden shadow-lg animate-pulse h-80 flex flex-col">
                                 <div class="h-48 w-full bg-gray-700"></div>
                                 <div class="p-4 flex flex-col flex-grow">
@@ -112,10 +187,11 @@
                                     </div>
                                 </div>
                             </div>
-                        `);
+                        `;
                     }
-                </script>
-            </div>
+                    loadingContainer.innerHTML = skeletonHTML;
+                })();
+            </script>
 
             <!-- Error -->
             <div id="errorMsg" class="hidden bg-red-900/50 border border-red-500 text-red-200 px-6 py-4 rounded-lg text-center">
@@ -280,7 +356,7 @@
                             </div>
 
                             <div class="p-4 flex flex-col flex-grow">
-                                <h2 class="text-lg font-bold text-white mb-2 line-clamp-2" title="${game.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;')}">${game.title}</h2>
+                                <h2 class="text-lg font-bold text-white mb-2 line-clamp-2" title="${game.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;')}">${game.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;')}</h2>
 
                                 <!-- 評價區塊 -->
                                 <div class="mb-3">
@@ -387,8 +463,149 @@
             // 監聽變化
             sortFilter.addEventListener('change', handleSort);
             toggle.addEventListener('change', updateVisibility);
-            storeFilter.addEventListener('change', updateVisibility);
+            // storeFilter listener removed because it's handled by custom dropdown logic now
+
+            // Custom Dropdown 邏輯
+            const storeDropdownBtn = document.getElementById('storeDropdownBtn');
+            const storeDropdownMenu = document.getElementById('storeDropdownMenu');
+            const storeDropdownText = document.getElementById('storeDropdownText');
+            const storeFilterHidden = document.getElementById('storeFilter');
+            const storeOptions = document.querySelectorAll('.store-option');
+
+            storeDropdownBtn.addEventListener('click', () => {
+                storeDropdownMenu.classList.toggle('hidden');
+            });
+
+            // 點擊選項
+            storeOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    const value = option.getAttribute('data-value');
+                    const innerHtml = option.innerHTML; // Contains the logo and text
+
+                    // Update hidden input
+                    storeFilterHidden.value = value;
+
+                    // Update button display
+                    storeDropdownText.innerHTML = innerHtml;
+
+                    // Close menu
+                    storeDropdownMenu.classList.add('hidden');
+
+                    // Trigger visibility update
+                    updateVisibility();
+                });
+            });
+
+            // 點擊選單外部關閉
+            document.addEventListener('click', (e) => {
+                const dropdown = document.getElementById('customStoreDropdown');
+                if (dropdown && !dropdown.contains(e.target)) {
+                    storeDropdownMenu.classList.add('hidden');
+                }
+            });
+
+
+            // Modal 邏輯
+            const calendarModal = document.getElementById('calendarModal');
+            const openCalendarBtn = document.getElementById('openCalendarBtn');
+            const closeCalendarBtn = document.getElementById('closeCalendarBtn');
+
+            function openModal() {
+                calendarModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; // 阻止背景捲動
+            }
+
+            function closeModal() {
+                calendarModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+
+            openCalendarBtn.addEventListener('click', openModal);
+            closeCalendarBtn.addEventListener('click', closeModal);
+
+            // 點擊背景關閉
+            calendarModal.addEventListener('click', (e) => {
+                if (e.target === calendarModal) {
+                    closeModal();
+                }
+            });
+
         });
     </script>
+
+    <!-- 特賣行事曆 Modal -->
+    <div id="calendarModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-steam-card border border-gray-700 rounded-lg shadow-2xl w-11/12 max-w-2xl max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-5 border-b border-gray-700 bg-[#1b2838] rounded-t-lg">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-steam-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    主要遊戲平台特賣行事曆
+                </h2>
+                <button id="closeCalendarBtn" class="text-gray-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <div class="space-y-6">
+                    <!-- Steam -->
+                    <div class="bg-[#171d25] p-4 rounded-lg border border-[#2a475e]">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
+                            <span class="w-8 h-8 bg-[#1b2838] rounded-full flex items-center justify-center border border-[#2a475e]">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M11.979 0C5.353 0 0 5.353 0 11.979c0 4.673 2.684 8.74 6.643 10.686l3.197-4.662c-.066-.188-.112-.392-.112-.605 0-1.077.873-1.95 1.95-1.95.143 0 .28.017.412.046l3.411-4.945V10.5c0-1.848 1.498-3.346 3.346-3.346 1.848 0 3.346 1.498 3.346 3.346 0 1.848-1.498 3.346-3.346 3.346-.53 0-1.03-.124-1.472-.346l-3.35 4.856c.03.14.048.284.048.432 0 1.077-.873 1.95-1.95 1.95-1.077 0-1.95-.873-1.95-1.95 0-.46.162-.885.435-1.218l-3.23-4.71c-.742.37-1.574.453-2.386.236l-3.264 4.757c.725 1.107 1.91 1.874 3.284 2.012l.142.01c.216.015.434.022.653.022 6.626 0 11.979-5.353 11.979-11.979S18.605 0 11.979 0zm6.868 10.5c0-.853-.692-1.546-1.546-1.546-.853 0-1.546.692-1.546 1.546 0 .853.692 1.546 1.546 1.546.853 0 1.546-.692 1.546-1.546zM11.979 16.4a.95.95 0 110-1.9.95.95 0 010 1.9zm-4.706-1.026a1.95 1.95 0 110-3.9 1.95 1.95 0 010 3.9z"/></svg>
+                            </span>
+                            Steam
+                        </h3>
+                        <ul class="text-gray-300 space-y-2 text-sm pl-2 border-l-2 border-[#2a475e]">
+                            <li>🌸 <strong class="text-white">春季特賣：</strong> 3 月中旬</li>
+                            <li>☀️ <strong class="text-[#66c0f4]">夏季特賣：</strong> 6 月下旬至 7 月初 (全年最大折扣之一)</li>
+                            <li>🍂 <strong class="text-orange-400">秋季特賣：</strong> 11 月下旬 (配合黑五)</li>
+                            <li>❄️ <strong class="text-white">冬季特賣：</strong> 12 月下旬至 1 月初 (全年最大折扣之一)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Epic Games -->
+                    <div class="bg-[#171d25] p-4 rounded-lg border border-gray-600">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
+                            <span class="w-8 h-8 bg-[#313131] rounded-full flex items-center justify-center border border-gray-500">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 0C5.375 0 0 5.375 0 12.004c0 6.629 5.375 12.004 12.004 12.004 6.63 0 12.004-5.375 12.004-12.004C24.008 5.375 18.634 0 12.004 0zm6.924 16.892L14.77 19.34a.936.936 0 01-.832.138L8.236 17.58a.936.936 0 01-.587-.665L6.155 11.23a.936.936 0 01.198-.81l3.52-4.322a.936.936 0 01.815-.347l5.65.618a.936.936 0 01.815.717l1.39 5.568a.936.936 0 01-.385.918z"/></svg>
+                            </span>
+                            Epic Games Store
+                        </h3>
+                        <ul class="text-gray-300 space-y-2 text-sm pl-2 border-l-2 border-gray-500">
+                            <li>🎁 <strong class="text-yellow-400">超級特賣 (Mega Sale)：</strong> 5 月中旬至 6 月初 (通常會送出 4 款大作)</li>
+                            <li>🎄 <strong class="text-white">聖誕/假日特賣：</strong> 12 月中旬至 1 月初 (連續 15 天每天送一款免費遊戲)</li>
+                            <li>🎃 <strong class="text-orange-500">萬聖節特賣：</strong> 10 月下旬</li>
+                        </ul>
+                    </div>
+
+                    <!-- GOG -->
+                    <div class="bg-[#171d25] p-4 rounded-lg border border-[#5c2b99]">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
+                            <span class="w-8 h-8 bg-[#5c2b99] rounded-full flex items-center justify-center border border-[#7a3bc7]">
+                                <span class="text-xs font-bold">GOG</span>
+                            </span>
+                            GOG.com
+                        </h3>
+                        <ul class="text-gray-300 space-y-2 text-sm pl-2 border-l-2 border-[#7a3bc7]">
+                            <li>☀️ <strong class="text-yellow-300">夏季特賣：</strong> 6 月中旬 (常送出免費經典遊戲)</li>
+                            <li>❄️ <strong class="text-blue-300">冬季特賣：</strong> 12 月中旬 (常送出免費經典遊戲)</li>
+                        </ul>
+                    </div>
+
+                    <p class="text-xs text-gray-500 italic pt-2">
+                        * 註：特賣時間為歷史慣例，實際日期可能會由各平台視情況調整。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
