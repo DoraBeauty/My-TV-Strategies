@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+fetch('https://www.cheapshark.com/api/1.0/deals?storeID=1&upperPrice=0')
+  .then(response => response.json())
+  .then(data => console.log("Success:", data))
+  .catch(error => console.error("Error:", error));
+</script>
+</body>
+</html>
