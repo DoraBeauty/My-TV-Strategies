@@ -70,7 +70,7 @@
                 </div>
 
                 <!-- 開關 Toggle -->
-                <div class="flex items-center space-x-3 bg-steam-card px-4 py-2 rounded-lg">
+                <div id="toggleContainer" class="flex items-center space-x-3 bg-steam-card px-4 py-2 rounded-lg hidden">
                     <span class="text-sm">顯示永久免費遊戲</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="showFreeGamesToggle" class="sr-only peer" checked>
@@ -149,6 +149,13 @@
 
                     if (data && data.length > 0) {
                         renderGames(data);
+
+                        // 檢查是否有任何永久免費遊戲，如果有的話才顯示 Toggle
+                        const hasPermanentFree = data.some(game => parseFloat(game.normalPrice) === 0.0);
+                        if (hasPermanentFree) {
+                            document.getElementById('toggleContainer').classList.remove('hidden');
+                        }
+
                         gamesGrid.classList.remove('hidden');
                         updateVisibility(); // 初始化檢查一次 Toggle 狀態
                     } else {
