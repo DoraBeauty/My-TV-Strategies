@@ -240,37 +240,123 @@
             const emptyMsg = document.getElementById('emptyMsg');
             const noVisibleMsg = document.getElementById('noVisibleGamesMessage');
 
-            // 抓取資料
-            fetch('https://www.cheapshark.com/api/1.0/deals?upperPrice=0')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    loadingMsg.classList.add('hidden');
+            // 輔助函式：正規化 GamerPower 商店 ID
+            function getGamerPowerStoreID(platforms) {
+                if (!platforms) return 'other';
+                const p = platforms.toLowerCase();
+                if (p.includes('steam')) return '1';
+                if (p.includes('epic')) return '25';
+                if (p.includes('gog')) return '7';
+                if (p.includes('humble')) return '11';
+                if (p.includes('uplay') || p.includes('ubisoft')) return '13';
+                if (p.includes('fanatical')) return '15';
+                if (p.includes('indiegala')) return '30';
+                if (p.includes('gmg') || p.includes('green man')) return '3';
+                return 'other';
+            }
 
-                    if (data && data.length > 0) {
-                        globalGamesData = data; // 保存資料
+            // 輔助函式：正規化資料格式
+            function normalizeCheapShark(game) {
+                return {
+                    id: 'cs_' + game.dealID,
+                    title: game.title,
+                    cleanTitle: game.title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
+                    thumb: game.thumb,
+                    storeID: game.storeID,
+                    normalPrice: parseFloat(game.normalPrice) || 0,
+                    dealUrl: `https://www.cheapshark.com/redirect?dealID=${game.dealID}`,
+                    steamRatingText: game.steamRatingText,
+                    steamRatingPercent: game.steamRatingPercent,
+                    isPermanentFree: parseFloat(game.normalPrice) === 0.0,
+                    source: 'CheapShark'
+                };
+            }
+
+            function normalizeGamerPower(game) {
+                let price = 0;
+                if (game.worth && game.worth !== 'N/A') {
+                    const match = game.worth.match(/[\d\.]+/);
+                    if (match) price = parseFloat(match[0]);
+                }
+
+                // 去除括號與 Giveaway 字眼，以便比對
+                let cleanT = game.title.replace(/\([^)]*\)/g, '').replace(/Giveaway/gi, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+                return {
+                    id: 'gp_' + game.id,
+                    title: game.title,
+                    cleanTitle: cleanT,
+                    thumb: game.thumbnail || game.image,
+                    storeID: getGamerPowerStoreID(game.platforms),
+                    normalPrice: price,
+                    dealUrl: game.open_giveaway_url,
+                    steamRatingText: null,
+                    steamRatingPercent: null,
+                    isPermanentFree: false, // GamerPower 通常是限免，若無明確數字就視為非永久免費
+                    source: 'GamerPower'
+                };
+            }
+
+            // 抓取多個 API 資料
+            const p1 = fetch('https://www.cheapshark.com/api/1.0/deals?upperPrice=0').then(res => {
+                if(!res.ok) throw new Error('CheapShark failed');
+                return res.json();
+            });
+            const p2 = fetch('https://www.gamerpower.com/api/giveaways').then(res => {
+                if(!res.ok) throw new Error('GamerPower failed');
+                return res.json();
+            });
+
+            Promise.allSettled([p1, p2])
+                .then(results => {
+                    loadingMsg.classList.add('hidden');
+                    let rawGames = [];
+
+                    if (results[0].status === 'fulfilled' && results[0].value) {
+                        results[0].value.forEach(d => rawGames.push(normalizeCheapShark(d)));
+                    } else {
+                        console.error("CheapShark Error:", results[0].reason);
+                    }
+
+                    if (results[1].status === 'fulfilled' && results[1].value) {
+                        results[1].value.forEach(d => rawGames.push(normalizeGamerPower(d)));
+                    } else {
+                        console.error("GamerPower Error:", results[1].reason);
+                    }
+
+                    if (rawGames.length > 0) {
+                        // 去重複邏輯
+                        const uniqueMap = new Map();
+                        rawGames.forEach(game => {
+                            if (!uniqueMap.has(game.cleanTitle)) {
+                                uniqueMap.set(game.cleanTitle, game);
+                            } else {
+                                // 已經有了，可以根據來源決定是否覆蓋 (例如 Prefer CheapShark 因為有評價)
+                                const existing = uniqueMap.get(game.cleanTitle);
+                                if (existing.source === 'GamerPower' && game.source === 'CheapShark') {
+                                    uniqueMap.set(game.cleanTitle, game);
+                                }
+                            }
+                        });
+
+                        globalGamesData = Array.from(uniqueMap.values());
                         renderGames(globalGamesData);
 
                         // 檢查是否有任何永久免費遊戲，如果有的話才顯示 Toggle
-                        const hasPermanentFree = data.some(game => parseFloat(game.normalPrice) === 0.0);
+                        const hasPermanentFree = globalGamesData.some(game => game.isPermanentFree);
                         if (hasPermanentFree) {
                             document.getElementById('toggleContainer').classList.remove('hidden');
                         }
 
                         gamesGrid.classList.remove('hidden');
-                        updateVisibility(); // 初始化檢查一次 Toggle 狀態
+                        updateVisibility();
                     } else {
-                        emptyMsg.classList.remove('hidden');
+                        if (results[0].status === 'rejected' && results[1].status === 'rejected') {
+                             errorMsg.classList.remove('hidden');
+                        } else {
+                             emptyMsg.classList.remove('hidden');
+                        }
                     }
-                })
-                .catch(error => {
-                    console.error('Fetch Error:', error);
-                    loadingMsg.classList.add('hidden');
-                    errorMsg.classList.remove('hidden');
                 });
 
             // 翻譯 Steam 評價
@@ -295,8 +381,7 @@
                 gamesGrid.innerHTML = ''; // 清空
 
                 games.forEach(game => {
-                    const normalPrice = parseFloat(game.normalPrice);
-                    const isPermanentFree = (normalPrice === 0.0);
+                    const isPermanentFree = game.isPermanentFree;
                     const tagText = isPermanentFree ? '免費' : '100% OFF';
                     const dataPermanentFree = isPermanentFree ? 'true' : 'false';
                     const storeID = game.storeID;
@@ -376,11 +461,11 @@
                                     <div>
                                         <p class="text-xs text-gray-400 mb-1">原價</p>
                                         <p class="text-sm text-gray-500 line-through bg-gray-800 px-2 py-0.5 rounded inline-block">
-                                            $${game.normalPrice}
+                                            ${game.normalPrice > 0 ? '$' + game.normalPrice : '未提供'}
                                         </p>
                                     </div>
 
-                                    <a href="https://www.cheapshark.com/redirect?dealID=${game.dealID}"
+                                    <a href="${game.dealUrl}"
                                        target="_blank"
                                        rel="noopener noreferrer"
                                        class="bg-gradient-to-r from-steam-btnNormal to-steam-btnHover hover:from-steam-btnHover hover:to-blue-400 text-white font-medium px-4 py-2 rounded transition-colors duration-200 text-sm whitespace-nowrap ml-2">
@@ -445,10 +530,10 @@
                 let sortedData = [...globalGamesData]; // 複製一份陣列
 
                 if (sortType === 'savings') {
-                    // 原價最高 (因為現在全免費，所以 normalPrice 越高代表省越多)
-                    sortedData.sort((a, b) => parseFloat(b.normalPrice) - parseFloat(a.normalPrice));
+                    // 原價最高
+                    sortedData.sort((a, b) => (b.normalPrice || 0) - (a.normalPrice || 0));
                 } else if (sortType === 'rating') {
-                    // 評價最高 (steamRatingPercent)
+                    // 評價最高
                     sortedData.sort((a, b) => {
                         const ratingA = parseInt(a.steamRatingPercent) || 0;
                         const ratingB = parseInt(b.steamRatingPercent) || 0;
