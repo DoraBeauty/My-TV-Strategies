@@ -2,89 +2,248 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>個人差旅費追蹤</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- FullCalendar -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales-all.global.min.js"></script>
+
     <style>
+        :root {
+            --ios-bg: #f2f2f7;
+            --ios-card: #ffffff;
+            --ios-blue: #007aff;
+            --ios-green: #34c759;
+            --ios-red: #ff3b30;
+            --ios-text: #1c1c1e;
+            --ios-text-muted: #8e8e93;
+            --ios-border: rgba(60,60,67,0.18);
+        }
         body {
-            background-color: #f8f9fa;
+            background-color: var(--ios-bg);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            color: var(--ios-text);
+            -webkit-font-smoothing: antialiased;
         }
-        .fab {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            font-size: 24px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            z-index: 1000;
+
+        /* Navbar */
+        .navbar {
+            background-color: rgba(255, 255, 255, 0.85) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--ios-border);
         }
+        .navbar-brand {
+            color: var(--ios-text) !important;
+            font-weight: 600;
+        }
+
+        /* Segmented Control */
+        .ios-segmented-control {
+            background: #e3e3e8;
+            border-radius: 8px;
+            padding: 2px;
+            display: flex;
+        }
+        .ios-segmented-control .btn {
+            border: none;
+            color: var(--ios-text);
+            font-weight: 500;
+            border-radius: 6px;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        .ios-segmented-control .btn-check:checked + .btn {
+            background-color: #fff;
+            color: var(--ios-text);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        .ios-segmented-control .btn:hover {
+            background-color: transparent;
+            color: var(--ios-text);
+        }
+
+        /* Cards */
         .record-card {
+            border: none;
+            border-radius: 16px;
+            background: var(--ios-card);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             transition: transform 0.2s;
         }
-        .record-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .thumbnail {
-            max-width: 100px;
-            max-height: 100px;
-            object-fit: cover;
-            cursor: pointer;
+        .record-card:active {
+            transform: scale(0.98);
         }
         .status-settled {
-            opacity: 0.7;
+            opacity: 0.8;
+            background: #fcfcfc;
         }
-        #dashboardView {
+
+        /* Form Groups (iOS Style) */
+        .ios-form-group {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .ios-form-group .form-control, .ios-form-group .form-select {
+            border: none;
+            border-radius: 0;
+            border-bottom: 1px solid var(--ios-border);
+            padding: 12px 16px;
+            background: transparent;
+        }
+        .ios-form-group .form-control:last-child, .ios-form-group .form-select:last-child, .ios-form-group > div:last-child .form-control {
+            border-bottom: none;
+        }
+        .ios-form-group .form-control:focus, .ios-form-group .form-select:focus {
+            box-shadow: none;
+            background: #f8f8f8;
+        }
+        .ios-form-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            color: var(--ios-text-muted);
+            margin-left: 12px;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            font-size: 28px;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+            z-index: 1000;
+            background-color: var(--ios-blue);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: transform 0.1s;
+        }
+        .fab:active {
+            transform: scale(0.9);
+        }
+
+        /* Receipt Item */
+        .receipt-item {
+            border-left: 4px solid var(--ios-blue);
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .receipt-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .delete-receipt-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            color: var(--ios-red);
+            background: none;
+            border: none;
+            padding: 5px;
+            font-size: 1.2rem;
+        }
+
+        /* Modal styling */
+        .modal-content {
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-header {
+            border-bottom: 1px solid var(--ios-border);
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px 16px 0 0;
+        }
+        .modal-footer {
+            border-top: 1px solid var(--ios-border);
+            background: rgba(255,255,255,0.95);
+            border-radius: 0 0 16px 16px;
+        }
+
+        #loginView, #dashboardView, #calendarViewWrapper {
             display: none;
+        }
+
+        /* Calendar overrides */
+        .fc-theme-standard td, .fc-theme-standard th {
+            border-color: var(--ios-border) !important;
+        }
+        .fc-toolbar-title {
+            font-size: 1.2rem !important;
+            font-weight: 600;
+        }
+        .fc-event {
+            border-radius: 4px;
+            border: none !important;
+            padding: 2px 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="#"><i class="bi bi-wallet2 me-2"></i>差旅費追蹤</a>
+    <nav class="navbar navbar-expand navbar-light sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a class="navbar-brand m-0" href="#"><i class="bi bi-wallet2 me-2 text-primary"></i>差旅費追蹤</a>
             <div class="d-flex align-items-center">
-                <span id="unsettledTotalText" class="text-white fw-bold me-3" style="display: none;">未入帳：$0</span>
-                <button id="exportBtn" class="btn btn-sm btn-success me-2" style="display: none;">
-                    <i class="bi bi-file-earmark-excel"></i> 匯出
+                <span id="unsettledTotalText" class="fw-bold me-3 text-danger" style="display: none; font-size: 0.9rem;">未入帳：$0</span>
+                <button id="exportBtn" class="btn btn-sm btn-outline-success me-2 rounded-pill" style="display: none;">
+                    <i class="bi bi-download"></i>
                 </button>
-                <button id="loginBtn" class="btn btn-outline-light btn-sm">Google 登入</button>
-                <button id="logoutBtn" class="btn btn-outline-light btn-sm" style="display: none;">登出</button>
+                <button id="loginBtn" class="btn btn-primary btn-sm rounded-pill px-3">登入</button>
+                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3" style="display: none;">登出</button>
             </div>
         </div>
     </nav>
 
     <!-- Login View -->
     <div id="loginView" class="container mt-5 text-center">
-        <div class="card shadow-sm mx-auto" style="max-width: 400px;">
-            <div class="card-body py-5">
-                <i class="bi bi-cloud-arrow-up text-primary" style="font-size: 4rem;"></i>
-                <h3 class="mt-3 mb-4">歡迎使用</h3>
-                <p class="text-muted mb-4">請使用 Google 帳號登入以記錄您的出差旅費。</p>
-                <button id="largeLoginBtn" class="btn btn-primary btn-lg w-100 mb-2">
-                    <i class="bi bi-google me-2"></i> 使用 Google 登入
+        <div class="card record-card mx-auto p-4" style="max-width: 400px;">
+            <div class="card-body py-4">
+                <i class="bi bi-airplane text-primary" style="font-size: 4rem;"></i>
+                <h3 class="mt-3 mb-4 fw-bold">差旅費追蹤</h3>
+                <p class="text-muted mb-4 small">記錄行程、交通費與發票，一手掌握差旅報帳。</p>
+                <button id="largeLoginBtn" class="btn btn-primary btn-lg w-100 mb-3 rounded-pill fw-bold">
+                    <i class="bi bi-google me-2"></i> Google 登入
                 </button>
-                <button id="guestLoginBtn" class="btn btn-outline-secondary btn-lg w-100">
-                    <i class="bi bi-person-badge me-2"></i> 訪客試用模式 (本機儲存)
+                <button id="guestLoginBtn" class="btn btn-light btn-lg w-100 rounded-pill fw-bold text-secondary">
+                    <i class="bi bi-person-badge me-2"></i> 訪客試用
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Dashboard View -->
-    <div id="dashboardView" class="container mt-4 mb-5 pb-5" style="display: none;">
+    <!-- Main App Container -->
+    <div id="dashboardView" class="container mt-4 mb-5 pb-5">
 
-        <!-- Filter / Stats Section -->
-        <div class="row mb-3 align-items-center">
-            <div class="col">
-                <h5 class="mb-0">最近的紀錄</h5>
-            </div>
+        <!-- View Toggle -->
+        <div class="ios-segmented-control mb-4">
+            <input type="radio" class="btn-check" name="viewToggle" id="btnList" autocomplete="off" checked>
+            <label class="btn w-50" for="btnList"><i class="bi bi-list-ul me-1"></i>列表</label>
+
+            <input type="radio" class="btn-check" name="viewToggle" id="btnCalendar" autocomplete="off">
+            <label class="btn w-50" for="btnCalendar"><i class="bi bi-calendar3 me-1"></i>月曆</label>
         </div>
 
         <!-- Loading Indicator -->
@@ -92,109 +251,119 @@
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <p class="mt-2 text-muted">載入中...</p>
         </div>
 
-        <!-- Records List -->
+        <!-- List View -->
         <div id="recordsContainer" class="row g-3">
-            <!-- Cards will be injected here by JS -->
+            <!-- Cards injected by JS -->
         </div>
 
-        <!-- FAB for new record -->
-        <button class="btn btn-primary fab d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#newRecordModal">
-            <i class="bi bi-plus-lg"></i>
+        <!-- Calendar View -->
+        <div id="calendarViewWrapper">
+            <div class="card record-card p-2">
+                <div id="calendar"></div>
+            </div>
+        </div>
+
+        <!-- FAB -->
+        <button class="fab" data-bs-toggle="modal" data-bs-target="#recordModal" id="fabBtn">
+            <i class="bi bi-plus"></i>
         </button>
     </div>
 
-    <!-- New Record Modal -->
-    <div class="modal fade" id="newRecordModal" tabindex="-1" aria-labelledby="newRecordModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="newRecordModalLabel">新增出差紀錄</h5>
+    <!-- Record Modal (Create/Edit) -->
+    <div class="modal fade" id="recordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content bg-light">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalTitle">新增紀錄</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body pt-3">
                     <form id="recordForm">
+                        <input type="hidden" id="recordId"> <!-- For editing -->
 
-                        <!-- Location -->
-                        <div class="mb-3">
-                            <label for="location" class="form-label">出差地點/目的</label>
-                            <input type="text" class="form-control" id="location" required placeholder="例如：台北分公司開會">
+                        <!-- Section 1: Basic Info -->
+                        <div class="ios-form-label">基本資訊</div>
+                        <div class="ios-form-group">
+                            <input type="text" class="form-control" id="tripName" required placeholder="出差名稱 (例如：台中廠檢修)">
+                            <input type="text" class="form-control" id="location" required placeholder="出差地點 (例如：台中市)">
+                            <input type="text" class="form-control" id="visitingUnit" placeholder="拜訪單位 (選填)">
                         </div>
 
-                        <!-- Time Range -->
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <label for="startTime" class="form-label">開始時間</label>
-                                <input type="datetime-local" class="form-control time-input" id="startTime" required>
+                        <div class="ios-form-label">時間與雜費</div>
+                        <div class="ios-form-group">
+                            <div class="d-flex align-items-center bg-white border-bottom">
+                                <span class="ps-3 text-muted small" style="width: 80px;">開始</span>
+                                <input type="datetime-local" class="form-control border-0" id="startTime" required>
                             </div>
-                            <div class="col-6">
-                                <label for="endTime" class="form-label">結束時間</label>
-                                <input type="datetime-local" class="form-control time-input" id="endTime" required>
+                            <div class="d-flex align-items-center bg-white border-bottom">
+                                <span class="ps-3 text-muted small" style="width: 80px;">結束</span>
+                                <input type="datetime-local" class="form-control border-0" id="endTime" required>
+                            </div>
+                            <div class="p-3 bg-light text-center">
+                                <div class="small text-muted mb-1" id="timeCalcHint">請輸入起訖時間計算雜費</div>
+                                <div class="fw-bold text-primary fs-5">$ <span id="allowanceDisplay">0</span></div>
+                                <input type="hidden" id="allowance" value="0">
                             </div>
                         </div>
 
-                        <!-- Allowance Output (Readonly) -->
-                        <div class="mb-3">
-                            <label class="form-label text-muted small mb-0">雜費試算 (依時數自動帶入)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light">$</span>
-                                <input type="number" class="form-control bg-light" id="allowance" readonly value="0">
-                            </div>
-                            <div id="timeCalcHint" class="form-text text-primary small">請先輸入起訖時間</div>
-                        </div>
+                        <!-- Section 2: Transport & Companions -->
+                        <div class="ios-form-label">同行與交通</div>
+                        <div class="ios-form-group">
+                            <input type="text" class="form-control" id="companions" placeholder="同行人員 (選填，例如：王小明, 陳大牛)">
 
-                        <hr>
-
-                        <!-- Transport Selection -->
-                        <div class="mb-3">
-                            <label for="transportType" class="form-label">交通方式</label>
                             <select class="form-select" id="transportType" required>
-                                <option value="" disabled selected>請選擇...</option>
+                                <option value="" disabled selected>選擇交通工具...</option>
                                 <option value="car">自行開車</option>
                                 <option value="motorcycle">自行騎機車</option>
-                                <option value="public">高鐵/火車/大眾運輸</option>
+                                <option value="public">大眾運輸 / 其他</option>
                             </select>
-                        </div>
 
-                        <!-- Dynamic Inputs for Transport -->
-                        <div id="mileageSection" class="mb-3" style="display: none;">
-                            <label for="mileage" class="form-label">里程數 (公里)</label>
-                            <input type="number" class="form-control calc-input" id="mileage" min="0" step="0.1" placeholder="輸入公里數">
-                            <div id="mileageRateHint" class="form-text small"></div>
-                        </div>
+                            <!-- Dynamic Driver Select (shows if car/moto) -->
+                            <div id="driverSection" style="display: none;" class="border-top">
+                                <select class="form-select text-primary" id="driverSelect">
+                                    <option value="self">駕駛：自己 (計算里程費)</option>
+                                    <!-- Companions will be injected here -->
+                                </select>
+                            </div>
 
-                        <div id="publicTransportSection" style="display: none;">
-                            <div class="mb-3">
-                                <label for="ticketPrice" class="form-label">實際票價</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control calc-input" id="ticketPrice" min="0" placeholder="輸入金額">
+                            <div id="mileageSection" style="display: none;" class="border-top bg-light p-2">
+                                <div class="input-group input-group-sm mb-1">
+                                    <span class="input-group-text bg-white border-0">里程數(km)</span>
+                                    <input type="number" class="form-control border-0 text-end" id="mileage" min="0" step="0.1" placeholder="0">
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="receiptImage" class="form-label">上傳票根照片</label>
-                                <input class="form-control" type="file" id="receiptImage" accept="image/*">
+                                <div id="mileageRateHint" class="text-muted small text-end px-2"></div>
                             </div>
                         </div>
 
-                        <!-- Total Output (Readonly) -->
-                        <div class="mb-3 mt-4 pt-3 border-top">
-                            <label class="form-label fw-bold mb-0">總計金額 (雜費 + 交通費)</label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text text-danger fw-bold">$</span>
-                                <input type="number" class="form-control text-danger fw-bold bg-white" id="totalAmount" readonly value="0">
+                        <!-- Section 3: Extra Receipts -->
+                        <div class="ios-form-label d-flex justify-content-between align-items-end">
+                            <span>發票與額外花費</span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="addReceiptBtn">
+                                <i class="bi bi-plus-circle-fill me-1"></i>新增
+                            </button>
+                        </div>
+                        <div id="receiptsContainer" class="mb-3">
+                            <!-- Dynamic receipts go here -->
+                        </div>
+
+                        <!-- Total -->
+                        <div class="card border-0 bg-primary text-white mt-4 rounded-4 shadow-sm">
+                            <div class="card-body d-flex justify-content-between align-items-center py-3">
+                                <h5 class="mb-0 fw-bold">總金額</h5>
+                                <h3 class="mb-0 fw-bold">$ <span id="totalAmountDisplay">0</span></h3>
+                                <input type="hidden" id="totalAmount" value="0">
                             </div>
                         </div>
 
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="saveRecordBtn">
-                        <span class="spinner-border spinner-border-sm me-1 d-none" id="saveSpinner" role="status" aria-hidden="true"></span>
-                        儲存紀錄
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" id="saveRecordBtn">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="saveSpinner"></span>
+                        儲存
                     </button>
                 </div>
             </div>
