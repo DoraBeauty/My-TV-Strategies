@@ -55,7 +55,8 @@ const allowanceInput = document.getElementById('allowance');
 const allowanceDisplay = document.getElementById('allowanceDisplay');
 const timeCalcHint = document.getElementById('timeCalcHint');
 
-const companionsInput = document.getElementById('companions');
+const companionsContainer = document.getElementById('companionsContainer');
+const addCompanionBtn = document.getElementById('addCompanionBtn');
 const transportTypeSelect = document.getElementById('transportType');
 const driverSection = document.getElementById('driverSection');
 const driverSelect = document.getElementById('driverSelect');
@@ -253,26 +254,46 @@ const calculateAllowance = () => {
 startTimeInput.addEventListener('change', calculateAllowance);
 endTimeInput.addEventListener('change', calculateAllowance);
 
+const getCompanionsList = () => {
+    const inputs = companionsContainer.querySelectorAll('.companion-input');
+    const list = [];
+    inputs.forEach(input => {
+        const val = input.value.trim();
+        if (val) list.push(val);
+    });
+    return list;
+};
+
+// Add Companion Button
+addCompanionBtn.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'ios-input mb-2 companion-input';
+    const num = companionsContainer.querySelectorAll('.companion-input').length + 1;
+    input.placeholder = `人員 ${num}`;
+    input.addEventListener('input', updateDriverOptions);
+    companionsContainer.appendChild(input);
+});
+
 const updateDriverOptions = () => {
     const type = transportTypeSelect.value;
     if (type !== 'car' && type !== 'motorcycle') {
-        driverSection.style.display = 'none';
-        mileageSection.style.display = 'none';
+        driverSection.classList.remove('show');
+        mileageSection.classList.remove('show');
         return;
     }
 
-    driverSection.style.display = 'block';
-    const compText = companionsInput.value.trim();
-    const companions = compText ? compText.split(/[,，、]+/).map(s => s.trim()).filter(s => s) : [];
+    driverSection.classList.add('show');
+    const companions = getCompanionsList();
 
     // Save current selection to restore if possible
     const currentVal = driverSelect.value;
-    driverSelect.innerHTML = '<option value="self">駕駛：自己 (計算里程費)</option>';
+    driverSelect.innerHTML = '<option value="self">自己 (計算里程費)</option>';
 
     companions.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c;
-        opt.textContent = `駕駛：${c} (不計算里程費)`;
+        opt.textContent = `${c} (不計算里程費)`;
         driverSelect.appendChild(opt);
     });
 
@@ -281,8 +302,13 @@ const updateDriverOptions = () => {
     }
     handleDriverChange();
 };
-companionsInput.addEventListener('input', updateDriverOptions);
+
 transportTypeSelect.addEventListener('change', updateDriverOptions);
+
+// Bind initial companion inputs
+document.querySelectorAll('.companion-input').forEach(input => {
+    input.addEventListener('input', updateDriverOptions);
+});
 
 
 const handleDriverChange = () => {
@@ -290,17 +316,17 @@ const handleDriverChange = () => {
     if (type !== 'car' && type !== 'motorcycle') return;
 
     if (driverSelect.value === 'self') {
-        mileageSection.style.display = 'block';
+        mileageSection.classList.add('show');
         if (type === 'car') {
-            mileageRateHint.textContent = "x $3";
+            mileageRateHint.textContent = "汽車：每公里補助 $3";
             mileageInput.dataset.rate = "3";
         } else {
-            mileageRateHint.textContent = "x $2";
+            mileageRateHint.textContent = "機車：每公里補助 $2";
             mileageInput.dataset.rate = "2";
         }
     } else {
         // Someone else is driving, no mileage for self
-        mileageSection.style.display = 'none';
+        mileageSection.classList.remove('show');
         mileageInput.value = '';
     }
     calculateTotal();
@@ -312,7 +338,7 @@ mileageInput.addEventListener('input', calculateTotal);
 const createReceiptEl = (data = null) => {
     const id = `receipt_${Date.now()}_${dynamicReceiptCount++}`;
     const el = document.createElement('div');
-    el.className = 'ios-form-group mb-3 position-relative';
+    el.className = 'receipt-item position-relative';
     el.dataset.id = id;
 
     // Use existing image path if provided (for edit mode)
@@ -326,16 +352,16 @@ const createReceiptEl = (data = null) => {
     }
 
     el.innerHTML = `
-        <button type="button" class="btn-close delete-receipt-btn" aria-label="Close" style="position: absolute; right: 10px; top: 10px; z-index: 5; font-size: 0.8rem;"></button>
-        <div class="p-2 border-bottom">
-            <input type="text" class="form-control form-control-sm border-0 fw-bold receipt-name" placeholder="發票項目名稱 (例如：高鐵去程, 住宿)" value="${data ? data.name : ''}" required>
+        <button type="button" class="delete-receipt-btn"><i class="bi bi-x"></i></button>
+        <div class="mb-2">
+            <input type="text" class="ios-input receipt-name" placeholder="發票項目名稱 (例如：高鐵去程, 住宿)" value="${data ? data.name : ''}" required>
         </div>
-        <div class="d-flex p-2 border-bottom align-items-center">
-            <span class="text-muted small me-2">$</span>
-            <input type="number" class="form-control form-control-sm border-0 receipt-price" placeholder="金額" min="0" value="${data ? data.price : ''}" required>
+        <div class="d-flex align-items-center mb-2">
+            <span class="fw-bold text-muted me-2">$</span>
+            <input type="number" class="ios-input receipt-price" placeholder="金額" min="0" value="${data ? data.price : ''}" required>
         </div>
-        <div class="p-2 bg-light">
-            <input type="file" class="form-control form-control-sm receipt-file" accept="image/*">
+        <div>
+            <input type="file" class="ios-input receipt-file" accept="image/*" style="font-size: 0.8rem;">
             ${imgHidden}
             ${imgUrlHidden}
             ${imgThumbHtml}
@@ -424,7 +450,7 @@ saveRecordBtn.addEventListener('click', async () => {
         const startVal = startTimeInput.value;
         const endVal = endTimeInput.value;
         const allowanceVal = parseInt(allowanceInput.value);
-        const companions = companionsInput.value;
+        const companions = getCompanionsList().join(', '); // Join array into string for saving
         const transportTypeVal = transportTypeSelect.value;
         const driver = driverSelect.value;
 
@@ -439,7 +465,7 @@ saveRecordBtn.addEventListener('click', async () => {
 
         // Process Receipts
         const receipts = [];
-        const receiptEls = document.querySelectorAll('#receiptsContainer .ios-form-group');
+        const receiptEls = document.querySelectorAll('#receiptsContainer .receipt-item');
         for (const el of receiptEls) {
             const name = el.querySelector('.receipt-name').value;
             const price = parseFloat(el.querySelector('.receipt-price').value) || 0;
@@ -541,7 +567,7 @@ window.addEventListener('authReady', () => {
 
 const escapeHtml = (unsafe) => (unsafe || '').toString().replace(/[&<"'>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const renderRecordCard = (record) => {
+const renderRecordCard = (record, container = recordsContainer) => {
     const col = document.createElement('div');
     col.className = 'col-12 col-md-6 col-lg-4';
 
@@ -610,11 +636,11 @@ const renderRecordCard = (record) => {
             </div>
         </div>
     `;
-    recordsContainer.appendChild(col);
+    container.appendChild(col);
 };
 
 // Handle Settle/Undo Toggle
-recordsContainer.addEventListener('click', async (e) => {
+document.getElementById('dashboardView').addEventListener('click', async (e) => {
     const settleBtn = e.target.closest('.toggle-settle-btn');
     if (settleBtn) {
         const docId = settleBtn.dataset.id;
@@ -651,7 +677,22 @@ const openEditModal = (record) => {
     document.getElementById('visitingUnit').value = record.visitingUnit || '';
     startTimeInput.value = record.startTime || '';
     endTimeInput.value = record.endTime || '';
-    companionsInput.value = record.companions || '';
+
+    // Clear and populate companions
+    companionsContainer.innerHTML = '';
+    const companionsList = record.companions ? record.companions.split(',').map(s => s.trim()) : [];
+    // Ensure at least 3 inputs are shown initially, like a fresh form
+    const totalInputs = Math.max(3, companionsList.length);
+    for(let i=0; i<totalInputs; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'ios-input mb-2 companion-input';
+        input.placeholder = `人員 ${i+1}`;
+        if (companionsList[i]) input.value = companionsList[i];
+        input.addEventListener('input', updateDriverOptions);
+        companionsContainer.appendChild(input);
+    }
+
     transportTypeSelect.value = record.transportType || '';
 
     updateDriverOptions();
@@ -703,6 +744,28 @@ const cleanupOldImages = async (records) => {
 
 
 // --- Calendar Logic ---
+const calendarRecordsContainer = document.getElementById('calendarRecordsContainer');
+const selectedDateTitle = document.getElementById('selectedDateTitle');
+let selectedDateStr = new Date().toISOString().slice(0,10); // Default to today
+
+const renderCalendarList = () => {
+    calendarRecordsContainer.innerHTML = '';
+    const dateObj = new Date(selectedDateStr);
+
+    // Check if the selected date falls between any record's start and end times
+    const filteredRecords = currentRecords.filter(r => {
+        const rStartStr = r.startTime.slice(0, 10);
+        let rEndStr = r.endTime.slice(0, 10);
+        return selectedDateStr >= rStartStr && selectedDateStr <= rEndStr;
+    });
+
+    if (filteredRecords.length === 0) {
+        calendarRecordsContainer.innerHTML = '<div class="col-12 text-center text-muted py-4 small">本日無出差紀錄</div>';
+    } else {
+        filteredRecords.forEach(r => renderRecordCard(r, calendarRecordsContainer));
+    }
+};
+
 const renderCalendar = () => {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) return;
@@ -717,10 +780,19 @@ const renderCalendar = () => {
                 center: 'title',
                 right: 'today'
             },
-            eventClick: function(info) {
-                const id = info.event.id;
-                const record = currentRecords.find(r => r.id === id);
-                if (record) openEditModal(record);
+            eventContent: function(arg) {
+                const isSettled = arg.event.extendedProps.isSettled;
+                const color = isSettled ? 'var(--ios-green)' : 'var(--ios-blue)';
+                return { html: `<div class="cal-dot" style="background-color: ${color}"></div>` };
+            },
+            dateClick: function(info) {
+                // Update selected styling
+                document.querySelectorAll('.fc-day').forEach(el => el.classList.remove('fc-day-active'));
+                info.dayEl.classList.add('fc-day-active');
+
+                selectedDateStr = info.dateStr;
+                selectedDateTitle.textContent = info.dateStr;
+                renderCalendarList();
             }
         });
     }
@@ -729,9 +801,8 @@ const renderCalendar = () => {
         id: r.id,
         title: r.tripName || r.location,
         start: r.startTime,
-        end: r.endTime,
-        backgroundColor: r.isSettled ? 'var(--ios-green)' : 'var(--ios-blue)',
-        borderColor: r.isSettled ? 'var(--ios-green)' : 'var(--ios-blue)'
+        end: r.endTime, // Fullcalendar needs exclusive end date for spans but inclusive is fine for our manual filtering
+        extendedProps: { isSettled: r.isSettled }
     }));
 
     calendarInstance.removeAllEvents();
@@ -740,6 +811,8 @@ const renderCalendar = () => {
     // Render only if visible
     if (btnCalendar.checked) {
         calendarInstance.render();
+        // Trigger initial date list render
+        renderCalendarList();
     }
 };
 
