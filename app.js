@@ -299,6 +299,12 @@ function updateCalendarRecords(date) {
                 const highlight = document.createElement('div');
                 highlight.className = 'trip-highlight';
 
+                if (record.isSettled) {
+                    highlight.classList.add('settled');
+                } else {
+                    highlight.classList.add('unsettled');
+                }
+
                 if (isSingleDay) {
                     highlight.classList.add('single');
                 } else if (dateKey === startStr) {
@@ -458,7 +464,7 @@ const createReceiptEl = (data = null) => {
     el.innerHTML = `
         <button type="button" class="delete-receipt-btn"><i class="bi bi-x"></i></button>
         <div class="mb-2">
-            <input type="text" class="ios-input receipt-name" placeholder="發票項目名稱 (例如：高鐵去程, 住宿)" value="${data ? data.name : ''}" required>
+            <input type="text" class="ios-input receipt-name" placeholder="發票項目名稱 (例如：高鐵去程, 住宿)" value="${data ? escapeHtml(data.name) : ''}" required>
         </div>
         <div class="d-flex align-items-center mb-2">
             <span class="fw-bold text-muted me-2">$</span>
@@ -698,7 +704,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
     }
 
     let statusHtml = record.isSettled ? '<span class="badge bg-success rounded-pill px-2">已入帳</span>' : '';
-    let cardClass = record.isSettled ? 'card record-card status-settled' : 'card record-card';
+    let cardClass = record.isSettled ? 'card record-card status-settled bg-custom-card text-main-custom' : 'card record-card bg-custom-card text-main-custom';
 
     // settled logic
     let actionBtnHtml = '';
@@ -715,13 +721,13 @@ const renderRecordCard = (record, container = recordsContainer) => {
         <div class="${cardClass}">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title fw-bold m-0 text-truncate">${escapeHtml(record.tripName)}</h5>
+                    <h5 class="card-title fw-bold m-0 text-truncate text-main-custom">${escapeHtml(record.tripName)}</h5>
                     ${statusHtml}
                 </div>
                 <div class="small text-primary mb-2"><i class="bi bi-geo-alt-fill me-1"></i>${escapeHtml(record.location)} ${record.visitingUnit ? '('+escapeHtml(record.visitingUnit)+')' : ''}</div>
                 <div class="small text-muted mb-2"><i class="bi bi-clock me-1"></i>${record.startTime.replace('T', ' ')} ~<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${record.endTime.replace('T', ' ')}</div>
 
-                <div class="d-flex justify-content-between text-muted small border-top pt-2 mt-2">
+                <div class="d-flex justify-content-between text-muted small border-top pt-2 mt-2" style="border-color: var(--border-color) !important;">
                     <span>雜費</span><span>$${record.allowance}</span>
                 </div>
                 <div class="d-flex justify-content-between text-muted small">
@@ -730,13 +736,13 @@ const renderRecordCard = (record, container = recordsContainer) => {
                 ${detailsHtml}
                 ${receiptsHtml}
 
-                <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
-                    <span class="fw-bold">總計</span>
+                <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
+                    <span class="fw-bold text-main-custom">總計</span>
                     <span class="fw-bold text-danger fs-5">$${record.totalAmount}</span>
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
-                    <button class="btn btn-light btn-sm w-100 edit-record-btn text-primary fw-bold rounded-pill" data-id="${record.id}"><i class="bi bi-pencil-square"></i> 編輯</button>
+                    <button class="btn btn-custom-light btn-sm w-100 edit-record-btn text-primary fw-bold rounded-pill" data-id="${record.id}"><i class="bi bi-pencil-square"></i> 編輯</button>
                 </div>
                 ${actionBtnHtml}
             </div>
@@ -922,7 +928,7 @@ function renderCustomCalendar() {
     if (!calendarContainer) return;
 
     calendarContainer.innerHTML = '';
-    calendarContainer.className = 'custom-calendar';
+    calendarContainer.className = 'custom-calendar text-main-custom';
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
