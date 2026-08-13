@@ -8,64 +8,127 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
-    <!-- FullCalendar -->
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.11/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales-all.global.min.js"></script>
-
     <style>
         :root {
-            --ios-bg: #f2f2f7;
-            --ios-card: #ffffff;
-            --ios-blue: #007aff;
-            --ios-green: #34c759;
-            --ios-red: #ff3b30;
-            --ios-text: #1c1c1e;
-            --ios-text-muted: #8e8e93;
-            --ios-border: rgba(60,60,67,0.18);
+            /* Light Mode Variables (Reference UI style) */
+            --bg-main: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-main: #212529;
+            --text-muted: #868e96;
+            --border-color: rgba(0, 0, 0, 0.08);
+
+            --brand-primary: #5266e8;  /* Blue from the "13" circle */
+            --brand-primary-light: rgba(82, 102, 232, 0.15);
+            --brand-green: #20c997;
+
+            --nav-bg: #f1f3f5;
+            --nav-active-bg: #ffffff;
+            --nav-text: #495057;
+            --nav-active-text: #212529;
+            --nav-shadow: 0 2px 8px rgba(0,0,0,0.05);
+
+            --calendar-pill-bg: rgba(82, 102, 232, 0.12);
+            --calendar-holiday: rgba(134, 142, 150, 0.15);
         }
+
+        [data-theme="dark"] {
+            /* Dark Mode Variables */
+            --bg-main: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #f8f9fa;
+            --text-muted: #adb5bd;
+            --border-color: rgba(255, 255, 255, 0.08);
+
+            --brand-primary: #6b7eff;
+            --brand-primary-light: rgba(107, 126, 255, 0.2);
+            --brand-green: #38d9a9;
+
+            --nav-bg: #2b2b2b;
+            --nav-active-bg: #3f3f3f;
+            --nav-text: #adb5bd;
+            --nav-active-text: #f8f9fa;
+            --nav-shadow: 0 2px 8px rgba(0,0,0,0.3);
+
+            --calendar-pill-bg: rgba(107, 126, 255, 0.15);
+            --calendar-holiday: rgba(255, 255, 255, 0.1);
+        }
+
         body {
-            background-color: var(--ios-bg);
+            background-color: var(--bg-main);
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-            color: var(--ios-text);
+            color: var(--text-main);
             -webkit-font-smoothing: antialiased;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         /* Navbar */
         .navbar {
-            background-color: rgba(255, 255, 255, 0.85) !important;
+            background-color: var(--bg-card) !important;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--ios-border);
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         .navbar-brand {
-            color: var(--ios-text) !important;
+            color: var(--text-main) !important;
             font-weight: 600;
+            transition: color 0.3s ease;
         }
 
-        /* Segmented Control */
-        .ios-segmented-control {
-            background: #e3e3e8;
-            border-radius: 8px;
-            padding: 2px;
-            display: flex;
-        }
-        .ios-segmented-control .btn {
+        /* Theme Toggle Button */
+        #themeToggleBtn {
+            background: none;
             border: none;
-            color: var(--ios-text);
-            font-weight: 500;
-            border-radius: 6px;
-            transition: background-color 0.2s, box-shadow 0.2s;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background-color 0.2s, color 0.3s;
         }
-        .ios-segmented-control .btn-check:checked + .btn {
-            background-color: #fff;
-            color: var(--ios-text);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        #themeToggleBtn:hover {
+            background-color: var(--border-color);
+        }
+
+        /* Modern Segmented Navigation */
+        .modern-segmented-control {
+            background: var(--nav-bg);
+            border-radius: 20px;
+            padding: 6px;
+            display: flex;
+            position: relative;
+            margin-bottom: 24px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+            transition: background-color 0.3s;
+        }
+        .modern-segmented-control .btn {
+            flex: 1;
+            border: none;
+            color: var(--nav-text);
+            font-weight: 600;
+            border-radius: 14px;
+            padding: 10px 0;
+            z-index: 2;
+            transition: color 0.3s;
+            background: transparent;
+        }
+        .modern-segmented-control .btn-check:checked + .btn {
+            color: var(--brand-primary);
+        }
+        .segment-slider {
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            background: var(--nav-active-bg);
+            border-radius: 14px;
+            z-index: 1;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--nav-shadow);
         }
 
         /* Haptic-like Active States */
-        .btn, .record-card, .fab, .delete-receipt-btn {
-            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s, box-shadow 0.15s;
+        .btn, .record-card, .fab, .delete-receipt-btn, .cal-day-cell {
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
         }
         .btn:active, .record-card:active, .fab:active {
             transform: scale(0.96) !important;
@@ -75,12 +138,12 @@
         .record-card {
             border: none;
             border-radius: 16px;
-            background: var(--ios-card);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: var(--bg-card);
+            box-shadow: var(--nav-shadow);
         }
         .status-settled {
             opacity: 0.8;
-            background: #fcfcfc;
+            background: var(--nav-bg);
         }
 
         /* Form Inputs (Updated for Clarity) */
@@ -90,25 +153,25 @@
         .ios-input-label {
             font-size: 13px;
             text-transform: uppercase;
-            color: var(--ios-text-muted);
+            color: var(--text-muted);
             margin-left: 8px;
             margin-bottom: 6px;
             font-weight: 600;
         }
         .ios-input {
-            background: #fff;
-            border: 1px solid #e5e5ea;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 12px 16px;
             font-size: 16px; /* Prevents iOS zoom */
             width: 100%;
             transition: border-color 0.2s, box-shadow 0.2s;
             display: block;
-            color: var(--ios-text);
+            color: var(--text-main);
         }
         .ios-input:focus {
             outline: none;
-            border-color: var(--ios-blue);
+            border-color: var(--brand-primary);
             box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
             background: #ffffff;
         }
@@ -139,9 +202,9 @@
             height: 56px;
             border-radius: 28px;
             font-size: 28px;
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+            box-shadow: 0 4px 12px var(--brand-primary-light);
             z-index: 1000;
-            background-color: var(--ios-blue);
+            background-color: var(--brand-primary);
             border: none;
             display: flex;
             align-items: center;
@@ -151,8 +214,8 @@
 
         /* Receipt Item */
         .receipt-item {
-            border: 1px solid #e5e5ea;
-            background: #fff;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
             padding: 12px;
             border-radius: 12px;
             margin-bottom: 12px;
@@ -199,16 +262,16 @@
             border-radius: 20px;
             border: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            background: var(--ios-bg);
+            background: var(--bg-main);
         }
         .modal-header {
-            border-bottom: 1px solid var(--ios-border);
+            border-bottom: 1px solid var(--border-color);
             background: rgba(255,255,255,0.95);
             border-radius: 20px 20px 0 0;
             backdrop-filter: blur(10px);
         }
         .modal-footer {
-            border-top: 1px solid var(--ios-border);
+            border-top: 1px solid var(--border-color);
             background: rgba(255,255,255,0.95);
             border-radius: 0 0 20px 20px;
             backdrop-filter: blur(10px);
@@ -218,62 +281,142 @@
             display: none;
         }
 
-        /* Calendar clean overrides */
-        .fc-theme-standard td, .fc-theme-standard th {
-            border: none !important;
-        }
-        .fc-theme-standard .fc-scrollgrid {
-            border: none !important;
-        }
-        .fc-toolbar-title {
-            font-size: 1.2rem !important;
-            font-weight: 600;
-        }
-        .fc-daygrid-day-number {
-            font-weight: 500;
-            margin: auto;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 16px;
-        }
-        .fc-day-today .fc-daygrid-day-number {
-            background-color: var(--ios-red);
-            color: white;
-        }
-        /* Style for the day selection */
-        .fc-day-active .fc-daygrid-day-number {
-            background-color: #000;
-            color: white;
-        }
-        /* Custom dot for events */
-        .cal-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            display: inline-block;
-            margin: 0 2px;
-        }
-        .fc-daygrid-event-harness {
-            text-align: center;
-            margin-top: -5px !important;
-        }
-    </style>
+/* Custom Calendar Styles */
+.custom-calendar {
+    user-select: none;
+    font-family: inherit;
+    padding: 0 10px 10px;
+}
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+}
+.calendar-header h5 {
+    margin: 0;
+    font-weight: 700;
+}
+.calendar-header button {
+    background: var(--bg-hover);
+    border: none;
+    color: var(--text-main);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.calendar-header button:active {
+    background: var(--border-color);
+}
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    row-gap: 8px;
+}
+.calendar-cell {
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 50%;
+    margin: 0 auto;
+    width: 36px;
+    height: 36px;
+    z-index: 2;
+    transition: background 0.2s;
+}
+.calendar-cell.other-month {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+.calendar-cell.today {
+    color: var(--brand-primary);
+    font-weight: 700;
+}
+.calendar-cell.selected {
+    background-color: var(--brand-primary);
+    color: white !important;
+}
+
+/* Continuous Trip Background Layer */
+.calendar-day-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.trip-highlight {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 30px;
+    background-color: var(--calendar-pill-bg);
+    z-index: 1;
+}
+.trip-highlight.single {
+    width: 100%;
+    border-radius: 15px;
+}
+.trip-highlight.start {
+    left: 50%;
+    width: 50%;
+    border-top-left-radius: 15px;
+    border-bottom-left-radius: 15px;
+}
+.trip-highlight.end {
+    right: 50%;
+    width: 50%;
+    border-top-right-radius: 15px;
+    border-bottom-right-radius: 15px;
+}
+.trip-highlight.mid {
+    left: 0;
+    width: 100%;
+}
+
+/* Adjust list container margins for details panel to look cohesive */
+#calendarRecordsContainer .record-card {
+    border: none !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05) !important;
+    margin-bottom: 0 !important;
+}
+</style>
 </head>
 <body>
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand navbar-light sticky-top">
+    <nav class="navbar navbar-expand sticky-top">
         <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand m-0" href="#"><i class="bi bi-wallet2 me-2 text-primary"></i>差旅費追蹤</a>
+            <a class="navbar-brand m-0" href="#"><i class="bi bi-airplane-fill me-2" style="color: var(--brand-primary);"></i>差旅費追蹤</a>
             <div class="d-flex align-items-center">
-                <span id="unsettledTotalText" class="fw-bold me-3 text-danger" style="display: none; font-size: 0.9rem;">未入帳：$0</span>
+                <span id="unsettledTotalText" class="fw-bold me-3" style="display: none; font-size: 0.9rem; color: #ff6b6b;">未入帳：$0</span>
                 <button id="exportBtn" class="btn btn-sm btn-outline-success me-2 rounded-pill" style="display: none;">
                     <i class="bi bi-download"></i>
                 </button>
-                <button id="loginBtn" class="btn btn-primary btn-sm rounded-pill px-3">登入</button>
+                <button id="themeToggleBtn" class="me-3">
+                    <i class="bi bi-moon-stars" id="themeIcon"></i>
+                </button>
+                <button id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background: var(--brand-primary);">登入</button>
                 <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3" style="display: none;">登出</button>
             </div>
         </div>
@@ -300,12 +443,13 @@
     <div id="dashboardView" class="container mt-4 mb-5 pb-5">
 
         <!-- View Toggle -->
-        <div class="ios-segmented-control mb-4">
+        <div class="modern-segmented-control mb-4" id="viewToggleGroup">
+            <div class="segment-slider" id="segmentSlider"></div>
             <input type="radio" class="btn-check" name="viewToggle" id="btnList" autocomplete="off" checked>
-            <label class="btn w-50" for="btnList"><i class="bi bi-list-ul me-1"></i>列表</label>
+            <label class="btn" for="btnList"><i class="bi bi-list-ul me-1"></i>歷史</label>
 
             <input type="radio" class="btn-check" name="viewToggle" id="btnCalendar" autocomplete="off">
-            <label class="btn w-50" for="btnCalendar"><i class="bi bi-calendar3 me-1"></i>月曆</label>
+            <label class="btn" for="btnCalendar"><i class="bi bi-calendar3 me-1"></i>日曆</label>
         </div>
 
         <!-- Loading Indicator -->

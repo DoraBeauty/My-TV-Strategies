@@ -35,12 +35,52 @@ const logoutBtn = document.getElementById('logoutBtn');
 const exportBtn = document.getElementById('exportBtn');
 const unsettledTotalText = document.getElementById('unsettledTotalText');
 
-// Calendar View Elements
+// Theme Toggle Logic
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+const themeIcon = document.getElementById('themeIcon');
+
+let isDarkMode = localStorage.getItem('theme') === 'dark';
+
+function updateTheme() {
+    if (isDarkMode) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeIcon.classList.remove('bi-moon-stars');
+        themeIcon.classList.add('bi-sun-fill');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeIcon.classList.remove('bi-sun-fill');
+        themeIcon.classList.add('bi-moon-stars');
+        localStorage.setItem('theme', 'light');
+    }
+}
+
+updateTheme();
+
+themeToggleBtn.addEventListener('click', () => {
+    isDarkMode = !isDarkMode;
+    updateTheme();
+});
+
+// View Toggle Elements
 const btnList = document.getElementById('btnList');
 const btnCalendar = document.getElementById('btnCalendar');
 const recordsContainer = document.getElementById('recordsContainer');
 const calendarViewWrapper = document.getElementById('calendarViewWrapper');
-let calendarInstance = null;
+const segmentSlider = document.getElementById('segmentSlider');
+
+function updateSegmentSlider() {
+    // Assuming 2 options, 50% width each
+    segmentSlider.style.width = '50%';
+    if (btnList.checked) {
+        segmentSlider.style.transform = 'translateX(0)';
+    } else if (btnCalendar.checked) {
+        segmentSlider.style.transform = 'translateX(100%)';
+    }
+}
+
+// Run initially
+updateSegmentSlider();
 
 // Form Elements
 const form = document.getElementById('recordForm');
@@ -201,6 +241,7 @@ onAuthStateChanged(auth, (user) => {
 // --- View Toggle (List/Calendar) ---
 btnList.addEventListener('change', () => {
     if (btnList.checked) {
+        updateSegmentSlider();
         recordsContainer.style.display = 'flex';
         calendarViewWrapper.style.display = 'none';
     }
@@ -208,11 +249,74 @@ btnList.addEventListener('change', () => {
 
 btnCalendar.addEventListener('change', () => {
     if (btnCalendar.checked) {
+        updateSegmentSlider();
         recordsContainer.style.display = 'none';
         calendarViewWrapper.style.display = 'block';
-        if (calendarInstance) calendarInstance.render();
+        renderCustomCalendar();
     }
 });
+
+// Renders the continuous capsule backgrounds behind the dates.
+function updateCalendarRecords(date) {
+    if (!currentRecords) return;
+
+    const allDayWrappers = document.querySelectorAll('.calendar-day-wrapper');
+    if (allDayWrappers.length === 0) return;
+
+    // First, clear old highlights if any
+    document.querySelectorAll('.trip-highlight').forEach(el => el.remove());
+
+    // Generate date map from wrappers
+    const cellMap = {};
+    allDayWrappers.forEach(wrapper => {
+        if (wrapper.dataset.date) {
+            cellMap[wrapper.dataset.date] = wrapper;
+        }
+    });
+
+    currentRecords.forEach(record => {
+        if (!record.startTime || !record.endTime) return;
+
+        // Convert to YYYY-MM-DD
+        const startStr = record.startTime.split('T')[0];
+        const endStr = record.endTime.split('T')[0];
+
+        const startDate = new Date(startStr);
+        const endDate = new Date(endStr);
+
+        // Make sure it doesn't cross if it's identical
+        const isSingleDay = startStr === endStr;
+
+        // Iterate through all days in this trip's range
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const dateKey = `${y}-${m}-${day}`;
+
+            const wrapper = cellMap[dateKey];
+            if (wrapper) {
+                const highlight = document.createElement('div');
+                highlight.className = 'trip-highlight';
+
+                if (isSingleDay) {
+                    highlight.classList.add('single');
+                } else if (dateKey === startStr) {
+                    highlight.classList.add('start');
+                } else if (dateKey === endStr) {
+                    highlight.classList.add('end');
+                } else {
+                    highlight.classList.add('mid');
+                }
+
+                wrapper.appendChild(highlight);
+            }
+        }
+    });
+
+    // After setting the background capsules, we also update the details list (Step 5)
+    renderCalendarList();
+}
 
 
 // --- Form Dynamic Logic ---
@@ -560,7 +664,9 @@ window.addEventListener('authReady', () => {
         });
 
         unsettledTotalText.textContent = `未入帳：$${unsettledTotal}`;
-        renderCalendar();
+        if (btnCalendar.checked) {
+            renderCustomCalendar();
+        }
         await cleanupOldImages(currentRecords);
     });
 });
@@ -766,55 +872,6 @@ const renderCalendarList = () => {
     }
 };
 
-const renderCalendar = () => {
-    const calendarEl = document.getElementById('calendar');
-    if (!calendarEl) return;
-
-    if (!calendarInstance) {
-        calendarInstance = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'zh-tw',
-            height: 'auto',
-            headerToolbar: {
-                left: 'prev,next',
-                center: 'title',
-                right: 'today'
-            },
-            eventContent: function(arg) {
-                const isSettled = arg.event.extendedProps.isSettled;
-                const color = isSettled ? 'var(--ios-green)' : 'var(--ios-blue)';
-                return { html: `<div class="cal-dot" style="background-color: ${color}"></div>` };
-            },
-            dateClick: function(info) {
-                // Update selected styling
-                document.querySelectorAll('.fc-day').forEach(el => el.classList.remove('fc-day-active'));
-                info.dayEl.classList.add('fc-day-active');
-
-                selectedDateStr = info.dateStr;
-                selectedDateTitle.textContent = info.dateStr;
-                renderCalendarList();
-            }
-        });
-    }
-
-    const events = currentRecords.map(r => ({
-        id: r.id,
-        title: r.tripName || r.location,
-        start: r.startTime,
-        end: r.endTime, // Fullcalendar needs exclusive end date for spans but inclusive is fine for our manual filtering
-        extendedProps: { isSettled: r.isSettled }
-    }));
-
-    calendarInstance.removeAllEvents();
-    calendarInstance.addEventSource(events);
-
-    // Render only if visible
-    if (btnCalendar.checked) {
-        calendarInstance.render();
-        // Trigger initial date list render
-        renderCalendarList();
-    }
-};
 
 // --- CSV Export Logic ---
 exportBtn.addEventListener('click', () => {
@@ -855,3 +912,146 @@ exportBtn.addEventListener('click', () => {
     link.click();
     document.body.removeChild(link);
 });
+
+// --- Custom Vanilla JS Calendar Logic ---
+let currentDate = new Date();
+let selectedDate = new Date();
+
+function renderCustomCalendar() {
+    const calendarContainer = document.getElementById('calendar');
+    if (!calendarContainer) return;
+
+    calendarContainer.innerHTML = '';
+    calendarContainer.className = 'custom-calendar';
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'calendar-header';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+    prevBtn.onclick = () => {
+        currentDate.setMonth(month - 1);
+        renderCustomCalendar();
+    };
+
+    const nextBtn = document.createElement('button');
+    nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+    nextBtn.onclick = () => {
+        currentDate.setMonth(month + 1);
+        renderCustomCalendar();
+    };
+
+    const title = document.createElement('h5');
+    title.textContent = `${year}年 ${month + 1}月`;
+
+    header.appendChild(prevBtn);
+    header.appendChild(title);
+    header.appendChild(nextBtn);
+    calendarContainer.appendChild(header);
+
+    // Weekdays
+    const weekdays = document.createElement('div');
+    weekdays.className = 'calendar-weekdays';
+    const days = ['日', '一', '二', '三', '四', '五', '六'];
+    days.forEach(day => {
+        const div = document.createElement('div');
+        div.textContent = day;
+        weekdays.appendChild(div);
+    });
+    calendarContainer.appendChild(weekdays);
+
+    // Grid
+    const grid = document.createElement('div');
+    grid.className = 'calendar-grid';
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const prevLastDay = new Date(year, month, 0);
+
+    const startDayIndex = firstDay.getDay(); // 0 (Sun) to 6 (Sat)
+
+    // Previous month's days
+    for (let i = startDayIndex - 1; i >= 0; i--) {
+        const dayDiv = createCalendarDay(year, month - 1, prevLastDay.getDate() - i, true);
+        grid.appendChild(dayDiv);
+    }
+
+    // Current month's days
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+        const dayDiv = createCalendarDay(year, month, i, false);
+        grid.appendChild(dayDiv);
+    }
+
+    // Next month's days (to fill 42 cells)
+    const totalCells = grid.children.length;
+    for (let i = 1; i <= (42 - totalCells); i++) {
+        const dayDiv = createCalendarDay(year, month + 1, i, true);
+        grid.appendChild(dayDiv);
+    }
+
+    calendarContainer.appendChild(grid);
+
+    // After rendering calendar, also render continuous trips (Step 4)
+    // and trigger update for selected date
+    updateCalendarRecords(selectedDate);
+}
+
+function createCalendarDay(year, month, day, isOtherMonth) {
+    const dateObj = new Date(year, month, day);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'calendar-day-wrapper';
+
+    // Store exact date as yyyy-mm-dd for easy comparison later
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    wrapper.dataset.date = `${y}-${m}-${d}`;
+
+    const cell = document.createElement('div');
+    cell.className = 'calendar-cell';
+    cell.textContent = day;
+
+    if (isOtherMonth) {
+        cell.classList.add('other-month');
+    }
+
+    const today = new Date();
+    if (dateObj.getDate() === today.getDate() &&
+        dateObj.getMonth() === today.getMonth() &&
+        dateObj.getFullYear() === today.getFullYear()) {
+        cell.classList.add('today');
+    }
+
+    if (dateObj.getDate() === selectedDate.getDate() &&
+        dateObj.getMonth() === selectedDate.getMonth() &&
+        dateObj.getFullYear() === selectedDate.getFullYear()) {
+        cell.classList.add('selected');
+    }
+
+    cell.onclick = () => {
+        selectedDate = new Date(dateObj);
+
+        // Sync the globally used selectedDateStr
+        const y = selectedDate.getFullYear();
+        const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const d = String(selectedDate.getDate()).padStart(2, '0');
+        selectedDateStr = `${y}-${m}-${d}`;
+
+        // Update the display title
+        if (selectedDateTitle) {
+            const isToday = y === new Date().getFullYear() &&
+                            selectedDate.getMonth() === new Date().getMonth() &&
+                            selectedDate.getDate() === new Date().getDate();
+            selectedDateTitle.textContent = isToday ? '今天' : `${m}月${d}日`;
+        }
+
+        renderCustomCalendar(); // Re-render to update selected state and details
+    };
+
+    wrapper.appendChild(cell);
+    return wrapper;
+}
