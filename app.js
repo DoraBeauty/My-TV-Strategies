@@ -1,33 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
-    getAuth,
-    signInWithPopup,
-    GoogleAuthProvider,
-    onAuthStateChanged,
-    signOut
+    getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
-    getFirestore,
-    collection,
-    addDoc,
-    query,
-    where,
-    orderBy,
-    onSnapshot,
-    doc,
-    updateDoc,
-    serverTimestamp,
-    getDocs
+    getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, serverTimestamp, getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import {
-    getStorage,
-    ref,
-    uploadBytes,
-    getDownloadURL,
-    deleteObject
+    getStorage, ref, uploadBytes, getDownloadURL, deleteObject
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-// TODO: Replace with user's actual Firebase config
 const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -37,16 +18,14 @@ const firebaseConfig = {
     appId: "YOUR_APP_ID"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Global State
 let currentUser = null;
 
-// DOM Elements - Auth & UI
+// UI Elements
 const loginView = document.getElementById('loginView');
 const dashboardView = document.getElementById('dashboardView');
 const loginBtn = document.getElementById('loginBtn');
@@ -56,35 +35,69 @@ const logoutBtn = document.getElementById('logoutBtn');
 const exportBtn = document.getElementById('exportBtn');
 const unsettledTotalText = document.getElementById('unsettledTotalText');
 
-// Auth Functions
+// Calendar View Elements
+const btnList = document.getElementById('btnList');
+const btnCalendar = document.getElementById('btnCalendar');
+const recordsContainer = document.getElementById('recordsContainer');
+const calendarViewWrapper = document.getElementById('calendarViewWrapper');
+let calendarInstance = null;
+
+// Form Elements
+const form = document.getElementById('recordForm');
+const recordIdInput = document.getElementById('recordId');
+const modalTitle = document.getElementById('modalTitle');
+const saveRecordBtn = document.getElementById('saveRecordBtn');
+const saveSpinner = document.getElementById('saveSpinner');
+
+const startTimeInput = document.getElementById('startTime');
+const endTimeInput = document.getElementById('endTime');
+const allowanceInput = document.getElementById('allowance');
+const allowanceDisplay = document.getElementById('allowanceDisplay');
+const timeCalcHint = document.getElementById('timeCalcHint');
+
+const companionsInput = document.getElementById('companions');
+const transportTypeSelect = document.getElementById('transportType');
+const driverSection = document.getElementById('driverSection');
+const driverSelect = document.getElementById('driverSelect');
+const mileageSection = document.getElementById('mileageSection');
+const mileageInput = document.getElementById('mileage');
+const mileageRateHint = document.getElementById('mileageRateHint');
+
+const receiptsContainer = document.getElementById('receiptsContainer');
+const addReceiptBtn = document.getElementById('addReceiptBtn');
+
+const totalAmountInput = document.getElementById('totalAmount');
+const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+
+let dynamicReceiptCount = 0;
+let currentRecords = [];
+
+// --- Auth & Setup ---
+
 const handleLogin = async () => {
     try {
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
     } catch (error) {
-        console.error("Login Error:", error);
         alert("登入失敗：" + error.message);
     }
 };
 
 const handleLogout = async () => {
     if (currentUser && currentUser.isGuest) {
-        // Just reload for guest logout
         window.location.reload();
         return;
     }
     try {
         await signOut(auth);
     } catch (error) {
-        console.error("Logout Error:", error);
+        console.error(error);
     }
 };
 
-// Mock Firebase for LocalStorage Guest Mode
 const startGuestMode = () => {
     currentUser = { uid: 'guest_user', isGuest: true };
 
-    // UI changes
     loginView.style.display = 'none';
     dashboardView.style.display = 'block';
     loginBtn.style.display = 'none';
@@ -92,7 +105,6 @@ const startGuestMode = () => {
     exportBtn.style.display = 'inline-block';
     unsettledTotalText.style.display = 'inline-block';
 
-    // Mock Realtime Listener registry
     let mockListeners = [];
     const triggerListeners = () => {
         const raw = localStorage.getItem('guest_records');
@@ -104,17 +116,15 @@ const startGuestMode = () => {
         mockListeners.forEach(cb => cb(snapshot));
     };
 
-    // Mock Firebase Context
     window.firebaseData = {
         currentUser,
-        db: 'mock_db',
-        storage: 'mock_storage',
+        db: 'mock_db', storage: 'mock_storage',
         collection: (db, path) => path,
         addDoc: async (colPath, data) => {
             const raw = localStorage.getItem('guest_records');
             const records = raw ? JSON.parse(raw) : [];
             const newDoc = { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() };
-            records.unshift(newDoc); // append to front for 'desc' order mock
+            records.unshift(newDoc);
             localStorage.setItem('guest_records', JSON.stringify(records));
             triggerListeners();
             return { id: newDoc.id };
@@ -127,20 +137,15 @@ const startGuestMode = () => {
             localStorage.setItem('guest_records', JSON.stringify(records));
             triggerListeners();
         },
-        query: () => 'mock_query',
-        where: () => null,
-        orderBy: () => null,
+        query: () => 'mock_query', where: () => null, orderBy: () => null,
         onSnapshot: (q, cb, errCb) => {
             mockListeners.push(cb);
             triggerListeners();
-            return () => {
-                mockListeners = mockListeners.filter(l => l !== cb);
-            };
+            return () => { mockListeners = mockListeners.filter(l => l !== cb); };
         },
         serverTimestamp: () => new Date().toISOString(),
         ref: (storage, path) => path,
         uploadBytes: async (refPath, file) => {
-            // Convert to Base64 for local storage
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -151,12 +156,8 @@ const startGuestMode = () => {
                 reader.onerror = error => reject(error);
             });
         },
-        getDownloadURL: async (refPath) => {
-            return localStorage.getItem('img_' + refPath);
-        },
-        deleteObject: async (refPath) => {
-            localStorage.removeItem('img_' + refPath);
-        }
+        getDownloadURL: async (refPath) => localStorage.getItem('img_' + refPath),
+        deleteObject: async (refPath) => localStorage.removeItem('img_' + refPath)
     };
 
     window.dispatchEvent(new Event('authReady'));
@@ -167,9 +168,7 @@ largeLoginBtn.addEventListener('click', handleLogin);
 if (guestLoginBtn) guestLoginBtn.addEventListener('click', startGuestMode);
 logoutBtn.addEventListener('click', handleLogout);
 
-// Auth State Observer
 onAuthStateChanged(auth, (user) => {
-    // If we're already in guest mode, ignore real auth state changes to null
     if (currentUser && currentUser.isGuest) return;
 
     if (user) {
@@ -181,14 +180,11 @@ onAuthStateChanged(auth, (user) => {
         exportBtn.style.display = 'inline-block';
         unsettledTotalText.style.display = 'inline-block';
 
-        // Expose modules to window for step 4 and 5 logic implementation
         window.firebaseData = {
             db, storage, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, getDocs, deleteObject, currentUser
         };
 
-        // Dispatch custom event to notify other scripts that auth is ready
         window.dispatchEvent(new Event('authReady'));
-
     } else {
         currentUser = null;
         loginView.style.display = 'block';
@@ -200,29 +196,34 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- Form Business Logic ---
 
-const startTimeInput = document.getElementById('startTime');
-const endTimeInput = document.getElementById('endTime');
-const allowanceInput = document.getElementById('allowance');
-const timeCalcHint = document.getElementById('timeCalcHint');
+// --- View Toggle (List/Calendar) ---
+btnList.addEventListener('change', () => {
+    if (btnList.checked) {
+        recordsContainer.style.display = 'flex';
+        calendarViewWrapper.style.display = 'none';
+    }
+});
 
-const transportTypeSelect = document.getElementById('transportType');
-const mileageSection = document.getElementById('mileageSection');
-const publicTransportSection = document.getElementById('publicTransportSection');
-const mileageInput = document.getElementById('mileage');
-const ticketPriceInput = document.getElementById('ticketPrice');
-const mileageRateHint = document.getElementById('mileageRateHint');
-const totalAmountInput = document.getElementById('totalAmount');
+btnCalendar.addEventListener('change', () => {
+    if (btnCalendar.checked) {
+        recordsContainer.style.display = 'none';
+        calendarViewWrapper.style.display = 'block';
+        if (calendarInstance) calendarInstance.render();
+    }
+});
 
-// Calculate Allowance based on time
+
+// --- Form Dynamic Logic ---
+
 const calculateAllowance = () => {
     const start = startTimeInput.value;
     const end = endTimeInput.value;
 
     if (!start || !end) {
         allowanceInput.value = 0;
-        timeCalcHint.textContent = "請先輸入起訖時間";
+        allowanceDisplay.textContent = '0';
+        timeCalcHint.textContent = "請先輸入起訖時間計算雜費";
         calculateTotal();
         return;
     }
@@ -232,177 +233,266 @@ const calculateAllowance = () => {
 
     if (endDate <= startDate) {
         allowanceInput.value = 0;
+        allowanceDisplay.textContent = '0';
         timeCalcHint.textContent = "結束時間必須晚於開始時間";
-        timeCalcHint.classList.replace('text-primary', 'text-danger');
+        timeCalcHint.classList.add('text-danger');
         calculateTotal();
         return;
     }
 
-    timeCalcHint.classList.replace('text-danger', 'text-primary');
-
+    timeCalcHint.classList.remove('text-danger');
     const diffMs = endDate - startDate;
     const diffHours = diffMs / (1000 * 60 * 60);
 
-    let allowance = 0;
-    if (diffHours >= 4) {
-        allowance = 400;
-    } else {
-        allowance = 200;
-    }
-
+    const allowance = diffHours >= 4 ? 400 : 200;
     allowanceInput.value = allowance;
-    timeCalcHint.textContent = `共計 ${diffHours.toFixed(1)} 小時，雜費自動帶入 $${allowance}`;
+    allowanceDisplay.textContent = allowance;
+    timeCalcHint.textContent = `共計 ${diffHours.toFixed(1)} 小時，雜費自動帶入`;
     calculateTotal();
 };
-
 startTimeInput.addEventListener('change', calculateAllowance);
 endTimeInput.addEventListener('change', calculateAllowance);
 
-// Handle Transport Type Change
-const handleTransportChange = () => {
+const updateDriverOptions = () => {
     const type = transportTypeSelect.value;
-
-    // Reset values
-    mileageInput.value = '';
-    ticketPriceInput.value = '';
-    document.getElementById('receiptImage').value = '';
-
-    if (type === 'car') {
-        mileageSection.style.display = 'block';
-        publicTransportSection.style.display = 'none';
-        mileageRateHint.textContent = "計算方式：里程數 x $3";
-        mileageInput.dataset.rate = "3";
-    } else if (type === 'motorcycle') {
-        mileageSection.style.display = 'block';
-        publicTransportSection.style.display = 'none';
-        mileageRateHint.textContent = "計算方式：里程數 x $2";
-        mileageInput.dataset.rate = "2";
-    } else if (type === 'public') {
+    if (type !== 'car' && type !== 'motorcycle') {
+        driverSection.style.display = 'none';
         mileageSection.style.display = 'none';
-        publicTransportSection.style.display = 'block';
-    } else {
-        mileageSection.style.display = 'none';
-        publicTransportSection.style.display = 'none';
+        return;
     }
 
+    driverSection.style.display = 'block';
+    const compText = companionsInput.value.trim();
+    const companions = compText ? compText.split(/[,，、]+/).map(s => s.trim()).filter(s => s) : [];
+
+    // Save current selection to restore if possible
+    const currentVal = driverSelect.value;
+    driverSelect.innerHTML = '<option value="self">駕駛：自己 (計算里程費)</option>';
+
+    companions.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = `駕駛：${c} (不計算里程費)`;
+        driverSelect.appendChild(opt);
+    });
+
+    if (Array.from(driverSelect.options).some(o => o.value === currentVal)) {
+        driverSelect.value = currentVal;
+    }
+    handleDriverChange();
+};
+companionsInput.addEventListener('input', updateDriverOptions);
+transportTypeSelect.addEventListener('change', updateDriverOptions);
+
+
+const handleDriverChange = () => {
+    const type = transportTypeSelect.value;
+    if (type !== 'car' && type !== 'motorcycle') return;
+
+    if (driverSelect.value === 'self') {
+        mileageSection.style.display = 'block';
+        if (type === 'car') {
+            mileageRateHint.textContent = "x $3";
+            mileageInput.dataset.rate = "3";
+        } else {
+            mileageRateHint.textContent = "x $2";
+            mileageInput.dataset.rate = "2";
+        }
+    } else {
+        // Someone else is driving, no mileage for self
+        mileageSection.style.display = 'none';
+        mileageInput.value = '';
+    }
     calculateTotal();
 };
+driverSelect.addEventListener('change', handleDriverChange);
+mileageInput.addEventListener('input', calculateTotal);
 
-transportTypeSelect.addEventListener('change', handleTransportChange);
+// Dynamic Receipts
+const createReceiptEl = (data = null) => {
+    const id = `receipt_${Date.now()}_${dynamicReceiptCount++}`;
+    const el = document.createElement('div');
+    el.className = 'ios-form-group mb-3 position-relative';
+    el.dataset.id = id;
 
-// Calculate Total
-const calculateTotal = () => {
+    // Use existing image path if provided (for edit mode)
+    let imgHidden = '';
+    let imgUrlHidden = '';
+    let imgThumbHtml = '';
+    if (data && data.path) {
+        imgHidden = `<input type="hidden" class="receipt-old-path" value="${data.path}">`;
+        imgUrlHidden = `<input type="hidden" class="receipt-old-url" value="${data.url}">`;
+        imgThumbHtml = `<img src="${data.url}" class="receipt-thumbnail mt-2">`;
+    }
+
+    el.innerHTML = `
+        <button type="button" class="btn-close delete-receipt-btn" aria-label="Close" style="position: absolute; right: 10px; top: 10px; z-index: 5; font-size: 0.8rem;"></button>
+        <div class="p-2 border-bottom">
+            <input type="text" class="form-control form-control-sm border-0 fw-bold receipt-name" placeholder="發票項目名稱 (例如：高鐵去程, 住宿)" value="${data ? data.name : ''}" required>
+        </div>
+        <div class="d-flex p-2 border-bottom align-items-center">
+            <span class="text-muted small me-2">$</span>
+            <input type="number" class="form-control form-control-sm border-0 receipt-price" placeholder="金額" min="0" value="${data ? data.price : ''}" required>
+        </div>
+        <div class="p-2 bg-light">
+            <input type="file" class="form-control form-control-sm receipt-file" accept="image/*">
+            ${imgHidden}
+            ${imgUrlHidden}
+            ${imgThumbHtml}
+        </div>
+    `;
+
+    el.querySelector('.delete-receipt-btn').addEventListener('click', () => {
+        el.remove();
+        calculateTotal();
+    });
+
+    el.querySelector('.receipt-price').addEventListener('input', calculateTotal);
+
+    return el;
+};
+
+addReceiptBtn.addEventListener('click', () => {
+    receiptsContainer.appendChild(createReceiptEl());
+});
+
+function calculateTotal() {
     const allowance = parseFloat(allowanceInput.value) || 0;
-    let transportCost = 0;
 
+    let transportCost = 0;
     const type = transportTypeSelect.value;
-    if (type === 'car' || type === 'motorcycle') {
+    if ((type === 'car' || type === 'motorcycle') && driverSelect.value === 'self') {
         const mileage = parseFloat(mileageInput.value) || 0;
         const rate = parseFloat(mileageInput.dataset.rate) || 0;
         transportCost = mileage * rate;
-    } else if (type === 'public') {
-        transportCost = parseFloat(ticketPriceInput.value) || 0;
     }
 
-    totalAmountInput.value = Math.round(allowance + transportCost);
-};
+    let receiptTotal = 0;
+    document.querySelectorAll('.receipt-price').forEach(input => {
+        receiptTotal += parseFloat(input.value) || 0;
+    });
 
-mileageInput.addEventListener('input', calculateTotal);
-ticketPriceInput.addEventListener('input', calculateTotal);
+    const total = allowance + transportCost + receiptTotal;
+    totalAmountInput.value = Math.round(total);
+    totalAmountDisplay.textContent = Math.round(total);
+}
 
 
-// --- Dashboard & CRUD Logic ---
-
-let unsubscribeRecords = null;
-let currentRecords = []; // For export
-let bootstrapModalInstance = null; // Store modal instance
-
-// Initialize Modal
+// --- CRUD Operations ---
+let bootstrapModalInstance = null;
 document.addEventListener('DOMContentLoaded', () => {
-    const modalEl = document.getElementById('newRecordModal');
+    const modalEl = document.getElementById('recordModal');
     if (modalEl) {
         bootstrapModalInstance = new bootstrap.Modal(modalEl);
+
+        // Reset form on open if no ID (Create Mode)
+        modalEl.addEventListener('show.bs.modal', (e) => {
+            if (!e.relatedTarget || !e.relatedTarget.closest) return;
+            const btn = e.relatedTarget.closest('.fab');
+            if (btn) {
+                form.reset();
+                recordIdInput.value = '';
+                modalTitle.textContent = '新增紀錄';
+                receiptsContainer.innerHTML = '';
+                allowanceDisplay.textContent = '0';
+                totalAmountDisplay.textContent = '0';
+                timeCalcHint.textContent = '請輸入起訖時間計算雜費';
+                timeCalcHint.classList.remove('text-danger');
+                updateDriverOptions();
+            }
+        });
     }
 });
 
 
-// Handle Submit Record
-const saveRecordBtn = document.getElementById('saveRecordBtn');
-const saveSpinner = document.getElementById('saveSpinner');
-
 saveRecordBtn.addEventListener('click', async () => {
-    const form = document.getElementById('recordForm');
     if (!form.checkValidity()) {
         form.reportValidity();
         return;
     }
 
-    const { db, storage, collection, addDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, currentUser } = window.firebaseData;
+    const { db, storage, collection, doc, addDoc, updateDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, currentUser } = window.firebaseData;
 
     try {
         saveRecordBtn.disabled = true;
         saveSpinner.classList.remove('d-none');
 
-        const locationVal = document.getElementById('location').value;
+        const isEdit = !!recordIdInput.value;
+        const tripName = document.getElementById('tripName').value;
+        const location = document.getElementById('location').value;
+        const visitingUnit = document.getElementById('visitingUnit').value;
         const startVal = startTimeInput.value;
         const endVal = endTimeInput.value;
         const allowanceVal = parseInt(allowanceInput.value);
+        const companions = companionsInput.value;
         const transportTypeVal = transportTypeSelect.value;
+        const driver = driverSelect.value;
 
-        let transportCostVal = 0;
         let mileageVal = null;
-        let receiptImageUrl = null;
-        let receiptImagePath = null;
+        let transportCostVal = 0;
 
-        if (transportTypeVal === 'car' || transportTypeVal === 'motorcycle') {
+        if ((transportTypeVal === 'car' || transportTypeVal === 'motorcycle') && driver === 'self') {
             mileageVal = parseFloat(mileageInput.value) || 0;
             const rate = parseFloat(mileageInput.dataset.rate) || 0;
-            transportCostVal = mileageVal * rate;
-        } else if (transportTypeVal === 'public') {
-            transportCostVal = parseInt(ticketPriceInput.value) || 0;
+            transportCostVal = Math.round(mileageVal * rate);
+        }
 
-            const fileInput = document.getElementById('receiptImage');
+        // Process Receipts
+        const receipts = [];
+        const receiptEls = document.querySelectorAll('#receiptsContainer .ios-form-group');
+        for (const el of receiptEls) {
+            const name = el.querySelector('.receipt-name').value;
+            const price = parseFloat(el.querySelector('.receipt-price').value) || 0;
+            const fileInput = el.querySelector('.receipt-file');
+
+            let path = el.querySelector('.receipt-old-path') ? el.querySelector('.receipt-old-path').value : null;
+            let url = el.querySelector('.receipt-old-url') ? el.querySelector('.receipt-old-url').value : null;
+
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const filename = `receipts/${currentUser.uid}/${Date.now()}_${file.name}`;
                 const storageRef = ref(storage, filename);
                 await uploadBytes(storageRef, file);
-                receiptImageUrl = await getDownloadURL(storageRef);
-                receiptImagePath = filename;
+                url = await getDownloadURL(storageRef);
+                path = filename;
             }
+
+            receipts.push({ name, price, path, url });
         }
 
         const totalVal = parseInt(totalAmountInput.value);
 
-        const newRecord = {
+        const recordData = {
             userId: currentUser.uid,
-            location: locationVal,
+            tripName,
+            location,
+            visitingUnit,
             startTime: startVal,
             endTime: endVal,
             allowance: allowanceVal,
+            companions,
             transportType: transportTypeVal,
+            driver,
             mileage: mileageVal,
             transportCost: transportCostVal,
+            receipts,
             totalAmount: totalVal,
-            receiptImageUrl: receiptImageUrl,
-            receiptImagePath: receiptImagePath, // store path for deletion
-            isSettled: false,
-            settledAt: null,
-            createdAt: serverTimestamp()
         };
 
-        await addDoc(collection(db, 'records'), newRecord);
-
-        // Reset form & close modal
-        form.reset();
-        calculateAllowance();
-        handleTransportChange();
-        if (bootstrapModalInstance) {
-            bootstrapModalInstance.hide();
+        if (isEdit) {
+            recordData.updatedAt = serverTimestamp();
+            const docRef = doc(db, 'records', recordIdInput.value);
+            await updateDoc(docRef, recordData);
+        } else {
+            recordData.isSettled = false;
+            recordData.settledAt = null;
+            recordData.createdAt = serverTimestamp();
+            await addDoc(collection(db, 'records'), recordData);
         }
 
+        if (bootstrapModalInstance) bootstrapModalInstance.hide();
+
     } catch (error) {
-        console.error("Save error:", error);
         alert("儲存失敗：" + error.message);
     } finally {
         saveRecordBtn.disabled = false;
@@ -412,16 +502,13 @@ saveRecordBtn.addEventListener('click', async () => {
 
 
 // Load & Display Records
+let unsubscribeRecords = null;
 window.addEventListener('authReady', () => {
     const { db, collection, query, where, orderBy, onSnapshot, currentUser } = window.firebaseData;
 
-    if (unsubscribeRecords) {
-        unsubscribeRecords();
-    }
+    if (unsubscribeRecords) unsubscribeRecords();
 
-    const recordsContainer = document.getElementById('recordsContainer');
     const loadingIndicator = document.getElementById('loadingIndicator');
-
     loadingIndicator.style.display = 'block';
     recordsContainer.innerHTML = '';
 
@@ -442,192 +529,172 @@ window.addEventListener('authReady', () => {
             const record = { id: docSnap.id, ...data };
             currentRecords.push(record);
 
-            if (!record.isSettled) {
-                unsettledTotal += record.totalAmount;
-            }
-
+            if (!record.isSettled) unsettledTotal += record.totalAmount;
             renderRecordCard(record);
         });
 
-        // Update Total
         unsettledTotalText.textContent = `未入帳：$${unsettledTotal}`;
-
-        // Lazy cleanup of old images
+        renderCalendar();
         await cleanupOldImages(currentRecords);
-    }, (error) => {
-        console.error("Fetch records error:", error);
-        loadingIndicator.style.display = 'none';
-        recordsContainer.innerHTML = '<div class="alert alert-danger">載入紀錄失敗。</div>';
     });
 });
 
+const escapeHtml = (unsafe) => (unsafe || '').toString().replace(/[&<"'>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 const renderRecordCard = (record) => {
-    const recordsContainer = document.getElementById('recordsContainer');
     const col = document.createElement('div');
     col.className = 'col-12 col-md-6 col-lg-4';
 
-    const typeMap = {
-        'car': '自行開車',
-        'motorcycle': '自行騎機車',
-        'public': '大眾運輸'
-    };
+    const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
 
     let detailsHtml = '';
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
-        detailsHtml = `<div class="text-muted small">里程數：${record.mileage} km</div>`;
+        detailsHtml = `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
     }
 
-    let imageHtml = '';
-    if (record.receiptImageUrl) {
-        imageHtml = `
-            <div class="mt-2">
-                <a href="${record.receiptImageUrl}" target="_blank">
-                    <img src="${record.receiptImageUrl}" class="thumbnail rounded border" alt="票根">
-                </a>
-            </div>
-        `;
+    let receiptsHtml = '';
+    if (record.receipts && record.receipts.length > 0) {
+        receiptsHtml = `<div class="mt-2 border-top pt-2"><div class="small fw-bold mb-1">發票明細：</div>`;
+        record.receipts.forEach(r => {
+            let img = r.url ? `<a href="${r.url}" target="_blank" class="ms-2"><i class="bi bi-image text-primary"></i></a>` : '';
+            receiptsHtml += `<div class="d-flex justify-content-between text-muted small">
+                <span>${escapeHtml(r.name)} ${img}</span>
+                <span>$${r.price}</span>
+            </div>`;
+        });
+        receiptsHtml += `</div>`;
     }
 
-    // Settled logic
-    let statusHtml = '';
+    let statusHtml = record.isSettled ? '<span class="badge bg-success rounded-pill px-2">已入帳</span>' : '';
+    let cardClass = record.isSettled ? 'card record-card status-settled' : 'card record-card';
+
+    // settled logic
     let actionBtnHtml = '';
-    let cardClass = 'card shadow-sm record-card h-100';
-
     if (record.isSettled) {
-        cardClass += ' status-settled bg-light';
-        statusHtml = '<span class="badge bg-success ms-2">已入帳</span>';
-
-        // Check if within 30 days
-        const settledDate = record.settledAt ? new Date(record.settledAt) : new Date();
-        const now = new Date();
-        const diffTime = Math.abs(now - settledDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
+        const diffDays = Math.ceil(Math.abs(new Date() - (record.settledAt ? new Date(record.settledAt) : new Date())) / (1000 * 60 * 60 * 24));
         if (diffDays <= 30) {
-            actionBtnHtml = `
-                <button class="btn btn-sm btn-outline-secondary w-100 mt-3 toggle-settle-btn" data-id="${record.id}" data-action="undo">
-                    <i class="bi bi-arrow-counterclockwise"></i> 取消入帳 (30天內可復原)
-                </button>
-            `;
-        } else {
-             actionBtnHtml = `
-                <div class="text-center text-muted small mt-3">已入帳超過30天不可更改</div>
-            `;
+            actionBtnHtml = `<button class="btn btn-sm btn-outline-secondary w-100 mt-3 toggle-settle-btn rounded-pill fw-bold" data-id="${record.id}" data-action="undo"><i class="bi bi-arrow-counterclockwise"></i> 復原未入帳</button>`;
         }
-
     } else {
-        actionBtnHtml = `
-            <button class="btn btn-sm btn-outline-success w-100 mt-3 toggle-settle-btn" data-id="${record.id}" data-action="settle">
-                <i class="bi bi-check-circle"></i> 標記為已入帳
-            </button>
-        `;
+        actionBtnHtml = `<button class="btn btn-sm btn-outline-primary w-100 mt-3 toggle-settle-btn rounded-pill fw-bold" data-id="${record.id}" data-action="settle"><i class="bi bi-check2-circle"></i> 標記為已入帳</button>`;
     }
-
-    const escapeHtml = (unsafe) => {
-        return (unsafe || '').toString()
-             .replace(/&/g, "&amp;")
-             .replace(/</g, "&lt;")
-             .replace(/>/g, "&gt;")
-             .replace(/"/g, "&quot;")
-             .replace(/'/g, "&#039;");
-    };
 
     col.innerHTML = `
         <div class="${cardClass}">
-            <div class="card-body d-flex flex-column">
-                <h5 class="card-title d-flex justify-content-between align-items-start">
-                    ${escapeHtml(record.location)}
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title fw-bold m-0 text-truncate">${escapeHtml(record.tripName)}</h5>
                     ${statusHtml}
-                </h5>
-                <h6 class="card-subtitle mb-2 text-muted small">
-                    ${record.startTime.replace('T', ' ')} ~ ${record.endTime.replace('T', ' ')}
-                </h6>
-
-                <div class="mt-2">
-                    <div class="d-flex justify-content-between text-muted small">
-                        <span>雜費</span>
-                        <span>$${record.allowance}</span>
-                    </div>
-                    <div class="d-flex justify-content-between text-muted small">
-                        <span>交通費 (${typeMap[record.transportType] || '無'})</span>
-                        <span>$${record.transportCost}</span>
-                    </div>
-                    ${detailsHtml}
                 </div>
+                <div class="small text-primary mb-2"><i class="bi bi-geo-alt-fill me-1"></i>${escapeHtml(record.location)} ${record.visitingUnit ? '('+escapeHtml(record.visitingUnit)+')' : ''}</div>
+                <div class="small text-muted mb-2"><i class="bi bi-clock me-1"></i>${record.startTime.replace('T', ' ')} ~<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${record.endTime.replace('T', ' ')}</div>
 
-                ${imageHtml}
+                <div class="d-flex justify-content-between text-muted small border-top pt-2 mt-2">
+                    <span>雜費</span><span>$${record.allowance}</span>
+                </div>
+                <div class="d-flex justify-content-between text-muted small">
+                    <span>交通費 (${typeMap[record.transportType] || '無'})</span><span>$${record.transportCost}</span>
+                </div>
+                ${detailsHtml}
+                ${receiptsHtml}
 
-                <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-                    <span class="fw-bold text-dark">總計</span>
+                <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">總計</span>
                     <span class="fw-bold text-danger fs-5">$${record.totalAmount}</span>
                 </div>
 
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-light btn-sm w-100 edit-record-btn text-primary fw-bold rounded-pill" data-id="${record.id}"><i class="bi bi-pencil-square"></i> 編輯</button>
+                </div>
                 ${actionBtnHtml}
             </div>
         </div>
     `;
-
     recordsContainer.appendChild(col);
 };
 
-// Handle Settle/Undo Toggle (Event Delegation)
-document.getElementById('recordsContainer').addEventListener('click', async (e) => {
-    const btn = e.target.closest('.toggle-settle-btn');
-    if (!btn) return;
-
-    const docId = btn.dataset.id;
-    const action = btn.dataset.action;
-    const { db, doc, updateDoc } = window.firebaseData;
-
-    try {
-        btn.disabled = true;
-        const docRef = doc(db, 'records', docId);
-
-        if (action === 'settle') {
-            await updateDoc(docRef, {
-                isSettled: true,
-                settledAt: new Date().toISOString()
+// Handle Settle/Undo Toggle
+recordsContainer.addEventListener('click', async (e) => {
+    const settleBtn = e.target.closest('.toggle-settle-btn');
+    if (settleBtn) {
+        const docId = settleBtn.dataset.id;
+        const action = settleBtn.dataset.action;
+        const { db, doc, updateDoc } = window.firebaseData;
+        try {
+            settleBtn.disabled = true;
+            await updateDoc(doc(db, 'records', docId), {
+                isSettled: action === 'settle',
+                settledAt: action === 'settle' ? new Date().toISOString() : null
             });
-        } else if (action === 'undo') {
-            await updateDoc(docRef, {
-                isSettled: false,
-                settledAt: null
-            });
+        } catch (error) {
+            alert("更新狀態失敗：" + error.message);
+            settleBtn.disabled = false;
         }
-    } catch (error) {
-        console.error("Update status error:", error);
-        alert("更新狀態失敗：" + error.message);
-        btn.disabled = false;
+        return;
+    }
+
+    const editBtn = e.target.closest('.edit-record-btn');
+    if (editBtn) {
+        const id = editBtn.dataset.id;
+        const record = currentRecords.find(r => r.id === id);
+        if (record) openEditModal(record);
     }
 });
 
 
-// Lazy Cleanup of Old Images
+const openEditModal = (record) => {
+    recordIdInput.value = record.id;
+    modalTitle.textContent = '編輯紀錄';
+
+    document.getElementById('tripName').value = record.tripName || '';
+    document.getElementById('location').value = record.location || '';
+    document.getElementById('visitingUnit').value = record.visitingUnit || '';
+    startTimeInput.value = record.startTime || '';
+    endTimeInput.value = record.endTime || '';
+    companionsInput.value = record.companions || '';
+    transportTypeSelect.value = record.transportType || '';
+
+    updateDriverOptions();
+    if (record.driver) driverSelect.value = record.driver;
+    handleDriverChange();
+
+    if (record.mileage !== null) mileageInput.value = record.mileage;
+
+    receiptsContainer.innerHTML = '';
+    if (record.receipts) {
+        record.receipts.forEach(r => {
+            receiptsContainer.appendChild(createReceiptEl(r));
+        });
+    }
+
+    calculateAllowance(); // updates total
+
+    if (bootstrapModalInstance) bootstrapModalInstance.show();
+};
+
+
 const cleanupOldImages = async (records) => {
     const { db, storage, doc, updateDoc, ref, deleteObject } = window.firebaseData;
     const now = new Date();
-
     for (const record of records) {
-        if (record.isSettled && record.settledAt && record.receiptImagePath && record.receiptImageUrl) {
-            const settledDate = new Date(record.settledAt);
-            const diffTime = Math.abs(now - settledDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
+        if (record.isSettled && record.settledAt && record.receipts) {
+            const diffDays = Math.ceil(Math.abs(now - new Date(record.settledAt)) / (1000 * 60 * 60 * 24));
             if (diffDays > 30) {
-                console.log(`Cleaning up old image for record ${record.id}`);
-                try {
-                    // Delete from storage
-                    const fileRef = ref(storage, record.receiptImagePath);
-                    await deleteObject(fileRef);
-
-                    // Remove URL and Path from doc
-                    const docRef = doc(db, 'records', record.id);
-                    await updateDoc(docRef, {
-                        receiptImageUrl: null,
-                        receiptImagePath: null
-                    });
-                } catch (err) {
-                    console.error("Cleanup error for", record.id, err);
+                let updated = false;
+                const newReceipts = [...record.receipts];
+                for (let i = 0; i < newReceipts.length; i++) {
+                    const r = newReceipts[i];
+                    if (r.path && r.url) {
+                        try {
+                            await deleteObject(ref(storage, r.path));
+                            newReceipts[i].path = null;
+                            newReceipts[i].url = null;
+                            updated = true;
+                        } catch(e){}
+                    }
+                }
+                if (updated) {
+                    await updateDoc(doc(db, 'records', record.id), { receipts: newReceipts });
                 }
             }
         }
@@ -635,54 +702,83 @@ const cleanupOldImages = async (records) => {
 };
 
 
-// --- CSV Export Logic ---
+// --- Calendar Logic ---
+const renderCalendar = () => {
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
 
-exportBtn.addEventListener('click', () => {
-    if (!currentRecords || currentRecords.length === 0) {
-        alert('沒有可匯出的紀錄。');
-        return;
+    if (!calendarInstance) {
+        calendarInstance = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'zh-tw',
+            height: 'auto',
+            headerToolbar: {
+                left: 'prev,next',
+                center: 'title',
+                right: 'today'
+            },
+            eventClick: function(info) {
+                const id = info.event.id;
+                const record = currentRecords.find(r => r.id === id);
+                if (record) openEditModal(record);
+            }
+        });
     }
 
-    const typeMap = {
-        'car': '自行開車',
-        'motorcycle': '自行騎機車',
-        'public': '大眾運輸'
-    };
+    const events = currentRecords.map(r => ({
+        id: r.id,
+        title: r.tripName || r.location,
+        start: r.startTime,
+        end: r.endTime,
+        backgroundColor: r.isSettled ? 'var(--ios-green)' : 'var(--ios-blue)',
+        borderColor: r.isSettled ? 'var(--ios-green)' : 'var(--ios-blue)'
+    }));
 
-    const headers = ['出差地點', '開始時間', '結束時間', '雜費', '交通方式', '里程數', '交通費', '總計金額', '狀態', '建立時間'];
+    calendarInstance.removeAllEvents();
+    calendarInstance.addEventSource(events);
 
-    const rows = currentRecords.map(record => {
-        const location = `"${(record.location || '').replace(/"/g, '""')}"`;
-        const start = record.startTime ? record.startTime.replace('T', ' ') : '';
-        const end = record.endTime ? record.endTime.replace('T', ' ') : '';
-        const allowance = record.allowance || 0;
-        const transportType = typeMap[record.transportType] || '';
-        const mileage = record.mileage !== null ? record.mileage : '';
-        const transportCost = record.transportCost || 0;
-        const total = record.totalAmount || 0;
-        const status = record.isSettled ? '已入帳' : '未入帳';
+    // Render only if visible
+    if (btnCalendar.checked) {
+        calendarInstance.render();
+    }
+};
 
-        let createdAt = '';
-        if (record.createdAt) {
-            createdAt = record.createdAt.toDate ? record.createdAt.toDate().toLocaleString('zh-TW') : new Date(record.createdAt).toLocaleString('zh-TW');
-        }
+// --- CSV Export Logic ---
+exportBtn.addEventListener('click', () => {
+    if (!currentRecords || currentRecords.length === 0) return alert('沒有可匯出的紀錄。');
 
-        return [location, start, end, allowance, transportType, mileage, transportCost, total, status, createdAt].join(',');
+    const headers = ['出差名稱', '地點', '拜訪單位', '同行', '開始時間', '結束時間', '雜費', '交通方式', '駕駛', '里程數', '交通費', '發票總計', '總計金額', '狀態'];
+
+    const rows = currentRecords.map(r => {
+        const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
+        let receiptTotal = 0;
+        if (r.receipts) r.receipts.forEach(x => receiptTotal += x.price);
+
+        const row = [
+            `"${(r.tripName || '').replace(/"/g, '""')}"`,
+            `"${(r.location || '').replace(/"/g, '""')}"`,
+            `"${(r.visitingUnit || '').replace(/"/g, '""')}"`,
+            `"${(r.companions || '').replace(/"/g, '""')}"`,
+            r.startTime.replace('T', ' '),
+            r.endTime.replace('T', ' '),
+            r.allowance || 0,
+            typeMap[r.transportType] || '',
+            r.driver === 'self' ? '自己' : r.driver || '',
+            r.mileage !== null ? r.mileage : '',
+            r.transportCost || 0,
+            receiptTotal,
+            r.totalAmount || 0,
+            r.isSettled ? '已入帳' : '未入帳'
+        ];
+        return row.join(',');
     });
 
     const csvContent = headers.join(',') + '\n' + rows.join('\n');
-
-    // Add BOM for UTF-8 to ensure Excel reads Traditional Chinese correctly
-    const bom = '\uFEFF';
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
-
-    const url = URL.createObjectURL(blob);
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `差旅費紀錄_${new Date().toISOString().slice(0,10)}.csv`);
+    link.href = URL.createObjectURL(blob);
+    link.download = `差旅費紀錄_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(link);
-
     link.click();
-
     document.body.removeChild(link);
 });
