@@ -67,15 +67,18 @@
                 <i class="bi bi-cloud-arrow-up text-primary" style="font-size: 4rem;"></i>
                 <h3 class="mt-3 mb-4">歡迎使用</h3>
                 <p class="text-muted mb-4">請使用 Google 帳號登入以記錄您的出差旅費。</p>
-                <button id="largeLoginBtn" class="btn btn-primary btn-lg w-100">
+                <button id="largeLoginBtn" class="btn btn-primary btn-lg w-100 mb-2">
                     <i class="bi bi-google me-2"></i> 使用 Google 登入
+                </button>
+                <button id="guestLoginBtn" class="btn btn-outline-secondary btn-lg w-100">
+                    <i class="bi bi-person-badge me-2"></i> 訪客試用模式 (本機儲存)
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Dashboard View -->
-    <div id="dashboardView" class="container mt-4 mb-5 pb-5">
+    <div id="dashboardView" class="container mt-4 mb-5 pb-5" style="display: none;">
 
         <!-- Filter / Stats Section -->
         <div class="row mb-3 align-items-center">

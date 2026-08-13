@@ -51,6 +51,7 @@ const loginView = document.getElementById('loginView');
 const dashboardView = document.getElementById('dashboardView');
 const loginBtn = document.getElementById('loginBtn');
 const largeLoginBtn = document.getElementById('largeLoginBtn');
+const guestLoginBtn = document.getElementById('guestLoginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const exportBtn = document.getElementById('exportBtn');
 const unsettledTotalText = document.getElementById('unsettledTotalText');
@@ -67,6 +68,11 @@ const handleLogin = async () => {
 };
 
 const handleLogout = async () => {
+    if (currentUser && currentUser.isGuest) {
+        // Just reload for guest logout
+        window.location.reload();
+        return;
+    }
     try {
         await signOut(auth);
     } catch (error) {
@@ -74,12 +80,98 @@ const handleLogout = async () => {
     }
 };
 
+// Mock Firebase for LocalStorage Guest Mode
+const startGuestMode = () => {
+    currentUser = { uid: 'guest_user', isGuest: true };
+
+    // UI changes
+    loginView.style.display = 'none';
+    dashboardView.style.display = 'block';
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline-block';
+    exportBtn.style.display = 'inline-block';
+    unsettledTotalText.style.display = 'inline-block';
+
+    // Mock Realtime Listener registry
+    let mockListeners = [];
+    const triggerListeners = () => {
+        const raw = localStorage.getItem('guest_records');
+        const records = raw ? JSON.parse(raw) : [];
+        const snapshot = records.map(r => ({
+            id: r.id,
+            data: () => r
+        }));
+        mockListeners.forEach(cb => cb(snapshot));
+    };
+
+    // Mock Firebase Context
+    window.firebaseData = {
+        currentUser,
+        db: 'mock_db',
+        storage: 'mock_storage',
+        collection: (db, path) => path,
+        addDoc: async (colPath, data) => {
+            const raw = localStorage.getItem('guest_records');
+            const records = raw ? JSON.parse(raw) : [];
+            const newDoc = { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() };
+            records.unshift(newDoc); // append to front for 'desc' order mock
+            localStorage.setItem('guest_records', JSON.stringify(records));
+            triggerListeners();
+            return { id: newDoc.id };
+        },
+        doc: (db, path, id) => id,
+        updateDoc: async (docId, updateData) => {
+            const raw = localStorage.getItem('guest_records');
+            let records = raw ? JSON.parse(raw) : [];
+            records = records.map(r => r.id === docId ? { ...r, ...updateData } : r);
+            localStorage.setItem('guest_records', JSON.stringify(records));
+            triggerListeners();
+        },
+        query: () => 'mock_query',
+        where: () => null,
+        orderBy: () => null,
+        onSnapshot: (q, cb, errCb) => {
+            mockListeners.push(cb);
+            triggerListeners();
+            return () => {
+                mockListeners = mockListeners.filter(l => l !== cb);
+            };
+        },
+        serverTimestamp: () => new Date().toISOString(),
+        ref: (storage, path) => path,
+        uploadBytes: async (refPath, file) => {
+            // Convert to Base64 for local storage
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    localStorage.setItem('img_' + refPath, reader.result);
+                    resolve();
+                };
+                reader.onerror = error => reject(error);
+            });
+        },
+        getDownloadURL: async (refPath) => {
+            return localStorage.getItem('img_' + refPath);
+        },
+        deleteObject: async (refPath) => {
+            localStorage.removeItem('img_' + refPath);
+        }
+    };
+
+    window.dispatchEvent(new Event('authReady'));
+};
+
 loginBtn.addEventListener('click', handleLogin);
 largeLoginBtn.addEventListener('click', handleLogin);
+if (guestLoginBtn) guestLoginBtn.addEventListener('click', startGuestMode);
 logoutBtn.addEventListener('click', handleLogout);
 
 // Auth State Observer
 onAuthStateChanged(auth, (user) => {
+    // If we're already in guest mode, ignore real auth state changes to null
+    if (currentUser && currentUser.isGuest) return;
+
     if (user) {
         currentUser = user;
         loginView.style.display = 'none';
@@ -159,7 +251,7 @@ const calculateAllowance = () => {
     }
 
     allowanceInput.value = allowance;
-    timeCalcHint.textContent = \`共計 \${diffHours.toFixed(1)} 小時，雜費自動帶入 \$\${allowance}\`;
+    timeCalcHint.textContent = `共計 ${diffHours.toFixed(1)} 小時，雜費自動帶入 $${allowance}`;
     calculateTotal();
 };
 
@@ -272,7 +364,7 @@ saveRecordBtn.addEventListener('click', async () => {
             const fileInput = document.getElementById('receiptImage');
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
-                const filename = \`receipts/\${currentUser.uid}/\${Date.now()}_\${file.name}\`;
+                const filename = `receipts/${currentUser.uid}/${Date.now()}_${file.name}`;
                 const storageRef = ref(storage, filename);
                 await uploadBytes(storageRef, file);
                 receiptImageUrl = await getDownloadURL(storageRef);
@@ -358,7 +450,7 @@ window.addEventListener('authReady', () => {
         });
 
         // Update Total
-        unsettledTotalText.textContent = \`未入帳：$\${unsettledTotal}\`;
+        unsettledTotalText.textContent = `未入帳：$${unsettledTotal}`;
 
         // Lazy cleanup of old images
         await cleanupOldImages(currentRecords);
@@ -382,18 +474,18 @@ const renderRecordCard = (record) => {
 
     let detailsHtml = '';
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
-        detailsHtml = \`<div class="text-muted small">里程數：\${record.mileage} km</div>\`;
+        detailsHtml = `<div class="text-muted small">里程數：${record.mileage} km</div>`;
     }
 
     let imageHtml = '';
     if (record.receiptImageUrl) {
-        imageHtml = \`
+        imageHtml = `
             <div class="mt-2">
-                <a href="\${record.receiptImageUrl}" target="_blank">
-                    <img src="\${record.receiptImageUrl}" class="thumbnail rounded border" alt="票根">
+                <a href="${record.receiptImageUrl}" target="_blank">
+                    <img src="${record.receiptImageUrl}" class="thumbnail rounded border" alt="票根">
                 </a>
             </div>
-        \`;
+        `;
     }
 
     // Settled logic
@@ -412,23 +504,23 @@ const renderRecordCard = (record) => {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays <= 30) {
-            actionBtnHtml = \`
-                <button class="btn btn-sm btn-outline-secondary w-100 mt-3 toggle-settle-btn" data-id="\${record.id}" data-action="undo">
+            actionBtnHtml = `
+                <button class="btn btn-sm btn-outline-secondary w-100 mt-3 toggle-settle-btn" data-id="${record.id}" data-action="undo">
                     <i class="bi bi-arrow-counterclockwise"></i> 取消入帳 (30天內可復原)
                 </button>
-            \`;
+            `;
         } else {
-             actionBtnHtml = \`
+             actionBtnHtml = `
                 <div class="text-center text-muted small mt-3">已入帳超過30天不可更改</div>
-            \`;
+            `;
         }
 
     } else {
-        actionBtnHtml = \`
-            <button class="btn btn-sm btn-outline-success w-100 mt-3 toggle-settle-btn" data-id="\${record.id}" data-action="settle">
+        actionBtnHtml = `
+            <button class="btn btn-sm btn-outline-success w-100 mt-3 toggle-settle-btn" data-id="${record.id}" data-action="settle">
                 <i class="bi bi-check-circle"></i> 標記為已入帳
             </button>
-        \`;
+        `;
     }
 
     const escapeHtml = (unsafe) => {
@@ -440,40 +532,40 @@ const renderRecordCard = (record) => {
              .replace(/'/g, "&#039;");
     };
 
-    col.innerHTML = \`
-        <div class="\${cardClass}">
+    col.innerHTML = `
+        <div class="${cardClass}">
             <div class="card-body d-flex flex-column">
                 <h5 class="card-title d-flex justify-content-between align-items-start">
-                    \${escapeHtml(record.location)}
-                    \${statusHtml}
+                    ${escapeHtml(record.location)}
+                    ${statusHtml}
                 </h5>
                 <h6 class="card-subtitle mb-2 text-muted small">
-                    \${record.startTime.replace('T', ' ')} ~ \${record.endTime.replace('T', ' ')}
+                    ${record.startTime.replace('T', ' ')} ~ ${record.endTime.replace('T', ' ')}
                 </h6>
 
                 <div class="mt-2">
                     <div class="d-flex justify-content-between text-muted small">
                         <span>雜費</span>
-                        <span>$\${record.allowance}</span>
+                        <span>$${record.allowance}</span>
                     </div>
                     <div class="d-flex justify-content-between text-muted small">
-                        <span>交通費 (\${typeMap[record.transportType] || '無'})</span>
-                        <span>$\${record.transportCost}</span>
+                        <span>交通費 (${typeMap[record.transportType] || '無'})</span>
+                        <span>$${record.transportCost}</span>
                     </div>
-                    \${detailsHtml}
+                    ${detailsHtml}
                 </div>
 
-                \${imageHtml}
+                ${imageHtml}
 
                 <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
                     <span class="fw-bold text-dark">總計</span>
-                    <span class="fw-bold text-danger fs-5">$\${record.totalAmount}</span>
+                    <span class="fw-bold text-danger fs-5">$${record.totalAmount}</span>
                 </div>
 
-                \${actionBtnHtml}
+                ${actionBtnHtml}
             </div>
         </div>
-    \`;
+    `;
 
     recordsContainer.appendChild(col);
 };
@@ -522,7 +614,7 @@ const cleanupOldImages = async (records) => {
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays > 30) {
-                console.log(\`Cleaning up old image for record \${record.id}\`);
+                console.log(`Cleaning up old image for record ${record.id}`);
                 try {
                     // Delete from storage
                     const fileRef = ref(storage, record.receiptImagePath);
@@ -560,7 +652,7 @@ exportBtn.addEventListener('click', () => {
     const headers = ['出差地點', '開始時間', '結束時間', '雜費', '交通方式', '里程數', '交通費', '總計金額', '狀態', '建立時間'];
 
     const rows = currentRecords.map(record => {
-        const location = \`"\${(record.location || '').replace(/"/g, '""')}"\`;
+        const location = `"${(record.location || '').replace(/"/g, '""')}"`;
         const start = record.startTime ? record.startTime.replace('T', ' ') : '';
         const end = record.endTime ? record.endTime.replace('T', ' ') : '';
         const allowance = record.allowance || 0;
@@ -578,16 +670,16 @@ exportBtn.addEventListener('click', () => {
         return [location, start, end, allowance, transportType, mileage, transportCost, total, status, createdAt].join(',');
     });
 
-    const csvContent = headers.join(',') + '\\n' + rows.join('\\n');
+    const csvContent = headers.join(',') + '\n' + rows.join('\n');
 
     // Add BOM for UTF-8 to ensure Excel reads Traditional Chinese correctly
-    const bom = '\\uFEFF';
+    const bom = '\uFEFF';
     const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", \`差旅費紀錄_\${new Date().toISOString().slice(0,10)}.csv\`);
+    link.setAttribute("download", `差旅費紀錄_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
 
     link.click();
