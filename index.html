@@ -3,609 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>跨平台限免遊戲追蹤</title>
-
-    <!-- PWA & 主畫面圖示設定 -->
-    <link rel="icon" type="image/jpeg" href="icon.jpg">
-    <link rel="apple-touch-icon" href="icon.jpg">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#171d25">
-
-    <!-- 引入 Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        steam: {
-                            bg: '#171d25',          /* Steam 整體背景深藍黑 */
-                            header: '#171a21',      /* 頂部導覽列色 */
-                            card: '#202d39',        /* 卡片底色，比背景稍亮 */
-                            text: '#c7d5e0',        /* 主要文字色 (淡灰藍) */
-                            highlight: '#66c0f4',   /* 強調文字色 (亮藍) */
-                            btnNormal: '#2a475e',   /* 按鈕漸層起始 (深藍) */
-                            btnHover: '#66c0f4',    /* 按鈕懸停 (亮藍) */
-                            green: '#a4d007'        /* 價格標籤綠色 */
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <title>個人差旅費追蹤</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        .hidden-game {
-            display: none !important;
+        body {
+            background-color: #f8f9fa;
+        }
+        .fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .record-card {
+            transition: transform 0.2s;
+        }
+        .record-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .thumbnail {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        .status-settled {
+            opacity: 0.7;
+        }
+        #dashboardView {
+            display: none;
         }
     </style>
-
-    <style>
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #171d25;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #2a475e;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #66c0f4;
-        }
-    </style>
-
 </head>
-<body class="bg-steam-bg text-steam-text font-sans antialiased min-h-screen flex flex-col">
+<body>
 
-    <!-- 導覽列 -->
-    <header class="bg-steam-header shadow-md">
-        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
-            <h1 class="text-2xl font-bold text-white mb-4 md:mb-0">
-                <span class="text-steam-highlight">跨平台</span> 限免遊戲追蹤
-            </h1>
-
-            <div class="flex flex-col md:flex-row items-center gap-4">
-
-            <!-- 行事曆按鈕 -->
-            <button id="openCalendarBtn" class="bg-steam-header hover:bg-[#2a475e] text-steam-blue text-sm px-3 py-2 rounded flex items-center gap-2 border border-transparent focus:outline-none focus:border-steam-highlight transition-colors mr-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span class="hidden sm:inline">特賣行事曆</span>
-            </button>
-
-                <!-- 排序篩選 -->
-                <div class="flex items-center space-x-2 bg-steam-card px-3 py-2 rounded-lg">
-                    <span class="text-sm">排序：</span>
-                    <select id="sortFilter" class="bg-steam-header text-white text-sm rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-steam-highlight">
-                        <option value="default">預設</option>
-                        <option value="savings">原價最高</option>
-                        <option value="rating">評價最高</option>
-                    </select>
-                </div>
-
-
-                <!-- 商店篩選 (Custom Dropdown) -->
-                <div class="flex items-center space-x-2 relative bg-steam-card px-3 py-2 rounded-lg" id="customStoreDropdown">
-                    <span class="text-sm">商店：</span>
-                    <button id="storeDropdownBtn" class="bg-steam-header hover:bg-[#2a475e] text-white text-sm rounded px-3 py-1.5 flex items-center justify-between min-w-[140px] focus:outline-none transition-colors border border-transparent focus:border-steam-highlight">
-                        <span id="storeDropdownText" class="flex items-center gap-2">
-                            <span class="w-4 h-4 bg-gray-500 rounded-full inline-block"></span> 全部
-                        </span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-
-                    <!-- Dropdown Menu -->
-                    <div id="storeDropdownMenu" class="absolute top-full right-0 mt-2 w-48 bg-[#171d25] border border-[#2a475e] rounded shadow-xl hidden z-40 overflow-hidden">
-                        <ul class="text-sm text-gray-300 max-h-60 overflow-y-auto custom-scrollbar">
-                            <li data-value="all" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <span class="w-4 h-4 bg-gray-500 rounded-full inline-block"></span> 全部
-                            </li>
-                            <li data-value="1" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M11.979 0C5.353 0 0 5.353 0 11.979c0 4.673 2.684 8.74 6.643 10.686l3.197-4.662c-.066-.188-.112-.392-.112-.605 0-1.077.873-1.95 1.95-1.95.143 0 .28.017.412.046l3.411-4.945V10.5c0-1.848 1.498-3.346 3.346-3.346 1.848 0 3.346 1.498 3.346 3.346 0 1.848-1.498 3.346-3.346 3.346-.53 0-1.03-.124-1.472-.346l-3.35 4.856c.03.14.048.284.048.432 0 1.077-.873 1.95-1.95 1.95-1.077 0-1.95-.873-1.95-1.95 0-.46.162-.885.435-1.218l-3.23-4.71c-.742.37-1.574.453-2.386.236l-3.264 4.757c.725 1.107 1.91 1.874 3.284 2.012l.142.01c.216.015.434.022.653.022 6.626 0 11.979-5.353 11.979-11.979S18.605 0 11.979 0z"/></svg>
-                                僅 Steam
-                            </li>
-                            <li data-value="25" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 0C5.375 0 0 5.375 0 12.004c0 6.629 5.375 12.004 12.004 12.004 6.63 0 12.004-5.375 12.004-12.004C24.008 5.375 18.634 0 12.004 0zm6.924 16.892L14.77 19.34a.936.936 0 01-.832.138L8.236 17.58a.936.936 0 01-.587-.665L6.155 11.23a.936.936 0 01.198-.81l3.52-4.322a.936.936 0 01.815-.347l5.65.618a.936.936 0 01.815.717l1.39 5.568a.936.936 0 01-.385.918z"/></svg>
-                                僅 Epic
-                            </li>
-                            <li data-value="7" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <span class="w-4 h-4 bg-[#5c2b99] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">G</span>
-                                僅 GOG
-                            </li>
-                            <li data-value="11" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <span class="w-4 h-4 bg-[#cb2c31] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">H</span>
-                                僅 Humble
-                            </li>
-                            <li data-value="13" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <span class="w-4 h-4 bg-[#0070ff] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">U</span>
-                                僅 Uplay
-                            </li>
-                            <li data-value="15" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <span class="w-4 h-4 bg-[#d6411f] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">F</span>
-                                僅 Fanatical
-                            </li>
-                            <li data-value="30" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <span class="w-4 h-4 bg-[#e53935] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">IG</span>
-                                僅 IndieGala
-                            </li>
-                            <li data-value="3" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors">
-                                <span class="w-4 h-4 bg-[#7eb238] rounded-full flex items-center justify-center text-[8px] font-bold text-white leading-none">G</span>
-                                僅 GMG
-                            </li>
-                            <li data-value="other" class="store-option px-3 py-2 hover:bg-[#2a475e] hover:text-white cursor-pointer flex items-center gap-2 transition-colors border-t border-gray-700 mt-1 pt-1">
-                                <span class="w-4 h-4 bg-gray-700 rounded-full inline-block"></span> 其他
-                            </li>
-                        </ul>
-                    </div>
-                    <!-- Hidden input to store value -->
-                    <input type="hidden" id="storeFilter" value="all">
-                </div>
-
-
-                <!-- 開關 Toggle -->
-                <div id="toggleContainer" class="flex items-center space-x-3 bg-steam-card px-4 py-2 rounded-lg hidden">
-                    <span class="text-sm">顯示永久免費遊戲</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="showFreeGamesToggle" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-steam-highlight"></div>
-                    </label>
-                </div>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="bi bi-wallet2 me-2"></i>差旅費追蹤</a>
+            <div class="d-flex align-items-center">
+                <span id="unsettledTotalText" class="text-white fw-bold me-3" style="display: none;">未入帳：$0</span>
+                <button id="exportBtn" class="btn btn-sm btn-success me-2" style="display: none;">
+                    <i class="bi bi-file-earmark-excel"></i> 匯出
+                </button>
+                <button id="loginBtn" class="btn btn-outline-light btn-sm">Google 登入</button>
+                <button id="logoutBtn" class="btn btn-outline-light btn-sm" style="display: none;">登出</button>
             </div>
         </div>
-    </header>
+    </nav>
 
-    <!-- 主要內容 -->
-    <main class="container mx-auto px-4 py-8 flex-grow">
-
-        <!-- 狀態提示區 (Loading, Error, Empty) -->
-        <div id="statusArea" class="max-w-2xl mx-auto mt-8">
-            <!-- 骨架屏載入動畫 (Skeleton Loading) -->
-            <div id="loadingMsg" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl mx-auto">
-                <!-- 產生 8 個骨架卡片 -->
-            </div>
-            <script>
-                (function() {
-                    const loadingContainer = document.getElementById('loadingMsg');
-                    let skeletonHTML = '';
-                    for(let i=0; i<8; i++){
-                        skeletonHTML += `
-                            <div class="bg-steam-card rounded-lg overflow-hidden shadow-lg animate-pulse h-80 flex flex-col">
-                                <div class="h-48 w-full bg-gray-700"></div>
-                                <div class="p-4 flex flex-col flex-grow">
-                                    <div class="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
-                                    <div class="mt-auto flex justify-between items-end">
-                                        <div>
-                                            <div class="h-3 bg-gray-700 rounded w-8 mb-2"></div>
-                                            <div class="h-4 bg-gray-700 rounded w-12"></div>
-                                        </div>
-                                        <div class="h-8 bg-gray-700 rounded w-20"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    loadingContainer.innerHTML = skeletonHTML;
-                })();
-            </script>
-
-            <!-- Error -->
-            <div id="errorMsg" class="hidden bg-red-900/50 border border-red-500 text-red-200 px-6 py-4 rounded-lg text-center">
-                <p class="text-lg">無法獲取限免遊戲清單，請稍後再試。</p>
-            </div>
-
-            <!-- Empty (No Games from API at all) -->
-            <div id="emptyMsg" class="hidden bg-steam-card border border-steam-btnNormal px-6 py-8 rounded-lg text-center">
-                <p class="text-xl text-steam-highlight mb-2">目前尚無免費遊戲</p>
-                <p class="text-steam-text">請稍後再來查看最新限免資訊！</p>
-            </div>
-        </div>
-
-        <!-- 遊戲卡片網格 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden" id="gamesGrid">
-            <!-- 卡片會由 JS 動態生成插入於此 -->
-        </div>
-
-        <!-- 當所有卡片都被 Toggle 隱藏時的提示 -->
-        <div id="noVisibleGamesMessage" class="hidden bg-steam-card border border-steam-btnNormal px-6 py-8 rounded-lg text-center max-w-2xl mx-auto mt-8">
-            <p class="text-xl text-steam-highlight mb-2">目前沒有限時免費遊戲</p>
-            <p class="text-steam-text">請稍後再來查看，或切換其他商店篩選條件。</p>
-        </div>
-
-    </main>
-
-    <footer class="bg-steam-header py-6 mt-auto">
-        <div class="container mx-auto px-4 text-center text-sm text-gray-500">
-            <p>資料來源：<a href="https://apidocs.cheapshark.com/" target="_blank" class="hover:text-white transition-colors">CheapShark API</a></p>
-            <p class="mt-1">非各平台官方網站，僅供資訊參考使用。</p>
-        </div>
-    </footer>
-
-    <!-- 邏輯控制腳本 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let globalGamesData = []; // 保存原始資料供排序使用
-
-            const sortFilter = document.getElementById('sortFilter');
-            const toggle = document.getElementById('showFreeGamesToggle');
-            const storeFilter = document.getElementById('storeFilter');
-            const gamesGrid = document.getElementById('gamesGrid');
-            const statusArea = document.getElementById('statusArea');
-            const loadingMsg = document.getElementById('loadingMsg');
-            const errorMsg = document.getElementById('errorMsg');
-            const emptyMsg = document.getElementById('emptyMsg');
-            const noVisibleMsg = document.getElementById('noVisibleGamesMessage');
-
-            // 抓取資料
-            fetch('https://www.cheapshark.com/api/1.0/deals?upperPrice=0')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    loadingMsg.classList.add('hidden');
-
-                    if (data && data.length > 0) {
-                        globalGamesData = data; // 保存資料
-                        renderGames(globalGamesData);
-
-                        // 檢查是否有任何永久免費遊戲，如果有的話才顯示 Toggle
-                        const hasPermanentFree = data.some(game => parseFloat(game.normalPrice) === 0.0);
-                        if (hasPermanentFree) {
-                            document.getElementById('toggleContainer').classList.remove('hidden');
-                        }
-
-                        gamesGrid.classList.remove('hidden');
-                        updateVisibility(); // 初始化檢查一次 Toggle 狀態
-                    } else {
-                        emptyMsg.classList.remove('hidden');
-                    }
-                })
-                .catch(error => {
-                    console.error('Fetch Error:', error);
-                    loadingMsg.classList.add('hidden');
-                    errorMsg.classList.remove('hidden');
-                });
-
-            // 翻譯 Steam 評價
-            function translateSteamRating(ratingText) {
-                if (!ratingText) return null;
-                const dict = {
-                    "Overwhelmingly Positive": "壓倒性好評",
-                    "Very Positive": "極度好評",
-                    "Positive": "好評",
-                    "Mostly Positive": "大多好評",
-                    "Mixed": "褒貶不一",
-                    "Mostly Negative": "大多負評",
-                    "Negative": "負評",
-                    "Very Negative": "極度負評",
-                    "Overwhelmingly Negative": "壓倒性負評"
-                };
-                return dict[ratingText] || ratingText;
-            }
-
-            // 渲染遊戲卡片
-            function renderGames(games) {
-                gamesGrid.innerHTML = ''; // 清空
-
-                games.forEach(game => {
-                    const normalPrice = parseFloat(game.normalPrice);
-                    const isPermanentFree = (normalPrice === 0.0);
-                    const tagText = isPermanentFree ? '免費' : '100% OFF';
-                    const dataPermanentFree = isPermanentFree ? 'true' : 'false';
-                    const storeID = game.storeID;
-
-                    let storeBadgeHTML = '';
-                    let storeName = '';
-                    let bgColor = 'bg-[#313131]'; // Default dark grey
-                    let borderColor = 'border-[#4a4a4a]';
-
-                    if (storeID === '1') {
-                        storeName = 'Steam';
-                        bgColor = 'bg-[#1b2838]';
-                        borderColor = 'border-[#2a475e]';
-                    } else if (storeID === '25') {
-                        storeName = 'Epic';
-                        bgColor = 'bg-[#313131]'; // Dark greyish
-                    } else if (storeID === '7') {
-                        storeName = 'GOG';
-                        bgColor = 'bg-[#5c2b99]'; // GOG Purple
-                        borderColor = 'border-[#7a3bc7]';
-                    } else if (storeID === '11') {
-                        storeName = 'Humble Store';
-                        bgColor = 'bg-[#cb2c31]'; // Humble Red
-                        borderColor = 'border-[#e03d42]';
-                    } else if (storeID === '13') {
-                        storeName = 'Uplay';
-                        bgColor = 'bg-[#0070ff]'; // Uplay Blue
-                        borderColor = 'border-[#1a7dff]';
-                    } else if (storeID === '15') {
-                        storeName = 'Fanatical';
-                        bgColor = 'bg-[#d6411f]'; // Fanatical Orange
-                        borderColor = 'border-[#ed5a3b]';
-                    } else if (storeID === '30') {
-                        storeName = 'IndieGala';
-                        bgColor = 'bg-[#e53935]'; // IndieGala Red
-                        borderColor = 'border-[#f44336]';
-                    } else if (storeID === '3') {
-                        storeName = 'GMG';
-                        bgColor = 'bg-[#7eb238]'; // GreenManGaming Green
-                        borderColor = 'border-[#8fc24a]';
-                    } else {
-                        storeName = 'Other Store';
-                    }
-
-                    storeBadgeHTML = `<div class="absolute top-2 left-2 ${bgColor} text-white text-xs font-bold px-2 py-1 rounded shadow-md border ${borderColor}">${storeName}</div>`;
-
-                    const cardHTML = `
-                        <div class="game-card bg-steam-card rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col"
-                             data-permanent-free="${dataPermanentFree}" data-store-id="${storeID}">
-
-                            <div class="relative h-48 w-full bg-black">
-                                <img src="${game.thumb}" alt="${game.title} 封面" class="w-full h-full object-cover">
-                                ${storeBadgeHTML}
-                                <div class="absolute top-2 right-2 bg-steam-green text-[#000000] font-bold px-2 py-1 rounded text-sm shadow-md">
-                                    ${tagText}
-                                </div>
-                            </div>
-
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h2 class="text-lg font-bold text-white mb-2 line-clamp-2" title="${game.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;')}">${game.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;')}</h2>
-
-                                <!-- 評價區塊 -->
-                                <div class="mb-3">
-                                    ${
-                                        (game.steamRatingPercent && game.steamRatingPercent !== "0" && game.steamRatingText)
-                                        ? `<span class="inline-flex items-center space-x-1 text-xs px-2 py-1 rounded bg-[#1b2838] border border-[#2a475e]">
-                                             <span class="${parseInt(game.steamRatingPercent) >= 70 ? 'text-[#66c0f4]' : (parseInt(game.steamRatingPercent) >= 40 ? 'text-yellow-500' : 'text-red-500')} font-medium">
-                                                ${translateSteamRating(game.steamRatingText)}
-                                             </span>
-                                             <span class="text-gray-400">(${game.steamRatingPercent}%)</span>
-                                           </span>`
-                                        : `<span class="inline-flex text-xs px-2 py-1 rounded bg-gray-800 text-gray-500 border border-gray-700">無評價資料</span>`
-                                    }
-                                </div>
-
-                                <div class="mt-auto pt-4 flex items-end justify-between border-t border-gray-700">
-                                    <div>
-                                        <p class="text-xs text-gray-400 mb-1">原價</p>
-                                        <p class="text-sm text-gray-500 line-through bg-gray-800 px-2 py-0.5 rounded inline-block">
-                                            $${game.normalPrice}
-                                        </p>
-                                    </div>
-
-                                    <a href="https://www.cheapshark.com/redirect?dealID=${game.dealID}"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       class="bg-gradient-to-r from-steam-btnNormal to-steam-btnHover hover:from-steam-btnHover hover:to-blue-400 text-white font-medium px-4 py-2 rounded transition-colors duration-200 text-sm whitespace-nowrap ml-2">
-                                        前往領取
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    gamesGrid.insertAdjacentHTML('beforeend', cardHTML);
-                });
-            }
-
-            // 更新顯示狀態 (Toggle 邏輯)
-            function updateVisibility() {
-                const gameCards = document.querySelectorAll('.game-card');
-                if (gameCards.length === 0) return; // 還沒資料時不處理
-
-                const showPermanentFree = toggle.checked;
-                const selectedStore = storeFilter.value;
-                let visibleCount = 0;
-
-                gameCards.forEach(card => {
-                    const isPermanentFree = card.getAttribute('data-permanent-free') === 'true';
-                    const storeID = card.getAttribute('data-store-id');
-
-                    let isVisible = true;
-
-                    if (isPermanentFree && !showPermanentFree) {
-                        isVisible = false;
-                    }
-
-                    if (selectedStore !== 'all') {
-                        if (selectedStore === 'other') {
-                            const knownStores = ['1', '25', '7', '11', '13', '15', '30', '3'];
-                            if (knownStores.includes(storeID)) {
-                                isVisible = false;
-                            }
-                        } else if (storeID !== selectedStore) {
-                            isVisible = false;
-                        }
-                    }
-
-                    if (!isVisible) {
-                        card.classList.add('hidden-game');
-                    } else {
-                        card.classList.remove('hidden-game');
-                        visibleCount++;
-                    }
-                });
-
-                if (visibleCount === 0) {
-                    noVisibleMsg.classList.remove('hidden');
-                } else {
-                    noVisibleMsg.classList.add('hidden');
-                }
-            }
-
-            // 處理排序邏輯
-            function handleSort() {
-                const sortType = sortFilter.value;
-                let sortedData = [...globalGamesData]; // 複製一份陣列
-
-                if (sortType === 'savings') {
-                    // 原價最高 (因為現在全免費，所以 normalPrice 越高代表省越多)
-                    sortedData.sort((a, b) => parseFloat(b.normalPrice) - parseFloat(a.normalPrice));
-                } else if (sortType === 'rating') {
-                    // 評價最高 (steamRatingPercent)
-                    sortedData.sort((a, b) => {
-                        const ratingA = parseInt(a.steamRatingPercent) || 0;
-                        const ratingB = parseInt(b.steamRatingPercent) || 0;
-                        return ratingB - ratingA;
-                    });
-                }
-
-                renderGames(sortedData);
-                updateVisibility(); // 重新渲染後需要再次套用過濾條件
-            }
-
-            // 監聽變化
-            sortFilter.addEventListener('change', handleSort);
-            toggle.addEventListener('change', updateVisibility);
-            // storeFilter listener removed because it's handled by custom dropdown logic now
-
-            // Custom Dropdown 邏輯
-            const storeDropdownBtn = document.getElementById('storeDropdownBtn');
-            const storeDropdownMenu = document.getElementById('storeDropdownMenu');
-            const storeDropdownText = document.getElementById('storeDropdownText');
-            const storeFilterHidden = document.getElementById('storeFilter');
-            const storeOptions = document.querySelectorAll('.store-option');
-
-            storeDropdownBtn.addEventListener('click', () => {
-                storeDropdownMenu.classList.toggle('hidden');
-            });
-
-            // 點擊選項
-            storeOptions.forEach(option => {
-                option.addEventListener('click', () => {
-                    const value = option.getAttribute('data-value');
-                    const innerHtml = option.innerHTML; // Contains the logo and text
-
-                    // Update hidden input
-                    storeFilterHidden.value = value;
-
-                    // Update button display
-                    storeDropdownText.innerHTML = innerHtml;
-
-                    // Close menu
-                    storeDropdownMenu.classList.add('hidden');
-
-                    // Trigger visibility update
-                    updateVisibility();
-                });
-            });
-
-            // 點擊選單外部關閉
-            document.addEventListener('click', (e) => {
-                const dropdown = document.getElementById('customStoreDropdown');
-                if (dropdown && !dropdown.contains(e.target)) {
-                    storeDropdownMenu.classList.add('hidden');
-                }
-            });
-
-
-            // Modal 邏輯
-            const calendarModal = document.getElementById('calendarModal');
-            const openCalendarBtn = document.getElementById('openCalendarBtn');
-            const closeCalendarBtn = document.getElementById('closeCalendarBtn');
-
-            function openModal() {
-                calendarModal.classList.remove('hidden');
-                document.body.style.overflow = 'hidden'; // 阻止背景捲動
-            }
-
-            function closeModal() {
-                calendarModal.classList.add('hidden');
-                document.body.style.overflow = '';
-            }
-
-            openCalendarBtn.addEventListener('click', openModal);
-            closeCalendarBtn.addEventListener('click', closeModal);
-
-            // 點擊背景關閉
-            calendarModal.addEventListener('click', (e) => {
-                if (e.target === calendarModal) {
-                    closeModal();
-                }
-            });
-
-        });
-    </script>
-
-    <!-- 特賣行事曆 Modal -->
-    <div id="calendarModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-70 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-steam-card border border-gray-700 rounded-lg shadow-2xl w-11/12 max-w-2xl max-h-[90vh] flex flex-col">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-center p-5 border-b border-gray-700 bg-[#1b2838] rounded-t-lg">
-                <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-steam-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    主要遊戲平台特賣行事曆
-                </h2>
-                <button id="closeCalendarBtn" class="text-gray-400 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+    <!-- Login View -->
+    <div id="loginView" class="container mt-5 text-center">
+        <div class="card shadow-sm mx-auto" style="max-width: 400px;">
+            <div class="card-body py-5">
+                <i class="bi bi-cloud-arrow-up text-primary" style="font-size: 4rem;"></i>
+                <h3 class="mt-3 mb-4">歡迎使用</h3>
+                <p class="text-muted mb-4">請使用 Google 帳號登入以記錄您的出差旅費。</p>
+                <button id="largeLoginBtn" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-google me-2"></i> 使用 Google 登入
                 </button>
             </div>
+        </div>
+    </div>
 
-            <!-- Modal Body -->
-            <div class="p-6 overflow-y-auto custom-scrollbar">
-                <div class="space-y-6">
-                    <!-- Steam -->
-                    <div class="bg-[#171d25] p-4 rounded-lg border border-[#2a475e]">
-                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
-                            <span class="w-8 h-8 bg-[#1b2838] rounded-full flex items-center justify-center border border-[#2a475e]">
-                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M11.979 0C5.353 0 0 5.353 0 11.979c0 4.673 2.684 8.74 6.643 10.686l3.197-4.662c-.066-.188-.112-.392-.112-.605 0-1.077.873-1.95 1.95-1.95.143 0 .28.017.412.046l3.411-4.945V10.5c0-1.848 1.498-3.346 3.346-3.346 1.848 0 3.346 1.498 3.346 3.346 0 1.848-1.498 3.346-3.346 3.346-.53 0-1.03-.124-1.472-.346l-3.35 4.856c.03.14.048.284.048.432 0 1.077-.873 1.95-1.95 1.95-1.077 0-1.95-.873-1.95-1.95 0-.46.162-.885.435-1.218l-3.23-4.71c-.742.37-1.574.453-2.386.236l-3.264 4.757c.725 1.107 1.91 1.874 3.284 2.012l.142.01c.216.015.434.022.653.022 6.626 0 11.979-5.353 11.979-11.979S18.605 0 11.979 0zm6.868 10.5c0-.853-.692-1.546-1.546-1.546-.853 0-1.546.692-1.546 1.546 0 .853.692 1.546 1.546 1.546.853 0 1.546-.692 1.546-1.546zM11.979 16.4a.95.95 0 110-1.9.95.95 0 010 1.9zm-4.706-1.026a1.95 1.95 0 110-3.9 1.95 1.95 0 010 3.9z"/></svg>
-                            </span>
-                            Steam
-                        </h3>
-                        <ul class="text-gray-300 space-y-2 text-sm pl-2 border-l-2 border-[#2a475e]">
-                            <li>🌸 <strong class="text-white">春季特賣：</strong> 3 月中旬</li>
-                            <li>☀️ <strong class="text-[#66c0f4]">夏季特賣：</strong> 6 月下旬至 7 月初 (全年最大折扣之一)</li>
-                            <li>🍂 <strong class="text-orange-400">秋季特賣：</strong> 11 月下旬 (配合黑五)</li>
-                            <li>❄️ <strong class="text-white">冬季特賣：</strong> 12 月下旬至 1 月初 (全年最大折扣之一)</li>
-                        </ul>
-                    </div>
+    <!-- Dashboard View -->
+    <div id="dashboardView" class="container mt-4 mb-5 pb-5">
 
-                    <!-- Epic Games -->
-                    <div class="bg-[#171d25] p-4 rounded-lg border border-gray-600">
-                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
-                            <span class="w-8 h-8 bg-[#313131] rounded-full flex items-center justify-center border border-gray-500">
-                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 0C5.375 0 0 5.375 0 12.004c0 6.629 5.375 12.004 12.004 12.004 6.63 0 12.004-5.375 12.004-12.004C24.008 5.375 18.634 0 12.004 0zm6.924 16.892L14.77 19.34a.936.936 0 01-.832.138L8.236 17.58a.936.936 0 01-.587-.665L6.155 11.23a.936.936 0 01.198-.81l3.52-4.322a.936.936 0 01.815-.347l5.65.618a.936.936 0 01.815.717l1.39 5.568a.936.936 0 01-.385.918z"/></svg>
-                            </span>
-                            Epic Games Store
-                        </h3>
-                        <ul class="text-gray-300 space-y-2 text-sm pl-2 border-l-2 border-gray-500">
-                            <li>🎁 <strong class="text-yellow-400">超級特賣 (Mega Sale)：</strong> 5 月中旬至 6 月初 (通常會送出 4 款大作)</li>
-                            <li>🎄 <strong class="text-white">聖誕/假日特賣：</strong> 12 月中旬至 1 月初 (連續 15 天每天送一款免費遊戲)</li>
-                            <li>🎃 <strong class="text-orange-500">萬聖節特賣：</strong> 10 月下旬</li>
-                        </ul>
-                    </div>
+        <!-- Filter / Stats Section -->
+        <div class="row mb-3 align-items-center">
+            <div class="col">
+                <h5 class="mb-0">最近的紀錄</h5>
+            </div>
+        </div>
 
-                    <!-- GOG -->
-                    <div class="bg-[#171d25] p-4 rounded-lg border border-[#5c2b99]">
-                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
-                            <span class="w-8 h-8 bg-[#5c2b99] rounded-full flex items-center justify-center border border-[#7a3bc7]">
-                                <span class="text-xs font-bold">GOG</span>
-                            </span>
-                            GOG.com
-                        </h3>
-                        <ul class="text-gray-300 space-y-2 text-sm pl-2 border-l-2 border-[#7a3bc7]">
-                            <li>☀️ <strong class="text-yellow-300">夏季特賣：</strong> 6 月中旬 (常送出免費經典遊戲)</li>
-                            <li>❄️ <strong class="text-blue-300">冬季特賣：</strong> 12 月中旬 (常送出免費經典遊戲)</li>
-                        </ul>
-                    </div>
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">載入中...</p>
+        </div>
 
-                    <p class="text-xs text-gray-500 italic pt-2">
-                        * 註：特賣時間為歷史慣例，實際日期可能會由各平台視情況調整。
-                    </p>
+        <!-- Records List -->
+        <div id="recordsContainer" class="row g-3">
+            <!-- Cards will be injected here by JS -->
+        </div>
+
+        <!-- FAB for new record -->
+        <button class="btn btn-primary fab d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#newRecordModal">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+    </div>
+
+    <!-- New Record Modal -->
+    <div class="modal fade" id="newRecordModal" tabindex="-1" aria-labelledby="newRecordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newRecordModalLabel">新增出差紀錄</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="recordForm">
+
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label for="location" class="form-label">出差地點/目的</label>
+                            <input type="text" class="form-control" id="location" required placeholder="例如：台北分公司開會">
+                        </div>
+
+                        <!-- Time Range -->
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label for="startTime" class="form-label">開始時間</label>
+                                <input type="datetime-local" class="form-control time-input" id="startTime" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="endTime" class="form-label">結束時間</label>
+                                <input type="datetime-local" class="form-control time-input" id="endTime" required>
+                            </div>
+                        </div>
+
+                        <!-- Allowance Output (Readonly) -->
+                        <div class="mb-3">
+                            <label class="form-label text-muted small mb-0">雜費試算 (依時數自動帶入)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">$</span>
+                                <input type="number" class="form-control bg-light" id="allowance" readonly value="0">
+                            </div>
+                            <div id="timeCalcHint" class="form-text text-primary small">請先輸入起訖時間</div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Transport Selection -->
+                        <div class="mb-3">
+                            <label for="transportType" class="form-label">交通方式</label>
+                            <select class="form-select" id="transportType" required>
+                                <option value="" disabled selected>請選擇...</option>
+                                <option value="car">自行開車</option>
+                                <option value="motorcycle">自行騎機車</option>
+                                <option value="public">高鐵/火車/大眾運輸</option>
+                            </select>
+                        </div>
+
+                        <!-- Dynamic Inputs for Transport -->
+                        <div id="mileageSection" class="mb-3" style="display: none;">
+                            <label for="mileage" class="form-label">里程數 (公里)</label>
+                            <input type="number" class="form-control calc-input" id="mileage" min="0" step="0.1" placeholder="輸入公里數">
+                            <div id="mileageRateHint" class="form-text small"></div>
+                        </div>
+
+                        <div id="publicTransportSection" style="display: none;">
+                            <div class="mb-3">
+                                <label for="ticketPrice" class="form-label">實際票價</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control calc-input" id="ticketPrice" min="0" placeholder="輸入金額">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="receiptImage" class="form-label">上傳票根照片</label>
+                                <input class="form-control" type="file" id="receiptImage" accept="image/*">
+                            </div>
+                        </div>
+
+                        <!-- Total Output (Readonly) -->
+                        <div class="mb-3 mt-4 pt-3 border-top">
+                            <label class="form-label fw-bold mb-0">總計金額 (雜費 + 交通費)</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text text-danger fw-bold">$</span>
+                                <input type="number" class="form-control text-danger fw-bold bg-white" id="totalAmount" readonly value="0">
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveRecordBtn">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="saveSpinner" role="status" aria-hidden="true"></span>
+                        儲存紀錄
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom Logic -->
+    <script type="module" src="./app.js"></script>
 </body>
 </html>
