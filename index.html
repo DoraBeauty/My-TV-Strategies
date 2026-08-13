@@ -389,6 +389,17 @@
     border-top-right-radius: 15px;
     border-bottom-right-radius: 15px;
 }
+
+/* Status colors for trip highlights */
+.trip-highlight.settled {
+    background-color: rgba(40, 167, 69, 0.2) !important; /* light green for settled */
+}
+.trip-highlight.unsettled {
+    background-color: var(--calendar-pill-bg) !important; /* default brand color for unsettled */
+}
+[data-theme="dark"] .trip-highlight.settled {
+    background-color: rgba(40, 167, 69, 0.3) !important;
+}
 .trip-highlight.mid {
     left: 0;
     width: 100%;
@@ -400,6 +411,14 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.05) !important;
     margin-bottom: 0 !important;
 }
+
+
+</style>
+
+<style>
+.bg-custom-card { background-color: var(--bg-card) !important; border-color: var(--border-color) !important; color: var(--text-main) !important; }
+.bg-custom-light { background-color: var(--bg-hover) !important; color: var(--text-main) !important; }
+.text-main-custom { color: var(--text-main) !important; }
 </style>
 </head>
 <body>
@@ -466,7 +485,7 @@
 
         <!-- Calendar View Wrapper -->
         <div id="calendarViewWrapper">
-            <div class="card record-card p-2 mb-4 bg-white">
+            <div class="card record-card p-2 mb-4 text-main-custom bg-custom-card">
                 <div id="calendar"></div>
             </div>
 
@@ -505,16 +524,16 @@
                         </div>
 
                         <div class="ios-input-label">時間與雜費</div>
-                        <div class="ios-input-group bg-white border rounded-4 p-3 shadow-sm">
+                        <div class="ios-input-group border rounded-4 p-3 shadow-sm" style="background-color: var(--bg-card); border-color: var(--border-color) !important;">
                             <div class="d-flex align-items-center mb-3 border-bottom pb-2">
                                 <span class="fw-bold me-2 text-muted" style="width: 40px;">開始</span>
-                                <input type="datetime-local" class="ios-input border-0 bg-light flex-grow-1 p-2" id="startTime" required>
+                                <input type="datetime-local" class="ios-input border-0 bg-custom-light flex-grow-1 p-2" id="startTime" required>
                             </div>
                             <div class="d-flex align-items-center mb-3">
                                 <span class="fw-bold me-2 text-muted" style="width: 40px;">結束</span>
-                                <input type="datetime-local" class="ios-input border-0 bg-light flex-grow-1 p-2" id="endTime" required>
+                                <input type="datetime-local" class="ios-input border-0 bg-custom-light flex-grow-1 p-2" id="endTime" required>
                             </div>
-                            <div class="text-center bg-light rounded-3 p-3 mt-2">
+                            <div class="text-center bg-custom-light rounded-3 p-3 mt-2">
                                 <div class="small text-muted mb-1" id="timeCalcHint">請輸入起訖時間計算雜費</div>
                                 <div class="fw-bold text-primary fs-4">$ <span id="allowanceDisplay">0</span></div>
                                 <input type="hidden" id="allowance" value="0">
@@ -525,7 +544,7 @@
                         <div class="ios-input-label">同行與交通</div>
                         <div class="ios-input-group">
                             <!-- Multi-input for Companions -->
-                            <div class="bg-white border rounded-4 p-3 mb-3 shadow-sm">
+                            <div class="bg-custom-card border rounded-4 p-3 mb-3 shadow-sm">
                                 <div class="fw-bold small mb-2 text-muted">同行人員 (選填)</div>
                                 <div id="companionsContainer">
                                     <input type="text" class="ios-input mb-2 companion-input" placeholder="人員 1">
@@ -545,7 +564,7 @@
                             </select>
 
                             <!-- Dynamic Driver Select (shows if car/moto) -->
-                            <div id="driverSection" class="slide-section bg-white border rounded-4 p-3 shadow-sm">
+                            <div id="driverSection" class="slide-section bg-custom-card border rounded-4 p-3 shadow-sm">
                                 <label class="fw-bold small text-muted mb-2">駕駛人</label>
                                 <select class="ios-input text-primary fw-bold" id="driverSelect">
                                     <option value="self">自己 (計算里程費)</option>
@@ -553,7 +572,7 @@
                                 </select>
                             </div>
 
-                            <div id="mileageSection" class="slide-section bg-light border rounded-4 p-3 text-center">
+                            <div id="mileageSection" class="slide-section bg-custom-light border rounded-4 p-3 text-center">
                                 <label class="fw-bold small text-muted mb-2">里程數 (公里)</label>
                                 <div class="d-flex align-items-center justify-content-center">
                                     <input type="number" class="ios-input text-center w-50 fw-bold fs-5 me-2" id="mileage" min="0" step="0.1" placeholder="0">
@@ -569,7 +588,7 @@
                         <div id="receiptsContainer">
                             <!-- Dynamic receipts go here -->
                         </div>
-                        <button type="button" class="btn btn-outline-primary bg-white w-100 rounded-pill py-2 fw-bold shadow-sm" id="addReceiptBtn">
+                        <button type="button" class="btn btn-outline-primary bg-custom-card w-100 rounded-pill py-2 fw-bold shadow-sm" id="addReceiptBtn">
                             <i class="bi bi-plus-lg me-1"></i>新增一筆發票
                         </button>
 
@@ -601,4 +620,3 @@
     <!-- Custom Logic -->
     <script type="module" src="./app.js"></script>
 </body>
-</html>
