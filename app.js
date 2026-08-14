@@ -69,7 +69,10 @@ const btnAuditLog = document.getElementById('btnAuditLog');
 const recordsContainer = document.getElementById('recordsContainer');
 const calendarViewWrapper = document.getElementById('calendarViewWrapper');
 const auditLogViewWrapper = document.getElementById('auditLogViewWrapper');
+const statsViewWrapper = document.getElementById('statsViewWrapper');
 const segmentSlider = document.getElementById('segmentSlider');
+const viewToggleGroup = document.getElementById('viewToggleGroup');
+const fabBtn = document.getElementById('fabBtn');
 
 function updateSegmentSlider() {
     // Assuming 3 options, 33.333% width each
@@ -148,6 +151,7 @@ const startGuestMode = () => {
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'inline-block';
     exportBtn.style.display = 'inline-block';
+    statsNavBtn.style.display = 'inline-block';
     unsettledTotalText.style.display = 'inline-block';
 
     let mockListeners = [];
@@ -230,6 +234,7 @@ onAuthStateChanged(auth, (user) => {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
         exportBtn.style.display = 'inline-block';
+        statsNavBtn.style.display = 'inline-block';
         unsettledTotalText.style.display = 'inline-block';
 
         window.firebaseData = {
@@ -244,43 +249,79 @@ onAuthStateChanged(auth, (user) => {
         loginBtn.style.display = 'inline-block';
         logoutBtn.style.display = 'none';
         exportBtn.style.display = 'none';
+        statsNavBtn.style.display = 'none';
         unsettledTotalText.style.display = 'none';
     }
 });
 
 
 // --- View Toggle (List/Calendar/Audit) ---
-btnList.addEventListener('change', () => {
+const restoreMainViews = () => {
+    statsViewWrapper.style.display = 'none';
+    viewToggleGroup.style.display = 'flex';
+    if (fabBtn) fabBtn.style.display = 'flex';
+
     if (btnList.checked) {
-        updateSegmentSlider();
         recordsContainer.style.display = 'flex';
         calendarViewWrapper.style.display = 'none';
         auditLogViewWrapper.style.display = 'none';
+    } else if (btnCalendar.checked) {
+        recordsContainer.style.display = 'none';
+        calendarViewWrapper.style.display = 'block';
+        auditLogViewWrapper.style.display = 'none';
+        renderCustomCalendar();
+    } else if (btnAuditLog.checked) {
+        recordsContainer.style.display = 'none';
+        calendarViewWrapper.style.display = 'none';
+        auditLogViewWrapper.style.display = 'block';
+        if (typeof renderAuditLogs === 'function') renderAuditLogs();
+    }
+};
+
+btnList.addEventListener('change', () => {
+    if (btnList.checked) {
+        updateSegmentSlider();
+        restoreMainViews();
     }
 });
 
 btnCalendar.addEventListener('change', () => {
     if (btnCalendar.checked) {
         updateSegmentSlider();
-        recordsContainer.style.display = 'none';
-        calendarViewWrapper.style.display = 'block';
-        auditLogViewWrapper.style.display = 'none';
-        renderCustomCalendar();
+        restoreMainViews();
     }
 });
 
 btnAuditLog.addEventListener('change', () => {
     if (btnAuditLog.checked) {
         updateSegmentSlider();
-        recordsContainer.style.display = 'none';
-        calendarViewWrapper.style.display = 'none';
-        auditLogViewWrapper.style.display = 'block';
-        // Render audit logs if available
-        if (typeof renderAuditLogs === 'function') {
-            renderAuditLogs();
-        }
+        restoreMainViews();
     }
 });
+
+// Stats View Toggle
+const statsNavBtn = document.getElementById('statsNavBtn');
+const backFromStatsBtn = document.getElementById('backFromStatsBtn');
+
+statsNavBtn.addEventListener('click', () => {
+    // Hide main views
+    recordsContainer.style.display = 'none';
+    calendarViewWrapper.style.display = 'none';
+    auditLogViewWrapper.style.display = 'none';
+    viewToggleGroup.style.display = 'none';
+    if (fabBtn) fabBtn.style.display = 'none';
+
+    // Show stats
+    statsViewWrapper.style.display = 'block';
+
+    // Trigger render
+    if (typeof calculateAndRenderStats === 'function') {
+        calculateAndRenderStats();
+    }
+});
+
+backFromStatsBtn.addEventListener('click', restoreMainViews);
+
 
 // Renders the continuous capsule backgrounds behind the dates.
 function updateCalendarRecords(date) {
@@ -1303,3 +1344,135 @@ const renderAuditLogs = () => {
 
     container.innerHTML = html;
 };
+
+// --- Stats & Calculations Logic ---
+const calculateAndRenderStats = () => {
+    if (!currentRecords) return;
+
+    const startFilter = document.getElementById('statsStartDate').value;
+    const endFilter = document.getElementById('statsEndDate').value;
+
+    let filteredRecords = currentRecords;
+
+    if (startFilter || endFilter) {
+        filteredRecords = currentRecords.filter(r => {
+            const tripDate = r.startTime.split('T')[0];
+            let pass = true;
+            if (startFilter && tripDate < startFilter) pass = false;
+            if (endFilter && tripDate > endFilter) pass = false;
+            return pass;
+        });
+    }
+
+    let totalDays = 0;
+    let totalAllowance = 0;
+    let totalAccommodation = 0;
+    let totalTransport = 0;
+    let totalOther = 0;
+    let grandTotal = 0;
+
+    let breakdownHtml = '';
+
+    filteredRecords.forEach(record => {
+        // Calculate Days
+        let days = 1;
+        if (record.startTime && record.endTime) {
+            const msStart = new Date(record.startTime).getTime();
+            const msEnd = new Date(record.endTime).getTime();
+            if (msEnd > msStart) {
+                days = Math.max(1, Math.ceil((msEnd - msStart) / (1000 * 60 * 60 * 24)));
+            }
+        }
+        totalDays += days;
+
+        // Add to main buckets
+        const allowance = record.allowance || 0;
+        totalAllowance += allowance;
+
+        let transport = record.transportCost || 0;
+        let accommodation = 0;
+        let other = 0;
+
+        // Process Receipts
+        let receiptBreakdownHtml = '';
+        if (record.receipts && record.receipts.length > 0) {
+            record.receipts.forEach(receipt => {
+                const name = receipt.name.toLowerCase();
+                const price = receipt.price || 0;
+
+                // Categorization Rules
+                if (/住宿|飯店|旅館|民宿|hotel|motel|inn/i.test(name)) {
+                    accommodation += price;
+                } else if (/車票|高鐵|台鐵|火車|客運|捷運|計程車|機票|taxi|ticket/i.test(name)) {
+                    transport += price;
+                } else {
+                    other += price;
+                }
+
+                receiptBreakdownHtml += `
+                    <div class="d-flex justify-content-between text-muted small ms-3 mb-1 border-start ps-2 border-primary">
+                        <span><i class="bi bi-receipt me-1"></i>${escapeHtml(receipt.name)}</span>
+                        <span>$${price}</span>
+                    </div>
+                `;
+            });
+        }
+
+        totalAccommodation += accommodation;
+        totalTransport += transport;
+        totalOther += other;
+
+        const recordTotal = allowance + transport + accommodation + other;
+        grandTotal += recordTotal;
+
+        // Build Breakdown Card HTML
+        breakdownHtml += `
+            <div class="card bg-custom-card border-0 shadow-sm rounded-4 text-main-custom p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="fw-bold mb-0 text-primary">${escapeHtml(record.tripName)}</h6>
+                    <span class="badge bg-light text-dark border">${days} 天</span>
+                </div>
+                <div class="small text-muted mb-2"><i class="bi bi-clock me-1"></i>${record.startTime.split('T')[0]}</div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>雜費</span><span>$${allowance}</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>交通費(含油資)</span><span>$${transport}</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>住宿費</span><span>$${accommodation}</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>其他費用</span><span>$${other}</span>
+                </div>
+                ${receiptBreakdownHtml}
+                <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" style="border-color: var(--border-color) !important;">
+                    <span class="fw-bold small text-main-custom">單趟總計</span>
+                    <span class="fw-bold text-danger">$${recordTotal}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    if (filteredRecords.length === 0) {
+        breakdownHtml = '<div class="text-center text-muted py-5">此區間沒有任何出差紀錄。</div>';
+    }
+
+    // Update DOM
+    document.getElementById('statDays').textContent = `${totalDays} 天`;
+    document.getElementById('statAllowance').textContent = totalAllowance;
+    document.getElementById('statAccommodation').textContent = totalAccommodation;
+    document.getElementById('statTransport').textContent = totalTransport;
+    document.getElementById('statOther').textContent = totalOther;
+    document.getElementById('statTotal').textContent = grandTotal;
+
+    document.getElementById('statsBreakdownContainer').innerHTML = breakdownHtml;
+};
+
+// Event Listeners for Filters
+document.getElementById('filterStatsBtn').addEventListener('click', calculateAndRenderStats);
+document.getElementById('resetStatsFilterBtn').addEventListener('click', () => {
+    document.getElementById('statsStartDate').value = '';
+    document.getElementById('statsEndDate').value = '';
+    calculateAndRenderStats();
+});
