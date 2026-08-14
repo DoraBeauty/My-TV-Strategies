@@ -479,6 +479,9 @@
 
             <input type="radio" class="btn-check" name="viewToggle" id="btnCalendar" autocomplete="off">
             <label class="btn" for="btnCalendar"><i class="bi bi-calendar3 me-1"></i>日曆</label>
+
+            <input type="radio" class="btn-check" name="viewToggle" id="btnAuditLog" autocomplete="off">
+            <label class="btn" for="btnAuditLog"><i class="bi bi-clock-history me-1"></i>編輯紀錄</label>
         </div>
 
         <!-- Loading Indicator -->
@@ -493,8 +496,15 @@
             <!-- Cards injected by JS -->
         </div>
 
+        <!-- Audit Log View Wrapper -->
+        <div id="auditLogViewWrapper" style="display: none;">
+            <div id="auditLogsContainer" class="row g-3">
+                <!-- Audit logs injected by JS -->
+            </div>
+        </div>
+
         <!-- Calendar View Wrapper -->
-        <div id="calendarViewWrapper">
+        <div id="calendarViewWrapper" style="display: none;">
             <div class="card record-card p-2 mb-4 text-main-custom bg-custom-card">
                 <div id="calendar"></div>
             </div>
@@ -632,9 +642,34 @@
         </div>
     </div>
 
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow bg-custom-card text-main-custom" style="border-radius: 20px;">
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-exclamation-circle text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2 text-main-custom">確定要刪除這筆紀錄嗎？</h5>
+                    <p class="text-muted small mb-4">刪除後將無法復原，與之相關的發票圖片也會一併刪除。</p>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-custom-light flex-fill rounded-pill fw-bold py-2" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger flex-fill rounded-pill fw-bold py-2" id="confirmDeleteBtn">
+                            <span class="spinner-border spinner-border-sm me-1 d-none" id="deleteSpinner"></span>
+                            確認刪除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Custom Logic -->
     <script type="module" src="./app.js"></script>
+
 </body>
+</html>
