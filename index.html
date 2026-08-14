@@ -666,10 +666,18 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                 <span class="fw-bold me-2 text-muted" style="width: 40px;">結束</span>
                                 <input type="datetime-local" class="ios-input border-0 bg-custom-light flex-grow-1 p-2" id="endTime" required>
                             </div>
-                            <div class="text-center bg-custom-light rounded-3 p-3 mt-2">
-                                <div class="small text-muted mb-1" id="timeCalcHint">請輸入起訖時間計算雜費</div>
-                                <div class="fw-bold text-primary fs-4">$ <span id="allowanceDisplay">0</span></div>
-                                <input type="hidden" id="allowance" value="0">
+                            <div class="bg-custom-light rounded-3 p-3 mt-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold text-main-custom">雜費小計</span>
+                                    <div class="d-flex align-items-center justify-content-end" style="width: 120px;">
+                                        <span class="fw-bold text-primary fs-5 me-1">$</span>
+                                        <input type="number" class="ios-input border-0 bg-transparent text-primary fw-bold fs-4 p-0 text-end w-100" id="allowance" value="0" min="0" step="1">
+                                    </div>
+                                </div>
+                                <div class="small text-muted" id="timeCalcHint" style="line-height: 1.4;">請輸入起訖時間計算雜費</div>
+                                <div class="small text-muted mt-2 pt-2 border-top" style="font-size: 0.75rem; border-color: var(--border-color) !important; opacity: 0.75;">
+                                    雜費依《國軍國內出差旅費報支規定》以每日計算（每日上限400元，未滿4小時為200元）。系統為自動估算，實際報支請依規定及單位審核為準。
+                                </div>
                             </div>
                         </div>
 
