@@ -103,7 +103,6 @@ const saveSpinner = document.getElementById('saveSpinner');
 const startTimeInput = document.getElementById('startTime');
 const endTimeInput = document.getElementById('endTime');
 const allowanceInput = document.getElementById('allowance');
-const allowanceDisplay = document.getElementById('allowanceDisplay');
 const timeCalcHint = document.getElementById('timeCalcHint');
 
 const companionsContainer = document.getElementById('companionsContainer');
@@ -409,42 +408,95 @@ function updateCalendarRecords(date) {
 
 // --- Form Dynamic Logic ---
 
-const calculateAllowance = () => {
-    const start = startTimeInput.value;
-    const end = endTimeInput.value;
+const calculateAllowance = (systemOnly = false) => {
+    const startVal = startTimeInput.value;
+    const endVal = endTimeInput.value;
 
-    if (!start || !end) {
-        allowanceInput.value = 0;
-        allowanceDisplay.textContent = '0';
-        timeCalcHint.textContent = "請先輸入起訖時間計算雜費";
+    if (!startVal || !endVal) {
+        if (!allowanceInput.dataset.manualOverride) {
+            allowanceInput.value = 0;
+            timeCalcHint.textContent = "請先輸入起訖時間計算雜費";
+        }
         calculateTotal();
-        return;
+        return 0;
     }
 
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const start = new Date(startVal);
+    const end = new Date(endVal);
 
-    if (endDate <= startDate) {
-        allowanceInput.value = 0;
-        allowanceDisplay.textContent = '0';
-        timeCalcHint.textContent = "結束時間必須晚於開始時間";
-        timeCalcHint.classList.add('text-danger');
+    if (end <= start) {
+        if (!allowanceInput.dataset.manualOverride) {
+            allowanceInput.value = 0;
+            timeCalcHint.textContent = "結束時間必須晚於開始時間";
+            timeCalcHint.classList.add('text-danger');
+        }
         calculateTotal();
-        return;
+        return 0;
     }
 
     timeCalcHint.classList.remove('text-danger');
-    const diffMs = endDate - startDate;
-    const diffHours = diffMs / (1000 * 60 * 60);
 
-    const allowance = diffHours >= 4 ? 400 : 200;
-    allowanceInput.value = allowance;
-    allowanceDisplay.textContent = allowance;
-    timeCalcHint.textContent = `共計 ${diffHours.toFixed(1)} 小時，雜費自動帶入`;
+    let totalAllowance = 0;
+    let daysCount = 0;
+
+    const currentDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+    while (currentDay <= endDay) {
+        daysCount++;
+        const dayStart = new Date(currentDay);
+        const dayEnd = new Date(currentDay);
+        dayEnd.setDate(dayEnd.getDate() + 1);
+
+        const overlapStart = start > dayStart ? start : dayStart;
+        const overlapEnd = end < dayEnd ? end : dayEnd;
+        const overlapMs = overlapEnd - overlapStart;
+
+        if (overlapMs > 0) {
+            const overlapHours = overlapMs / (1000 * 60 * 60);
+            if (overlapHours >= 4) {
+                totalAllowance += 400;
+            } else {
+                totalAllowance += 200;
+            }
+        }
+        currentDay.setDate(currentDay.getDate() + 1);
+    }
+
+    // Save the system estimated value for reference
+    allowanceInput.dataset.systemEstimate = totalAllowance;
+
+    if (systemOnly) return totalAllowance;
+
+    if (!allowanceInput.dataset.manualOverride) {
+        allowanceInput.value = totalAllowance;
+        timeCalcHint.innerHTML = `<span class="badge bg-primary">系統試算</span> 依規定按日計算：共 ${daysCount} 天，雜費合計 ${totalAllowance}`;
+    } else {
+         timeCalcHint.innerHTML = `<span class="badge bg-warning text-dark">手動修改</span> 已手動調整雜費（原系統估算為 ${allowanceInput.dataset.systemEstimate || 0}）`;
+    }
     calculateTotal();
+    return totalAllowance;
 };
-startTimeInput.addEventListener('change', calculateAllowance);
-endTimeInput.addEventListener('change', calculateAllowance);
+
+startTimeInput.addEventListener('change', () => {
+    delete allowanceInput.dataset.manualOverride;
+    calculateAllowance();
+});
+endTimeInput.addEventListener('change', () => {
+    delete allowanceInput.dataset.manualOverride;
+    calculateAllowance();
+});
+
+allowanceInput.addEventListener('input', function() {
+    if (this.value !== '') {
+        this.dataset.manualOverride = 'true';
+        timeCalcHint.innerHTML = `<span class="badge bg-warning text-dark">手動修改</span> 已手動調整雜費（原系統估算為 ${allowanceInput.dataset.systemEstimate || 0}）`;
+    } else {
+        delete this.dataset.manualOverride;
+        calculateAllowance();
+    }
+    calculateTotal();
+});
 
 const getCompanionsList = () => {
     const inputs = companionsContainer.querySelectorAll('.companion-input');
@@ -605,6 +657,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Reset form on open if no ID (Create Mode)
         modalEl.addEventListener('show.bs.modal', (e) => {
+            // Reset override flag and hint on open
+            delete allowanceInput.dataset.manualOverride;
+            timeCalcHint.innerHTML = '';
+
             if (!e.relatedTarget || !e.relatedTarget.closest) return;
             const btn = e.relatedTarget.closest('.fab');
             if (btn) {
@@ -612,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 recordIdInput.value = '';
                 modalTitle.textContent = '新增紀錄';
                 receiptsContainer.innerHTML = '';
-                allowanceDisplay.textContent = '0';
+
                 totalAmountDisplay.textContent = '0';
                 timeCalcHint.textContent = '請輸入起訖時間計算雜費';
                 timeCalcHint.classList.remove('text-danger');
@@ -986,7 +1042,22 @@ const openEditModal = (record) => {
         });
     }
 
-    calculateAllowance(); // updates total
+    // Calculate system total to get the baseline estimate, but don't apply it to UI yet
+    const systemEst = calculateAllowance(true);
+    allowanceInput.dataset.systemEstimate = systemEst;
+
+    if (record.allowance !== undefined && record.allowance !== null && String(record.allowance) !== String(systemEst)) {
+        // If the saved allowance differs from what the system calculates NOW, it means it was manually overridden.
+        allowanceInput.value = record.allowance;
+        allowanceInput.dataset.manualOverride = 'true';
+        timeCalcHint.innerHTML = `<span class="badge bg-warning text-dark">手動修改</span> 已手動調整雜費（原系統估算為 ${systemEst}）`;
+    } else {
+        // Safe to use system default
+        delete allowanceInput.dataset.manualOverride;
+        calculateAllowance(); // Force UI update
+    }
+
+    calculateTotal(); // updates total
 
     if (bootstrapModalInstance) bootstrapModalInstance.show();
 };
