@@ -10,8 +10,10 @@
 
     <style>
         :root {
+            --color-scheme: light;
             /* Light Mode Variables (Reference UI style) */
             --bg-main: #f8f9fa;
+            --bg-hover: #e9ecef;
             --bg-card: #ffffff;
             --text-main: #212529;
             --text-muted: #868e96;
@@ -32,8 +34,10 @@
         }
 
         [data-theme="dark"] {
+            --color-scheme: dark;
             /* Dark Mode Variables */
             --bg-main: #121212;
+            --bg-hover: #2b2b2b;
             --bg-card: #1e1e1e;
             --text-main: #f8f9fa;
             --text-muted: #adb5bd;
@@ -173,7 +177,7 @@
             outline: none;
             border-color: var(--brand-primary);
             box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
-            background: #ffffff;
+            background: var(--bg-card);
         }
 
         .ios-form-group {
@@ -417,8 +421,8 @@
 
 <style>
 .bg-custom-card { background-color: var(--bg-card) !important; border-color: var(--border-color) !important; color: var(--text-main) !important; }
-.bg-custom-light { background-color: var(--bg-hover) !important; color: var(--text-main) !important; }
-.text-main-custom { color: var(--text-main) !important; }
+input.bg-custom-light, .bg-custom-light { background-color: var(--bg-hover) !important; color: var(--text-main) !important; color-scheme: var(--color-scheme, light); }
+input.text-main-custom, .text-main-custom { color: var(--text-main) !important; }
 
 .text-muted { color: var(--text-muted) !important; }
 [data-theme="dark"] .btn-outline-secondary {
@@ -509,7 +513,7 @@
         <!-- Stats View Wrapper -->
         <div id="statsViewWrapper" style="display: none;">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <button id="backFromStatsBtn" class="btn btn-custom-light rounded-pill px-3 fw-bold">
+                <button id="backFromStatsBtn" class="btn btn-custom-light text-main-custom rounded-pill px-3 fw-bold">
                     <i class="bi bi-arrow-left me-1"></i> 返回
                 </button>
                 <h4 class="fw-bold m-0 text-main-custom">金額統計明細</h4>
@@ -531,7 +535,7 @@
                     </div>
                 </div>
                 <div class="text-end mt-2">
-                    <button id="resetStatsFilterBtn" class="btn btn-link btn-sm text-muted text-decoration-none p-0">清除篩選 (全歷史)</button>
+                    <button id="resetStatsFilterBtn" class="btn btn-link btn-sm text-main-custom text-decoration-none p-0">清除篩選 (全歷史)</button>
                 </div>
             </div>
 
