@@ -65,17 +65,21 @@ themeToggleBtn.addEventListener('click', () => {
 // View Toggle Elements
 const btnList = document.getElementById('btnList');
 const btnCalendar = document.getElementById('btnCalendar');
+const btnAuditLog = document.getElementById('btnAuditLog');
 const recordsContainer = document.getElementById('recordsContainer');
 const calendarViewWrapper = document.getElementById('calendarViewWrapper');
+const auditLogViewWrapper = document.getElementById('auditLogViewWrapper');
 const segmentSlider = document.getElementById('segmentSlider');
 
 function updateSegmentSlider() {
-    // Assuming 2 options, 50% width each
-    segmentSlider.style.width = '50%';
+    // Assuming 3 options, 33.333% width each
+    segmentSlider.style.width = '33.333%';
     if (btnList.checked) {
         segmentSlider.style.transform = 'translateX(0)';
     } else if (btnCalendar.checked) {
         segmentSlider.style.transform = 'translateX(100%)';
+    } else if (btnAuditLog.checked) {
+        segmentSlider.style.transform = 'translateX(200%)';
     }
 }
 
@@ -178,6 +182,13 @@ const startGuestMode = () => {
             localStorage.setItem('guest_records', JSON.stringify(records));
             triggerListeners();
         },
+        deleteDoc: async (docId) => {
+            const raw = localStorage.getItem('guest_records');
+            let records = raw ? JSON.parse(raw) : [];
+            records = records.filter(r => r.id !== docId);
+            localStorage.setItem('guest_records', JSON.stringify(records));
+            triggerListeners();
+        },
         query: () => 'mock_query', where: () => null, orderBy: () => null,
         onSnapshot: (q, cb, errCb) => {
             mockListeners.push(cb);
@@ -222,7 +233,7 @@ onAuthStateChanged(auth, (user) => {
         unsettledTotalText.style.display = 'inline-block';
 
         window.firebaseData = {
-            db, storage, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, getDocs, deleteObject, currentUser
+            db, storage, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, getDocs, deleteObject, currentUser
         };
 
         window.dispatchEvent(new Event('authReady'));
@@ -238,12 +249,13 @@ onAuthStateChanged(auth, (user) => {
 });
 
 
-// --- View Toggle (List/Calendar) ---
+// --- View Toggle (List/Calendar/Audit) ---
 btnList.addEventListener('change', () => {
     if (btnList.checked) {
         updateSegmentSlider();
         recordsContainer.style.display = 'flex';
         calendarViewWrapper.style.display = 'none';
+        auditLogViewWrapper.style.display = 'none';
     }
 });
 
@@ -252,7 +264,21 @@ btnCalendar.addEventListener('change', () => {
         updateSegmentSlider();
         recordsContainer.style.display = 'none';
         calendarViewWrapper.style.display = 'block';
+        auditLogViewWrapper.style.display = 'none';
         renderCustomCalendar();
+    }
+});
+
+btnAuditLog.addEventListener('change', () => {
+    if (btnAuditLog.checked) {
+        updateSegmentSlider();
+        recordsContainer.style.display = 'none';
+        calendarViewWrapper.style.display = 'none';
+        auditLogViewWrapper.style.display = 'block';
+        // Render audit logs if available
+        if (typeof renderAuditLogs === 'function') {
+            renderAuditLogs();
+        }
     }
 });
 
@@ -619,11 +645,13 @@ saveRecordBtn.addEventListener('click', async () => {
             recordData.updatedAt = serverTimestamp();
             const docRef = doc(db, 'records', recordIdInput.value);
             await updateDoc(docRef, recordData);
+            logAction('update', tripName);
         } else {
             recordData.isSettled = false;
             recordData.settledAt = null;
             recordData.createdAt = serverTimestamp();
             await addDoc(collection(db, 'records'), recordData);
+            logAction('create', tripName);
         }
 
         if (bootstrapModalInstance) bootstrapModalInstance.hide();
@@ -673,6 +701,10 @@ window.addEventListener('authReady', () => {
         if (btnCalendar.checked) {
             renderCustomCalendar();
         }
+
+        // Also ensure audit logs are pre-fetched and available when switching
+        fetchAndRenderAuditLogs();
+
         await cleanupOldImages(currentRecords);
     });
 });
@@ -742,7 +774,8 @@ const renderRecordCard = (record, container = recordsContainer) => {
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
-                    <button class="btn btn-custom-light btn-sm w-100 edit-record-btn text-primary fw-bold rounded-pill" data-id="${record.id}"><i class="bi bi-pencil-square"></i> 編輯</button>
+                    <button class="btn btn-custom-light btn-sm flex-fill edit-record-btn text-primary fw-bold rounded-pill" data-id="${record.id}"><i class="bi bi-pencil-square"></i> 編輯</button>
+                    <button class="btn btn-custom-light btn-sm flex-fill delete-record-btn text-danger fw-bold rounded-pill" data-id="${record.id}" data-trip="${escapeHtml(record.tripName)}"><i class="bi bi-trash"></i> 刪除</button>
                 </div>
                 ${actionBtnHtml}
             </div>
@@ -764,6 +797,13 @@ document.getElementById('dashboardView').addEventListener('click', async (e) => 
                 isSettled: action === 'settle',
                 settledAt: action === 'settle' ? new Date().toISOString() : null
             });
+
+            // Log settle/undo status change
+            const record = currentRecords.find(r => r.id === docId);
+            if (record) {
+                logAction(action === 'settle' ? 'settle' : 'unsettle', record.tripName);
+            }
+
         } catch (error) {
             alert("更新狀態失敗：" + error.message);
             settleBtn.disabled = false;
@@ -776,6 +816,61 @@ document.getElementById('dashboardView').addEventListener('click', async (e) => 
         const id = editBtn.dataset.id;
         const record = currentRecords.find(r => r.id === id);
         if (record) openEditModal(record);
+        return;
+    }
+
+    const deleteBtn = e.target.closest('.delete-record-btn');
+    if (deleteBtn) {
+        const id = deleteBtn.dataset.id;
+        const tripName = deleteBtn.dataset.trip;
+        openDeleteConfirmModal(id, tripName);
+    }
+});
+
+let deleteModalInstance = null;
+let currentDeleteId = null;
+let currentDeleteTripName = null;
+
+const openDeleteConfirmModal = (id, tripName) => {
+    currentDeleteId = id;
+    currentDeleteTripName = tripName;
+    const modalEl = document.getElementById('deleteConfirmModal');
+    if (!deleteModalInstance) {
+        deleteModalInstance = new bootstrap.Modal(modalEl);
+    }
+    document.getElementById('deleteSpinner').classList.add('d-none');
+    document.getElementById('confirmDeleteBtn').disabled = false;
+    deleteModalInstance.show();
+};
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+    if (!currentDeleteId) return;
+
+    const { db, doc, deleteDoc } = window.firebaseData;
+    const btn = document.getElementById('confirmDeleteBtn');
+    const spinner = document.getElementById('deleteSpinner');
+
+    try {
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+
+        await deleteDoc(doc(db, 'records', currentDeleteId));
+        // Note: the associated images will be orphaned in storage initially,
+        // but this behavior is consistent with the app's existing cleanup logic
+        // which could be extended later to handle immediate deletion if needed.
+
+        // Log the deletion action
+        if (typeof logAction === 'function') {
+            logAction('delete', currentDeleteTripName);
+        }
+
+        deleteModalInstance.hide();
+        currentDeleteId = null;
+        currentDeleteTripName = null;
+    } catch (error) {
+        alert("刪除失敗：" + error.message);
+        btn.disabled = false;
+        spinner.classList.add('d-none');
     }
 });
 
@@ -1061,3 +1156,150 @@ function createCalendarDay(year, month, day, isOtherMonth) {
     wrapper.appendChild(cell);
     return wrapper;
 }
+
+// --- Global Audit Log Logic ---
+let auditLogs = [];
+
+const logAction = async (actionType, tripName) => {
+    const { db, collection, addDoc, serverTimestamp, currentUser } = window.firebaseData;
+    if (!currentUser || !db) return;
+
+    try {
+        const logData = {
+            userId: currentUser.uid,
+            actionType,
+            tripName: tripName || '未命名行程',
+            createdAt: serverTimestamp ? serverTimestamp() : new Date().toISOString()
+        };
+
+        if (db === 'mock_db') {
+            // Guest mode: save to local storage
+            const raw = localStorage.getItem('guest_audit_logs');
+            const logs = raw ? JSON.parse(raw) : [];
+            const newLog = { ...logData, id: Date.now().toString(), createdAt: new Date().toISOString() };
+            logs.unshift(newLog);
+            localStorage.setItem('guest_audit_logs', JSON.stringify(logs));
+            // Trigger log render if currently in audit view
+            fetchAndRenderAuditLogs();
+        } else {
+            // Real Firebase
+            await addDoc(collection(db, 'auditLogs'), logData);
+        }
+    } catch (e) {
+        console.error("Failed to log action:", e);
+    }
+};
+
+const fetchAndRenderAuditLogs = async () => {
+    const { db, collection, query, where, orderBy, getDocs, currentUser } = window.firebaseData;
+    if (!currentUser || !db) return;
+
+    const container = document.getElementById('auditLogsContainer');
+    if (!container) return;
+
+    container.innerHTML = '<div class="col-12 text-center text-muted py-4 small"><div class="spinner-border spinner-border-sm text-primary me-2"></div>載入中...</div>';
+
+    try {
+        let fetchedLogs = [];
+
+        if (db === 'mock_db') {
+            const raw = localStorage.getItem('guest_audit_logs');
+            fetchedLogs = raw ? JSON.parse(raw) : [];
+        } else {
+            const q = query(
+                collection(db, 'auditLogs'),
+                where('userId', '==', currentUser.uid),
+                orderBy('createdAt', 'desc')
+            );
+            const snapshot = await getDocs(q);
+            snapshot.forEach(docSnap => {
+                fetchedLogs.push({ id: docSnap.id, ...docSnap.data() });
+            });
+        }
+
+        auditLogs = fetchedLogs;
+        renderAuditLogs();
+
+    } catch (error) {
+        container.innerHTML = `<div class="col-12 text-center text-danger py-4 small">讀取紀錄失敗</div>`;
+        console.error(error);
+    }
+};
+
+const renderAuditLogs = () => {
+    const container = document.getElementById('auditLogsContainer');
+    if (!container) return;
+
+    if (auditLogs.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center text-muted py-4 small">目前無任何編輯紀錄</div>';
+        return;
+    }
+
+    let html = '';
+
+    auditLogs.forEach(log => {
+        let actionStr = '';
+        let iconHtml = '';
+        let colorClass = '';
+
+        switch (log.actionType) {
+            case 'create':
+                actionStr = '新增了行程';
+                iconHtml = '<i class="bi bi-plus-circle text-primary"></i>';
+                colorClass = 'text-primary';
+                break;
+            case 'update':
+                actionStr = '修改了行程';
+                iconHtml = '<i class="bi bi-pencil-square text-info"></i>';
+                colorClass = 'text-info';
+                break;
+            case 'delete':
+                actionStr = '刪除了行程';
+                iconHtml = '<i class="bi bi-trash text-danger"></i>';
+                colorClass = 'text-danger';
+                break;
+            case 'settle':
+                actionStr = '標記為已入帳';
+                iconHtml = '<i class="bi bi-check-circle-fill text-success"></i>';
+                colorClass = 'text-success';
+                break;
+            case 'unsettle':
+                actionStr = '復原為未入帳';
+                iconHtml = '<i class="bi bi-arrow-counterclockwise text-secondary"></i>';
+                colorClass = 'text-secondary';
+                break;
+            default:
+                actionStr = '操作了行程';
+                iconHtml = '<i class="bi bi-activity text-muted"></i>';
+                colorClass = 'text-muted';
+        }
+
+        // Format Date
+        let dateStr = '';
+        if (log.createdAt && log.createdAt.toDate) {
+            // Firestore Timestamp
+            dateStr = log.createdAt.toDate().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        } else if (log.createdAt) {
+            // ISO String
+            const d = new Date(log.createdAt);
+            dateStr = d.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        html += `
+        <div class="col-12">
+            <div class="card record-card bg-custom-card text-main-custom p-3 d-flex flex-row align-items-center">
+                <div class="me-3 fs-3">
+                    ${iconHtml}
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold mb-1">
+                        <span class="${colorClass}">${actionStr}</span>：${escapeHtml(log.tripName)}
+                    </div>
+                    <div class="small text-muted">${dateStr}</div>
+                </div>
+            </div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+};
