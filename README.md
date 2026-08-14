@@ -1,29 +1,30 @@
-# Steam 限免遊戲追蹤網頁 (Steam Free Games Dashboard)
+# 差旅費追蹤 (Military Travel Expense Tracker)
 
-這是一個輕量級的純前端 Web 應用程式，使用 HTML、Vanilla JavaScript 與 Tailwind CSS 打造，能即時抓取並展示目前 Steam 平台上的限時免費遊戲。
+這是一個專為軍人執行任務所設計的「個人差旅費追蹤」系統，協助使用者輕鬆紀錄出差任務、交通費與發票明細，並能即時掌握差旅報帳進度。
 
-## 功能特色
-- **即時資料**：直接透過瀏覽器前端串接 CheapShark API 獲取最新 Steam 免費/限免遊戲。
-- **純靜態架構**：無需後端伺服器，完美支援 **GitHub Pages** 等靜態網頁代管服務部署。
-- **深色模式 (Dark Mode)**：採用 Steam 原生色系的深藍/黑風格設計。
-- **響應式卡片設計**：支援手機、平板與電腦完美呈現。
-- **自訂過濾器**：可透過右上角的開關自由切換是否顯示「永久免費」遊戲，專注於「限時免費 (100% OFF)」的資訊。
-- **錯誤防護**：API 失敗或無資料時提供友善的繁體中文提示與 Loading 動畫。
+## 💡 主要功能
 
-## 安裝與執行
-由於這是純前端專案，您不需要安裝任何套件即可運行：
+*   **差旅紀錄管理**：快速新增、編輯與刪除任務紀錄。
+*   **雜費自動計算**：輸入任務起訖時間後，系統會自動根據時間長短計算應核發之雜費。
+*   **里程與交通費補助**：選擇自行開車或騎車，並設定駕駛人為「自己」時，系統可自動換算里程補助費。
+*   **發票與明細上傳**：支援多筆發票明細建檔與圖片上傳（住宿、車票等）。
+*   **多維度檢視**：
+    *   **任務紀錄**：條列式卡片清單，支援關鍵字與入帳狀態搜尋篩選。
+    *   **日曆檢視**：直覺的跨日連續行程膠囊標示，快速點選查看當日任務。
+    *   **編輯紀錄**：全局操作日誌，清楚掌握所有新增、修改與刪除動態。
+*   **統計圖表**：自訂日期區間，自動分析出差天數、雜費、住宿、車票等各項開銷，並產生精美總覽。
+*   **深色模式 (Dark Mode)**：提供舒適的日夜間主題切換。
+*   **訪客模式 (Guest Mode)**：無需註冊登入即可透過本機端 Storage 完整試用所有功能。
+*   **CSV 匯出**：一鍵匯出包含 UTF-8 BOM 的試算表檔案，方便後續報帳作業。
 
-1. **本機預覽**
-   直接在瀏覽器中雙擊打開 `index.html`，或者透過 VSCode 的 Live Server 套件開啟。
+## 📜 法規依據
 
-   *(若使用 Python，也可在目錄下執行 `python -m http.server 8000` 然後訪問 `http://localhost:8000`)*
+本系統之雜費與交通費計算邏輯，係依據「**國軍人員國內出差旅費報支規定**」建置。
+詳情可參考：[國軍人員國內出差旅費報支規定](https://law.mnd.gov.tw/Fn/ShowNews.aspx?id=12364&flag=r)
 
-2. **部署至 GitHub Pages**
-   將這個儲存庫推送到 GitHub 上，並在 Settings -> Pages 中選擇從 `main` 分支部署，即可公開訪問。
+## 🛠 技術架構
 
-## 檔案結構
-- `index.html`: 核心 HTML 樣板，包含 Tailwind CSS 樣式、前端 Fetch API 邏輯與介面互動腳本。
-- `README.md`: 本說明文件。
-
-## 資料來源
-本專案使用 [CheapShark API](https://apidocs.cheapshark.com/) 取得遊戲價格與限免資訊。非 Steam 官方網站，僅供資訊參考使用。
+*   **Frontend**: HTML5, Vanilla JavaScript, CSS Variables (Custom Theming)
+*   **UI Framework**: Bootstrap 5, Bootstrap Icons
+*   **Backend / Database**: Firebase (Firestore, Storage, Authentication)
+*   **Architecture**: Serverless SPA (Single Page Application) with Local Storage mock fallback.
