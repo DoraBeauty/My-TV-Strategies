@@ -66,6 +66,10 @@ themeToggleBtn.addEventListener('click', () => {
 const btnList = document.getElementById('btnList');
 const btnCalendar = document.getElementById('btnCalendar');
 const btnAuditLog = document.getElementById('btnAuditLog');
+
+const listControlsWrapper = document.getElementById('listControlsWrapper');
+const searchInput = document.getElementById('searchInput');
+const statusFilterSelect = document.getElementById('statusFilterSelect');
 const recordsContainer = document.getElementById('recordsContainer');
 const calendarViewWrapper = document.getElementById('calendarViewWrapper');
 const auditLogViewWrapper = document.getElementById('auditLogViewWrapper');
@@ -143,7 +147,12 @@ const handleLogout = async () => {
     }
 };
 
+
+const guestModeAlert = document.getElementById('guestModeAlert');
+
 const startGuestMode = () => {
+    if (guestModeAlert) guestModeAlert.style.display = 'block';
+
     currentUser = { uid: 'guest_user', isGuest: true };
 
     loginView.style.display = 'none';
@@ -261,16 +270,21 @@ const restoreMainViews = () => {
     viewToggleGroup.style.display = 'flex';
     if (fabBtn) fabBtn.style.display = 'flex';
 
+
     if (btnList.checked) {
+        if (listControlsWrapper) listControlsWrapper.style.display = 'flex';
         recordsContainer.style.display = 'flex';
+
         calendarViewWrapper.style.display = 'none';
         auditLogViewWrapper.style.display = 'none';
     } else if (btnCalendar.checked) {
+        if (listControlsWrapper) listControlsWrapper.style.display = 'none';
         recordsContainer.style.display = 'none';
         calendarViewWrapper.style.display = 'block';
         auditLogViewWrapper.style.display = 'none';
         renderCustomCalendar();
     } else if (btnAuditLog.checked) {
+        if (listControlsWrapper) listControlsWrapper.style.display = 'none';
         recordsContainer.style.display = 'none';
         calendarViewWrapper.style.display = 'none';
         auditLogViewWrapper.style.display = 'block';
@@ -305,6 +319,7 @@ const backFromStatsBtn = document.getElementById('backFromStatsBtn');
 
 statsNavBtn.addEventListener('click', () => {
     // Hide main views
+    if (listControlsWrapper) listControlsWrapper.style.display = 'none';
     recordsContainer.style.display = 'none';
     calendarViewWrapper.style.display = 'none';
     auditLogViewWrapper.style.display = 'none';
@@ -601,6 +616,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalAmountDisplay.textContent = '0';
                 timeCalcHint.textContent = '請輸入起訖時間計算雜費';
                 timeCalcHint.classList.remove('text-danger');
+
+                // Prefill dates to current time and +1 hour
+                const now = new Date();
+                // offset timezone
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                startTimeInput.value = now.toISOString().slice(0,16);
+                const later = new Date(now.getTime() + 60 * 60 * 1000);
+                endTimeInput.value = later.toISOString().slice(0,16);
+                calculateAllowance();
                 updateDriverOptions();
             }
         });
@@ -735,8 +759,14 @@ window.addEventListener('authReady', () => {
             currentRecords.push(record);
 
             if (!record.isSettled) unsettledTotal += record.totalAmount;
-            renderRecordCard(record);
         });
+
+        // Use the new render function to apply active filters/search queries
+        if (typeof renderFilteredRecordsList === 'function') {
+            renderFilteredRecordsList();
+        } else {
+            currentRecords.forEach(r => renderRecordCard(r));
+        }
 
         unsettledTotalText.textContent = `未入帳：$${unsettledTotal}`;
         if (btnCalendar.checked) {
@@ -1272,7 +1302,7 @@ const renderAuditLogs = () => {
     if (!container) return;
 
     if (auditLogs.length === 0) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4 small">目前無任何編輯紀錄</div>';
+        container.innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-clock-history text-muted mb-3 d-block" style="font-size: 4rem; opacity: 0.5;"></i><h5 class="fw-bold text-main-custom">目前無任何編輯紀錄</h5><p class="text-muted small mb-4">當您新增、修改或刪除任務時，系統會自動將操作日誌紀錄於此。</p></div>';
         return;
     }
 
@@ -1476,3 +1506,61 @@ document.getElementById('resetStatsFilterBtn').addEventListener('click', () => {
     document.getElementById('statsEndDate').value = '';
     calculateAndRenderStats();
 });
+
+
+// --- Search and Filter Logic for List View ---
+const renderFilteredRecordsList = () => {
+    recordsContainer.innerHTML = '';
+
+
+    if (!currentRecords || currentRecords.length === 0) {
+        recordsContainer.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-folder2-open text-muted mb-3 d-block" style="font-size: 4rem; opacity: 0.5;"></i>
+                <h5 class="fw-bold text-main-custom">目前尚無差旅紀錄</h5>
+                <p class="text-muted small mb-4">點擊右下角的 ＋ 按鈕，新增您的第一筆任務紀錄吧！</p>
+            </div>
+        `;
+        return;
+    }
+
+
+    const keyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const statusFilter = statusFilterSelect ? statusFilterSelect.value : 'all';
+
+    const results = currentRecords.filter(r => {
+        // Status Filter
+        if (statusFilter === 'settled' && !r.isSettled) return false;
+        if (statusFilter === 'unsettled' && r.isSettled) return false;
+
+        // Keyword Filter
+        if (keyword) {
+            const tripNameMatch = r.tripName && r.tripName.toLowerCase().includes(keyword);
+            const locationMatch = r.location && r.location.toLowerCase().includes(keyword);
+            const unitMatch = r.visitingUnit && r.visitingUnit.toLowerCase().includes(keyword);
+
+            if (!tripNameMatch && !locationMatch && !unitMatch) return false;
+        }
+
+        return true;
+    });
+
+    if (results.length === 0) {
+        recordsContainer.innerHTML = `
+            <div class="col-12 text-center text-muted py-5">
+                <i class="bi bi-search" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                <h6 class="mt-3 fw-bold">找不到符合條件的紀錄</h6>
+                <p class="small mb-0">請嘗試更換關鍵字或篩選狀態。</p>
+            </div>
+        `;
+    } else {
+        results.forEach(r => renderRecordCard(r));
+    }
+};
+
+if (searchInput) {
+    searchInput.addEventListener('input', renderFilteredRecordsList);
+}
+if (statusFilterSelect) {
+    statusFilterSelect.addEventListener('change', renderFilteredRecordsList);
+}
