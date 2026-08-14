@@ -419,6 +419,16 @@
 .bg-custom-card { background-color: var(--bg-card) !important; border-color: var(--border-color) !important; color: var(--text-main) !important; }
 .bg-custom-light { background-color: var(--bg-hover) !important; color: var(--text-main) !important; }
 .text-main-custom { color: var(--text-main) !important; }
+
+.text-muted { color: var(--text-muted) !important; }
+[data-theme="dark"] .btn-outline-secondary {
+    color: var(--text-muted);
+    border-color: var(--text-muted);
+}
+[data-theme="dark"] .btn-outline-secondary:hover {
+    background-color: var(--text-muted);
+    color: var(--bg-card);
+}
 </style>
 </head>
 <body>
@@ -495,6 +505,14 @@
             <div id="calendarRecordsContainer" class="row g-3">
                 <!-- Selected day records injected here -->
             </div>
+        </div>
+
+
+        <!-- Footer Citation -->
+        <div class="text-center mt-5 mb-3">
+            <a href="https://law.mnd.gov.tw/Fn/ShowNews.aspx?id=12364&flag=r" target="_blank" class="text-muted small text-decoration-none">
+                <i class="bi bi-info-circle me-1"></i>依據：國軍人員國內出差旅費報支規定
+            </a>
         </div>
 
         <!-- FAB -->
