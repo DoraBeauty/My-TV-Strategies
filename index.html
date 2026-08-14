@@ -442,6 +442,9 @@
                 <button id="exportBtn" class="btn btn-sm btn-outline-success me-2 rounded-pill" style="display: none;">
                     <i class="bi bi-download"></i>
                 </button>
+                <button id="statsNavBtn" class="btn btn-sm btn-outline-info me-2 rounded-pill" style="display: none;">
+                    <i class="bi bi-bar-chart-fill"></i>
+                </button>
                 <button id="themeToggleBtn" class="me-3">
                     <i class="bi bi-moon-stars" id="themeIcon"></i>
                 </button>
@@ -500,6 +503,82 @@
         <div id="auditLogViewWrapper" style="display: none;">
             <div id="auditLogsContainer" class="row g-3">
                 <!-- Audit logs injected by JS -->
+            </div>
+        </div>
+
+        <!-- Stats View Wrapper -->
+        <div id="statsViewWrapper" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button id="backFromStatsBtn" class="btn btn-custom-light rounded-pill px-3 fw-bold">
+                    <i class="bi bi-arrow-left me-1"></i> 返回
+                </button>
+                <h4 class="fw-bold m-0 text-main-custom">金額統計明細</h4>
+            </div>
+
+            <!-- Date Filter -->
+            <div class="card record-card bg-custom-card text-main-custom p-3 mb-4">
+                <div class="row g-2 align-items-end">
+                    <div class="col-5">
+                        <label class="form-label small text-muted mb-1">開始日期</label>
+                        <input type="date" id="statsStartDate" class="form-control form-control-sm bg-custom-light text-main-custom border-0 rounded-3">
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label small text-muted mb-1">結束日期</label>
+                        <input type="date" id="statsEndDate" class="form-control form-control-sm bg-custom-light text-main-custom border-0 rounded-3">
+                    </div>
+                    <div class="col-2">
+                        <button id="filterStatsBtn" class="btn btn-primary btn-sm w-100 rounded-3"><i class="bi bi-search"></i></button>
+                    </div>
+                </div>
+                <div class="text-end mt-2">
+                    <button id="resetStatsFilterBtn" class="btn btn-link btn-sm text-muted text-decoration-none p-0">清除篩選 (全歷史)</button>
+                </div>
+            </div>
+
+            <!-- Overview Cards -->
+            <div class="row g-2 mb-4">
+                <div class="col-6">
+                    <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #e0f7fa, #b2ebf2);">
+                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-calendar-check me-1"></i>出差天數</div>
+                        <h4 class="text-dark fw-bold m-0" id="statDays">0 天</h4>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #fff3e0, #ffe0b2);">
+                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-wallet2 me-1"></i>雜費加總</div>
+                        <h4 class="text-dark fw-bold m-0">$<span id="statAllowance">0</span></h4>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #fce4ec, #f8bbd0);">
+                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-building me-1"></i>住宿申報</div>
+                        <h4 class="text-dark fw-bold m-0">$<span id="statAccommodation">0</span></h4>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #e8eaf6, #c5cae9);">
+                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-train-front me-1"></i>車票/交通</div>
+                        <h4 class="text-dark fw-bold m-0">$<span id="statTransport">0</span></h4>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #f1f8e9, #dcedc8);">
+                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-receipt me-1"></i>其他發票</div>
+                        <h4 class="text-dark fw-bold m-0">$<span id="statOther">0</span></h4>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, var(--brand-primary), #3f51b5);">
+                        <div class="text-white small fw-bold mb-1"><i class="bi bi-cash-stack me-1"></i>總計金額</div>
+                        <h4 class="text-white fw-bold m-0">$<span id="statTotal">0</span></h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Breakdown -->
+            <h5 class="fw-bold text-main-custom mb-3">明細列表</h5>
+            <div id="statsBreakdownContainer" class="d-flex flex-column gap-3">
+                <!-- Breakdown items injected by JS -->
             </div>
         </div>
 
