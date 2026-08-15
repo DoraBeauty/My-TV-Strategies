@@ -460,6 +460,9 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                 <button id="themeToggleBtn" class="me-3">
                     <i class="bi bi-moon-stars" id="themeIcon"></i>
                 </button>
+                <button class="btn btn-sm btn-outline-secondary me-2 rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#rulesModal">
+                    <i class="bi bi-journal-text me-1"></i>規定
+                </button>
                 <button id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background: var(--brand-primary);">登入</button>
                 <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3" style="display: none;">登出</button>
             </div>
@@ -623,17 +626,83 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         </div>
 
 
-        <!-- Footer Citation -->
-        <div class="text-center mt-5 mb-3">
-            <a href="https://law.mnd.gov.tw/Fn/ShowNews.aspx?id=12364&flag=r" target="_blank" class="text-muted small text-decoration-none">
-                <i class="bi bi-info-circle me-1"></i>依據：國軍人員國內出差旅費報支規定
-            </a>
-        </div>
+
 
         <!-- FAB -->
         <button class="fab" data-bs-toggle="modal" data-bs-target="#recordModal" id="fabBtn">
             <i class="bi bi-plus"></i>
         </button>
+    </div>
+
+
+    <!-- Rules Modal -->
+    <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content bg-custom-card border-0 shadow-lg" style="border-radius: 1.5rem;">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold text-main-custom" id="rulesModalLabel">國軍國內出差旅費報支規定重點</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-4 text-main-custom">
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-wallet2 me-2"></i>一、雜費</h6>
+                        <ul class="text-muted small ps-3 mb-0" style="line-height: 1.6;">
+                            <li>每日上限：400 元</li>
+                            <li>實際出差行程未滿 4 小時：按每日數額二分之一報支（200 元）</li>
+                            <li>「實際出差行程」不含提前出發及延後返回所需的路程時間</li>
+                            <li>以「日」為單位計算</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-car-front me-2"></i>二、交通費</h6>
+                        <ul class="text-muted small ps-3 mb-0" style="line-height: 1.6;">
+                            <li>駕駛自用汽車：每公里 3 元</li>
+                            <li>駕駛自用機車：每公里 2 元</li>
+                            <li>不得另行報支油料、過路（橋）、停車等費用</li>
+                            <li>單位專備交通工具、領有免費票或搭乘便車者，不得報支交通費</li>
+                            <li>搭乘飛機、高鐵、有分等之船舶／火車，須檢附票根或購票證明</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-house-door me-2"></i>三、住宿費</h6>
+                        <ul class="text-muted small ps-3 mb-0" style="line-height: 1.6;">
+                            <li>出差地點距離單位所在地 60 公里以上，且有住宿事實者，得報支</li>
+                            <li>每日上限：平日 3,500 元、假日 4,500 元</li>
+                            <li>未達 60 公里者，須於出差派遣單敘明理由並經權責長官核准，且有住宿事實，才可報支</li>
+                            <li>同一地點出差超過一個月：超過一個月未滿二個月部分按八折、二個月以上按七折</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-info-circle me-2"></i>四、其他重要規定</h6>
+                        <ul class="text-muted small ps-3 mb-0" style="line-height: 1.6;">
+                            <li>出差事畢後，應於 15 日內填製出差旅費報告表或旅費證明冊提出申請</li>
+                            <li>部隊移防及參加演習任務，不得視為出差</li>
+                            <li>報支應本誠信原則，就實際支付數額及出差真實性負責</li>
+                            <li>往返行程以不超過一日為原則</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3 p-3 rounded" style="background-color: var(--bg-main); border: 1px solid var(--border-color);">
+                        <h6 class="fw-bold text-danger mb-2"><i class="bi bi-exclamation-triangle me-2"></i>五、注意事項</h6>
+                        <ul class="text-muted small ps-3 mb-0" style="line-height: 1.6;">
+                            <li>本系統雜費為依規定自動估算，實際報支金額仍以單位審核為準</li>
+                            <li>詳細規定請參考國防部最新公告</li>
+                        </ul>
+                    </div>
+
+                    <!-- Regulation Link Moved Here from Footer -->
+                    <div class="text-center mt-4">
+                        <a href="https://law.mnd.gov.tw/Fn/ShowNews.aspx?id=12364&flag=r" target="_blank" class="text-decoration-none small fw-bold">
+                            <i class="bi bi-link-45deg me-1"></i>國防法規資料庫 (依據：國軍人員國內出差旅費報支規定)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Record Modal (Create/Edit) -->
