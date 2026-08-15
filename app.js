@@ -33,7 +33,7 @@ const largeLoginBtn = document.getElementById('largeLoginBtn');
 const guestLoginBtn = document.getElementById('guestLoginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const exportBtn = document.getElementById('exportBtn');
-const unsettledTotalText = document.getElementById('unsettledTotalText');
+const unsettledBadgeBtn = document.getElementById('unsettledBadgeBtn');
 
 // Theme Toggle Logic
 const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -160,7 +160,7 @@ const startGuestMode = () => {
     logoutBtn.style.display = 'inline-block';
     exportBtn.style.display = 'inline-block';
     statsNavBtn.style.display = 'inline-block';
-    unsettledTotalText.style.display = 'inline-block';
+    unsettledBadgeBtn.style.display = 'inline-block';
 
     let mockListeners = [];
     const triggerListeners = () => {
@@ -243,7 +243,7 @@ onAuthStateChanged(auth, (user) => {
         logoutBtn.style.display = 'inline-block';
         exportBtn.style.display = 'inline-block';
         statsNavBtn.style.display = 'inline-block';
-        unsettledTotalText.style.display = 'inline-block';
+        unsettledBadgeBtn.style.display = 'inline-block';
 
         window.firebaseData = {
             db, storage, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, getDocs, deleteObject, currentUser
@@ -258,7 +258,7 @@ onAuthStateChanged(auth, (user) => {
         logoutBtn.style.display = 'none';
         exportBtn.style.display = 'none';
         statsNavBtn.style.display = 'none';
-        unsettledTotalText.style.display = 'none';
+        unsettledBadgeBtn.style.display = 'none';
     }
 });
 
@@ -824,7 +824,14 @@ window.addEventListener('authReady', () => {
             currentRecords.forEach(r => renderRecordCard(r));
         }
 
-        unsettledTotalText.textContent = `未入帳：$${unsettledTotal}`;
+        if (unsettledTotal > 0) {
+            unsettledBadgeBtn.textContent = `未入帳 $${unsettledTotal.toLocaleString()}`;
+            unsettledBadgeBtn.className = 'btn btn-sm btn-danger rounded-pill px-3 me-2 fw-bold shadow-sm';
+        } else {
+            unsettledBadgeBtn.textContent = '$0';
+            unsettledBadgeBtn.className = 'btn btn-sm btn-secondary rounded-pill px-3 me-2 fw-bold shadow-sm opacity-50';
+        }
+
         if (btnCalendar.checked) {
             renderCustomCalendar();
         }
@@ -1635,3 +1642,16 @@ if (searchInput) {
 if (statusFilterSelect) {
     statusFilterSelect.addEventListener('change', renderFilteredRecordsList);
 }
+
+// Click unsettled badge to filter list
+unsettledBadgeBtn.addEventListener('click', () => {
+    // Switch to List View via existing mechanisms
+    document.getElementById('dashboardView').style.display = 'block';
+    btnList.checked = true;
+    updateSegmentSlider();
+    restoreMainViews();
+
+    // Set filter and trigger render
+    statusFilterSelect.value = 'unsettled';
+    renderFilteredRecordsList();
+});
