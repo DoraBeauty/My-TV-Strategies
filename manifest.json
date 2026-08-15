@@ -1,10 +1,10 @@
 {
-  "name": "Steam 限免遊戲追蹤",
-  "short_name": "Steam 限免",
+  "name": "差旅費追蹤",
+  "short_name": "差旅費",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#171d25",
-  "theme_color": "#171d25",
+  "background_color": "#f8f9fa",
+  "theme_color": "#5266e8",
   "icons": [
     {
       "src": "icon.jpg",
