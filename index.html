@@ -641,6 +641,26 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
     </div>
 
 
+    <!-- Settle Date Modal -->
+    <div class="modal fade" id="settleDateModal" tabindex="-1" aria-labelledby="settleDateModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-custom-card border-0 shadow-lg" style="border-radius: 1.5rem;">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold text-main-custom" id="settleDateModalLabel">標記為已入帳</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-4 text-main-custom">
+                    <label for="settleDateInput" class="form-label text-muted small fw-bold">入帳日期</label>
+                    <input type="date" id="settleDateInput" class="form-control ios-input">
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-4 px-4 d-flex gap-2">
+                    <button type="button" class="btn btn-custom-light text-main-custom rounded-pill flex-grow-1 fw-bold" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary rounded-pill flex-grow-1 fw-bold" id="confirmSettleBtn">確認</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Rules Modal -->
     <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">
@@ -726,7 +746,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         <!-- Section 1: Basic Info -->
                         <div class="ios-input-label">基本資訊</div>
                         <div class="ios-input-group">
-                            <input type="text" class="ios-input mb-2" id="tripName" required placeholder="出差名稱 (例如：台中廠檢修)">
+                            <input type="text" class="ios-input mb-2" id="tripName" required placeholder="出差名稱 (例如：五戰區重砲射擊)">
                             <input type="text" class="ios-input mb-2" id="location" required placeholder="出差地點 (例如：台中市)">
                             <input type="text" class="ios-input" id="visitingUnit" placeholder="拜訪單位 (選填)">
                         </div>
@@ -759,6 +779,9 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         <!-- Section 2: Transport & Companions -->
                         <div class="ios-input-label">同行與交通</div>
                         <div class="ios-input-group">
+
+                            <input type="text" class="ios-input mb-3" id="leader" placeholder="帶隊官 (選填)">
+
                             <!-- Multi-input for Companions -->
                             <div class="bg-custom-card border rounded-4 p-3 mb-3 shadow-sm">
                                 <div class="fw-bold small mb-2 text-muted">同行人員 (選填)</div>
