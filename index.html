@@ -130,6 +130,19 @@
             box-shadow: var(--nav-shadow);
         }
 
+        /* Accordion Fixes for Dark Mode */
+        .accordion-button:not(.collapsed) {
+            background-color: var(--bg-custom-light) !important;
+            color: var(--text-main-custom) !important;
+            box-shadow: none;
+        }
+        .accordion-button::after {
+            filter: var(--accordion-icon-filter, none);
+        }
+        [data-theme='dark'] {
+            --accordion-icon-filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
         /* Haptic-like Active States */
         .btn, .record-card, .fab, .delete-receipt-btn, .cal-day-cell {
             transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
@@ -662,6 +675,166 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
     </div>
 
     <!-- Rules Modal -->
+    <!-- Zones Modal -->
+    <div class="modal fade" id="zonesModal" tabindex="-1" aria-labelledby="zonesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content bg-custom-card border-0 shadow-lg" style="border-radius: 1.5rem;">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold text-main-custom" id="zonesModalLabel">國軍作戰區與主要單位參考</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-4 text-main-custom">
+
+                    <div class="accordion" id="zonesAccordion">
+                        <div class="accordion-item bg-transparent border-0 mb-2">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne" style="border: none;">
+                                    第一作戰區（澎湖）
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#zonesAccordion">
+                                <div class="accordion-body text-muted small px-3 py-3">
+                                    <ul class="mb-0" style="line-height: 1.6;">
+                                        <li><strong>平時編制：</strong>陸軍澎湖防衛指揮部（鎮疆部隊）</li>
+                                        <li><strong>防衛區域：</strong>澎湖縣</li>
+                                        <li><strong>主要單位：</strong>機步營、戰車營、混砲營、裝甲騎兵營；第一地區支援指揮部</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item bg-transparent border-0 mb-2">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo" style="border: none;">
+                                    第二作戰區（東部）
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#zonesAccordion">
+                                <div class="accordion-body text-muted small px-3 py-3">
+                                    <ul class="mb-0" style="line-height: 1.6;">
+                                        <li><strong>平時編制：</strong>陸軍花東防衛指揮部（正義部隊）</li>
+                                        <li><strong>防衛區域：</strong>花蓮縣、台東縣</li>
+                                        <li><strong>指揮部：</strong>花蓮縣新城鄉</li>
+                                        <li><strong>主要單位：</strong>台東地區指揮部（鎮東部隊）；機步營、戰車營、混砲營；第二地區支援指揮部</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item bg-transparent border-0 mb-2">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree" style="border: none;">
+                                    第三作戰區（北部）
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#zonesAccordion">
+                                <div class="accordion-body text-muted small px-3 py-3">
+                                    <ul class="mb-0" style="line-height: 1.6;">
+                                        <li><strong>平時編制：</strong>陸軍第六軍團指揮部（前鋒部隊）</li>
+                                        <li><strong>防衛區域：</strong>基隆、台北、新北、桃園、新竹、宜蘭</li>
+                                        <li><strong>指揮部：</strong>桃園市中壢區</li>
+                                        <li><strong>主要單位：</strong>
+                                            <ul>
+                                                <li>關渡地區指揮部（虎嘯）、蘭陽地區指揮部（黃龍）</li>
+                                                <li>裝甲第542旅（迅雷）、裝甲第584旅（登步）</li>
+                                                <li>機步第269旅（雄獅）</li>
+                                                <li>第21砲兵指揮部（金鷹）</li>
+                                                <li>第三地區支援指揮部</li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item bg-transparent border-0 mb-2">
+                            <h2 class="accordion-header" id="headingFour">
+                                <button class="accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour" style="border: none;">
+                                    第四作戰區（南部）
+                                </button>
+                            </h2>
+                            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#zonesAccordion">
+                                <div class="accordion-body text-muted small px-3 py-3">
+                                    <ul class="mb-0" style="line-height: 1.6;">
+                                        <li><strong>平時編制：</strong>陸軍第八軍團指揮部（干城部隊）</li>
+                                        <li><strong>防衛區域：</strong>台南、高雄、屏東</li>
+                                        <li><strong>指揮部：</strong>高雄市旗山區</li>
+                                        <li><strong>主要單位：</strong>
+                                            <ul>
+                                                <li>裝甲第564旅（少康）</li>
+                                                <li>機步第333旅（埔光）</li>
+                                                <li>第43砲兵指揮部（天雷）</li>
+                                                <li>第四地區支援指揮部</li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item bg-transparent border-0 mb-2">
+                            <h2 class="accordion-header" id="headingFive">
+                                <button class="accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive" style="border: none;">
+                                    第五作戰區（中部）
+                                </button>
+                            </h2>
+                            <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#zonesAccordion">
+                                <div class="accordion-body text-muted small px-3 py-3">
+                                    <ul class="mb-0" style="line-height: 1.6;">
+                                        <li><strong>平時編制：</strong>陸軍第十軍團指揮部（崑崙部隊）</li>
+                                        <li><strong>防衛區域：</strong>苗栗、台中、彰化、南投、雲林、嘉義</li>
+                                        <li><strong>指揮部：</strong>台中市新社區</li>
+                                        <li><strong>主要單位：</strong>
+                                            <ul>
+                                                <li>裝甲第586旅（鍾山）</li>
+                                                <li>機步第234旅（長城）</li>
+                                                <li>第58砲兵指揮部（虎鋒）</li>
+                                                <li>第五地區支援指揮部</li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item bg-transparent border-0 mb-2">
+                            <h2 class="accordion-header" id="headingIslands">
+                                <button class="accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseIslands" aria-expanded="false" aria-controls="collapseIslands" style="border: none;">
+                                    外島防衛區
+                                </button>
+                            </h2>
+                            <div id="collapseIslands" class="accordion-collapse collapse" aria-labelledby="headingIslands" data-bs-parent="#zonesAccordion">
+                                <div class="accordion-body text-muted small px-3 py-3">
+                                    <ul class="mb-0" style="line-height: 1.6;">
+                                        <li><strong>金門防衛指揮部（太武部隊）：</strong>金門縣</li>
+                                        <li><strong>馬祖防衛指揮部（雲台部隊）：</strong>連江縣（南竿、北竿、莒光）</li>
+                                        <li><strong>東引地區指揮部（忠義部隊）：</strong>東引鄉</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item bg-transparent border-0 mb-2">
+                            <h2 class="accordion-header" id="headingNote">
+                                <button class="accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNote" aria-expanded="false" aria-controls="collapseNote" style="border: none;">
+                                    補充說明
+                                </button>
+                            </h2>
+                            <div id="collapseNote" class="accordion-collapse collapse" aria-labelledby="headingNote" data-bs-parent="#zonesAccordion">
+                                <div class="accordion-body text-muted small px-3 py-3">
+                                    <ul class="mb-0" style="line-height: 1.6;">
+                                        <li>平時由軍團或防衛指揮部管轄，戰時轉換為作戰區指揮部</li>
+                                        <li>航特部為戰略預備隊，可跨區支援</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content bg-custom-card border-0 shadow-lg" style="border-radius: 1.5rem;">
