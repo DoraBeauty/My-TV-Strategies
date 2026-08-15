@@ -446,22 +446,16 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
     </div>
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand sticky-top">
+        <nav class="navbar navbar-expand sticky-top">
         <div class="container d-flex justify-content-between align-items-center">
             <a class="navbar-brand m-0" href="#"><i class="bi bi-clipboard-check-fill me-2" style="color: var(--brand-primary);"></i>差旅費追蹤</a>
             <div class="d-flex align-items-center">
-                <span id="unsettledTotalText" class="fw-bold me-3" style="display: none; font-size: 0.9rem; color: #ff6b6b;">未入帳：$0</span>
-                <button id="exportBtn" class="btn btn-sm btn-outline-success me-2 rounded-pill" style="display: none;">
-                    <i class="bi bi-download"></i>
-                </button>
-                <button id="statsNavBtn" class="btn btn-sm btn-outline-info me-2 rounded-pill" style="display: none;">
-                    <i class="bi bi-bar-chart-fill"></i>
+                <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill px-3 me-2 fw-bold shadow-sm" style="display: none;">未入帳 $0</button>
+                <button class="btn btn-sm btn-outline-secondary me-2 rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#rulesModal">
+                    <i class="bi bi-journal-text me-1"></i>規定
                 </button>
                 <button id="themeToggleBtn" class="me-3">
                     <i class="bi bi-moon-stars" id="themeIcon"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-secondary me-2 rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#rulesModal">
-                    <i class="bi bi-journal-text me-1"></i>規定
                 </button>
                 <button id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background: var(--brand-primary);">登入</button>
                 <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3" style="display: none;">登出</button>
@@ -510,17 +504,29 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         </div>
 
 
-        <!-- List View Controls (Search & Filter) -->
-        <div id="listControlsWrapper" class="mb-3" style="display: flex; gap: 10px;">
-            <div class="input-group input-group-sm flex-grow-1 shadow-sm rounded-pill overflow-hidden bg-custom-card border-0">
-                <span class="input-group-text bg-transparent border-0 text-muted"><i class="bi bi-search"></i></span>
-                <input type="text" id="searchInput" class="form-control border-0 bg-transparent text-main-custom" placeholder="搜尋出差名稱、地點、拜訪單位...">
+                <!-- List View Controls (Search & Filter) -->
+        <div id="listControlsWrapper" class="mb-3">
+            <div class="row g-2">
+                <div class="col-12 col-md-6">
+                    <div class="input-group input-group-sm w-100 shadow-sm rounded-pill overflow-hidden bg-custom-card border-0 h-100">
+                        <span class="input-group-text bg-transparent border-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control border-0 bg-transparent text-main-custom" placeholder="搜尋出差名稱、地點、拜訪單位...">
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 d-flex align-items-center gap-2">
+                    <select id="statusFilterSelect" class="form-select form-select-sm shadow-sm rounded-pill bg-custom-card text-main-custom border-0 flex-grow-1" style="min-width: 100px;">
+                        <option value="all">全部狀態</option>
+                        <option value="unsettled">未入帳</option>
+                        <option value="settled">已入帳</option>
+                    </select>
+                    <button id="exportBtn" class="btn btn-sm btn-outline-success rounded-pill shadow-sm" style="display: none;">
+                        <i class="bi bi-download"></i> 匯出
+                    </button>
+                    <button id="statsNavBtn" class="btn btn-sm btn-outline-info rounded-pill shadow-sm" style="display: none;">
+                        <i class="bi bi-bar-chart-fill"></i> 統計
+                    </button>
+                </div>
             </div>
-            <select id="statusFilterSelect" class="form-select form-select-sm shadow-sm rounded-pill bg-custom-card text-main-custom border-0" style="width: auto; min-width: 100px;">
-                <option value="all">全部狀態</option>
-                <option value="unsettled">未入帳</option>
-                <option value="settled">已入帳</option>
-            </select>
         </div>
 
         <!-- List View -->
