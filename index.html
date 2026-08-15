@@ -308,23 +308,41 @@
         }
 
         /* Navbar Mobile Optimizations */
+        .navbar-actions {
+            gap: 0.75rem; /* Desktop gap */
+        }
         @media (max-width: 767.98px) {
+            .navbar-brand span {
+                display: none; /* Hide brand text on very small screens to make room if needed */
+            }
+            .navbar-actions {
+                gap: 0.4rem; /* Mobile gap */
+            }
             .nav-action-text {
                 display: none;
             }
-            .nav-action-btn {
-                padding-left: 0.5rem !important;
-                padding-right: 0.5rem !important;
-                margin-right: 0.25rem !important;
+            .mobile-icon-btn {
+                width: 36px !important;
+                height: 36px !important;
+                padding: 0 !important;
+                border-radius: 50% !important;
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+            }
+            .mobile-icon-btn i {
+                margin: 0 !important;
             }
             #unsettledBadgeBtn {
-                padding-left: 0.5rem !important;
-                padding-right: 0.5rem !important;
-                margin-right: 0.25rem !important;
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+                font-size: 0.75rem;
             }
             #themeToggleBtn {
-                margin-right: 0.25rem !important;
-                padding: 4px;
+                padding: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             .navbar .container {
                 padding-left: 0.5rem;
@@ -495,20 +513,20 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
     <!-- Navbar -->
     <nav class="navbar navbar-expand sticky-top">
         <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand m-0" href="#"><i class="bi bi-clipboard-check-fill me-2" style="color: var(--brand-primary);"></i>差旅費追蹤</a>
-            <div class="d-flex align-items-center">
-                <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill px-3 me-2 fw-bold shadow-sm" style="display: none;">未入帳 $0</button>
-                <button class="btn btn-sm btn-outline-secondary me-2 rounded-pill px-3 nav-action-btn" data-bs-toggle="modal" data-bs-target="#zonesModal" title="戰區">
+            <a class="navbar-brand m-0" href="#"><i class="bi bi-clipboard-check-fill me-2" style="color: var(--brand-primary);"></i><span>差旅費追蹤</span></a>
+            <div class="d-flex align-items-center navbar-actions">
+                <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm" style="display: none;">未入帳 $0</button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 mobile-icon-btn" data-bs-toggle="modal" data-bs-target="#zonesModal" title="戰區">
                     <i class="bi bi-map"></i><span class="nav-action-text ms-1">戰區</span>
                 </button>
-                <button class="btn btn-sm btn-outline-secondary me-2 rounded-pill px-3 nav-action-btn" data-bs-toggle="modal" data-bs-target="#rulesModal" title="規定">
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 mobile-icon-btn" data-bs-toggle="modal" data-bs-target="#rulesModal" title="規定">
                     <i class="bi bi-journal-text"></i><span class="nav-action-text ms-1">規定</span>
                 </button>
-                <button id="themeToggleBtn" class="me-3">
+                <button id="themeToggleBtn" class="border-0 bg-transparent text-main-custom p-1">
                     <i class="bi bi-moon-stars" id="themeIcon"></i>
                 </button>
-                <button id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold nav-action-btn" style="background: var(--brand-primary);">登入</button>
-                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 nav-action-btn" style="display: none;" title="登出">
+                <button id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background: var(--brand-primary);">登入</button>
+                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mobile-icon-btn" style="display: none;" title="登出">
                     <i class="bi bi-box-arrow-right"></i><span class="nav-action-text ms-1">登出</span>
                 </button>
             </div>
