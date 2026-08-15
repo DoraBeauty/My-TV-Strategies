@@ -16,7 +16,6 @@
     <style>
         :root {
             --color-scheme: light;
-            /* Light Mode Variables (Reference UI style) */
             --bg-main: #f8f9fa;
             --bg-hover: #e9ecef;
             --bg-card: #ffffff;
@@ -24,7 +23,7 @@
             --text-muted: #868e96;
             --border-color: rgba(0, 0, 0, 0.08);
 
-            --brand-primary: #5266e8;  /* Blue from the "13" circle */
+            --brand-primary: #5266e8;
             --brand-primary-light: rgba(82, 102, 232, 0.15);
             --brand-green: #20c997;
 
@@ -40,7 +39,6 @@
 
         [data-theme="dark"] {
             --color-scheme: dark;
-            /* Dark Mode Variables */
             --bg-main: #121212;
             --bg-hover: #2b2b2b;
             --bg-card: #1e1e1e;
@@ -64,6 +62,7 @@
 
         html, body {
             overflow-x: hidden;
+            max-width: 100vw;
         }
 
         body {
@@ -81,26 +80,98 @@
             -webkit-backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border-color);
             transition: background-color 0.3s ease, border-color 0.3s ease;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
         }
         .navbar-brand {
             color: var(--text-main) !important;
             font-weight: 600;
             transition: color 0.3s ease;
+            font-size: 1.05rem;
+            white-space: nowrap;
         }
 
-        /* Theme Toggle Button */
+        /* Navbar actions - clean iPhone layout */
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .nav-icon-btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: var(--text-main);
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+            transition: background-color 0.2s;
+        }
+        .nav-icon-btn:active,
+        .nav-icon-btn:hover {
+            background-color: var(--bg-hover);
+        }
+
+        #unsettledBadgeBtn {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            line-height: 1.2;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
         #themeToggleBtn {
             background: none;
             border: none;
             color: var(--text-main);
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             transition: background-color 0.2s, color 0.3s;
+            flex-shrink: 0;
         }
         #themeToggleBtn:hover {
-            background-color: var(--border-color);
+            background-color: var(--bg-hover);
+        }
+
+        /* Desktop: show text labels */
+        .nav-action-text {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .navbar-actions {
+                gap: 8px;
+            }
+            .nav-icon-btn {
+                width: auto;
+                height: auto;
+                padding: 6px 12px;
+                border-radius: 999px;
+                border: 1px solid var(--border-color);
+                font-size: 0.875rem;
+                gap: 4px;
+            }
+            .nav-action-text {
+                display: inline;
+            }
+            #themeToggleBtn {
+                width: 40px;
+                height: 40px;
+            }
         }
 
         /* Modern Segmented Navigation */
@@ -139,7 +210,6 @@
             box-shadow: var(--nav-shadow);
         }
 
-        /* Accordion Fixes for Dark Mode */
         .accordion-button:not(.collapsed) {
             background-color: var(--bg-custom-light) !important;
             color: var(--text-main-custom) !important;
@@ -152,7 +222,6 @@
             --accordion-icon-filter: invert(1) grayscale(100%) brightness(200%);
         }
 
-        /* Haptic-like Active States */
         .btn, .record-card, .fab, .delete-receipt-btn, .cal-day-cell {
             transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
         }
@@ -160,7 +229,6 @@
             transform: scale(0.96) !important;
         }
 
-        /* Cards */
         .record-card {
             border: none;
             border-radius: 16px;
@@ -172,7 +240,6 @@
             background: var(--nav-bg);
         }
 
-        /* Form Inputs (Updated for Clarity) */
         .ios-input-group {
             margin-bottom: 1.25rem;
         }
@@ -189,7 +256,7 @@
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 12px 16px;
-            font-size: 16px; /* Prevents iOS zoom */
+            font-size: 16px;
             width: 100%;
             transition: border-color 0.2s, box-shadow 0.2s;
             display: block;
@@ -206,7 +273,6 @@
             background: transparent;
         }
 
-        /* Smooth slide/fade for dynamic sections */
         .slide-section {
             overflow: hidden;
             max-height: 0;
@@ -219,7 +285,6 @@
             margin-top: 0.5rem;
         }
 
-        /* FAB */
         .fab {
             position: fixed;
             bottom: 30px;
@@ -238,7 +303,6 @@
             color: white;
         }
 
-        /* Receipt Item */
         .receipt-item {
             border: 1px solid var(--border-color);
             background: var(--bg-card);
@@ -283,7 +347,6 @@
             z-index: 10;
         }
 
-        /* Modal styling */
         .modal-content {
             border-radius: 20px;
             border: none;
@@ -307,50 +370,6 @@
             display: none;
         }
 
-        /* Navbar Mobile Optimizations */
-        .navbar-actions {
-            gap: 0.75rem; /* Desktop gap */
-        }
-        @media (max-width: 767.98px) {
-            .navbar-brand span {
-                display: none; /* Hide brand text on very small screens to make room if needed */
-            }
-            .navbar-actions {
-                gap: 0.4rem; /* Mobile gap */
-            }
-            .nav-action-text {
-                display: none;
-            }
-            .mobile-icon-btn {
-                width: 36px !important;
-                height: 36px !important;
-                padding: 0 !important;
-                border-radius: 50% !important;
-                display: flex !important;
-                align-items: center;
-                justify-content: center;
-            }
-            .mobile-icon-btn i {
-                margin: 0 !important;
-            }
-            #unsettledBadgeBtn {
-                padding-left: 0.75rem !important;
-                padding-right: 0.75rem !important;
-                font-size: 0.75rem;
-            }
-            #themeToggleBtn {
-                padding: 6px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .navbar .container {
-                padding-left: 0.5rem;
-                padding-right: 0.5rem;
-            }
-        }
-
-/* Custom Calendar Styles */
 .custom-calendar {
     user-select: none;
     font-family: inherit;
@@ -427,7 +446,6 @@
     color: white !important;
 }
 
-/* Continuous Trip Background Layer */
 .calendar-day-wrapper {
     position: relative;
     display: flex;
@@ -459,12 +477,11 @@
     border-bottom-right-radius: 15px;
 }
 
-/* Status colors for trip highlights */
 .trip-highlight.settled {
-    background-color: rgba(40, 167, 69, 0.2) !important; /* light green for settled */
+    background-color: rgba(40, 167, 69, 0.2) !important;
 }
 .trip-highlight.unsettled {
-    background-color: var(--calendar-pill-bg) !important; /* default brand color for unsettled */
+    background-color: var(--calendar-pill-bg) !important;
 }
 [data-theme="dark"] .trip-highlight.settled {
     background-color: rgba(40, 167, 69, 0.3) !important;
@@ -474,13 +491,11 @@
     width: 100%;
 }
 
-/* Adjust list container margins for details panel to look cohesive */
 #calendarRecordsContainer .record-card {
     border: none !important;
     box-shadow: 0 4px 16px rgba(0,0,0,0.05) !important;
     margin-bottom: 0 !important;
 }
-
 
 </style>
 
@@ -510,24 +525,27 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding: 0.75rem 1rem;"></button>
     </div>
 
-    <!-- Navbar -->
+    <!-- Navbar - iPhone optimized -->
     <nav class="navbar navbar-expand sticky-top">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand m-0" href="#"><i class="bi bi-clipboard-check-fill me-2" style="color: var(--brand-primary);"></i><span>差旅費追蹤</span></a>
-            <div class="d-flex align-items-center navbar-actions">
-                <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm" style="display: none;">未入帳 $0</button>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 mobile-icon-btn" data-bs-toggle="modal" data-bs-target="#zonesModal" title="戰區">
-                    <i class="bi bi-map"></i><span class="nav-action-text ms-1">戰區</span>
+        <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
+            <a class="navbar-brand m-0 d-flex align-items-center" href="#">
+                <i class="bi bi-clipboard-check-fill me-1" style="color: var(--brand-primary);"></i>
+                <span>差旅費</span>
+            </a>
+            <div class="navbar-actions">
+                <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill fw-bold shadow-sm" style="display: none;">$0</button>
+                <button type="button" class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#zonesModal" title="戰區" aria-label="戰區">
+                    <i class="bi bi-map"></i><span class="nav-action-text">戰區</span>
                 </button>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 mobile-icon-btn" data-bs-toggle="modal" data-bs-target="#rulesModal" title="規定">
-                    <i class="bi bi-journal-text"></i><span class="nav-action-text ms-1">規定</span>
+                <button type="button" class="nav-icon-btn" data-bs-toggle="modal" data-bs-target="#rulesModal" title="規定" aria-label="規定">
+                    <i class="bi bi-journal-text"></i><span class="nav-action-text">規定</span>
                 </button>
-                <button id="themeToggleBtn" class="border-0 bg-transparent text-main-custom p-1">
+                <button type="button" id="themeToggleBtn" title="切換主題" aria-label="切換主題">
                     <i class="bi bi-moon-stars" id="themeIcon"></i>
                 </button>
-                <button id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background: var(--brand-primary);">登入</button>
-                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mobile-icon-btn" style="display: none;" title="登出">
-                    <i class="bi bi-box-arrow-right"></i><span class="nav-action-text ms-1">登出</span>
+                <button type="button" id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background: var(--brand-primary);">登入</button>
+                <button type="button" id="logoutBtn" class="nav-icon-btn" style="display: none;" title="登出" aria-label="登出">
+                    <i class="bi bi-box-arrow-right"></i><span class="nav-action-text">登出</span>
                 </button>
             </div>
         </div>
@@ -731,7 +749,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         </div>
     </div>
 
-    <!-- Rules Modal -->
     <!-- Zones Modal -->
     <div class="modal fade" id="zonesModal" tabindex="-1" aria-labelledby="zonesModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">
@@ -950,7 +967,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         </ul>
                     </div>
 
-                    <!-- Regulation Link Moved Here from Footer -->
                     <div class="text-center mt-4">
                         <a href="https://law.mnd.gov.tw/Fn/ShowNews.aspx?id=12364&flag=r" target="_blank" class="text-decoration-none small fw-bold">
                             <i class="bi bi-link-45deg me-1"></i>國防法規資料庫 (依據：國軍人員國內出差旅費報支規定)
@@ -971,9 +987,8 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                 </div>
                 <div class="modal-body pt-3 pb-4">
                     <form id="recordForm">
-                        <input type="hidden" id="recordId"> <!-- For editing -->
+                        <input type="hidden" id="recordId">
 
-                        <!-- Section 1: Basic Info -->
                         <div class="ios-input-label">基本資訊</div>
                         <div class="ios-input-group">
                             <input type="text" class="ios-input mb-2" id="tripName" required placeholder="出差名稱 (例如：五戰區重砲射擊)">
@@ -1006,13 +1021,11 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </div>
                         </div>
 
-                        <!-- Section 2: Transport & Companions -->
                         <div class="ios-input-label">同行與交通</div>
                         <div class="ios-input-group">
 
                             <input type="text" class="ios-input mb-3" id="leader" placeholder="帶隊官 (選填)">
 
-                            <!-- Multi-input for Companions -->
                             <div class="bg-custom-card border rounded-4 p-3 mb-3 shadow-sm">
                                 <div class="fw-bold small mb-2 text-muted">同行人員 (選填)</div>
                                 <div id="companionsContainer">
@@ -1032,12 +1045,10 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                 <option value="public">大眾運輸 / 其他</option>
                             </select>
 
-                            <!-- Dynamic Driver Select (shows if car/moto) -->
                             <div id="driverSection" class="slide-section bg-custom-card border rounded-4 p-3 shadow-sm">
                                 <label class="fw-bold small text-muted mb-2">駕駛人</label>
                                 <select class="ios-input text-primary fw-bold" id="driverSelect">
                                     <option value="self">自己 (計算里程費)</option>
-                                    <!-- Companions will be injected here -->
                                 </select>
                             </div>
 
@@ -1050,18 +1061,15 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </div>
                         </div>
 
-                        <!-- Section 3: Extra Receipts -->
                         <div class="ios-input-label d-flex justify-content-between align-items-end mt-4 mb-2">
                             <span>發票與額外花費</span>
                         </div>
                         <div id="receiptsContainer">
-                            <!-- Dynamic receipts go here -->
                         </div>
                         <button type="button" class="btn btn-outline-primary bg-custom-card w-100 rounded-pill py-2 fw-bold shadow-sm" id="addReceiptBtn">
                             <i class="bi bi-plus-lg me-1"></i>新增一筆發票
                         </button>
 
-                        <!-- Total -->
                         <div class="card border-0 bg-primary text-white mt-4 rounded-4 shadow-sm" style="transform: none !important;">
                             <div class="card-body d-flex justify-content-between align-items-center py-3 px-4">
                                 <h5 class="mb-0 fw-bold">總金額</h5>
