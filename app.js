@@ -707,6 +707,7 @@ saveRecordBtn.addEventListener('click', async () => {
         const startVal = startTimeInput.value;
         const endVal = endTimeInput.value;
         const allowanceVal = parseInt(allowanceInput.value);
+        const leaderVal = document.getElementById('leader').value.trim();
         const companions = getCompanionsList().join(', '); // Join array into string for saving
         const transportTypeVal = transportTypeSelect.value;
         const driver = driverSelect.value;
@@ -753,6 +754,7 @@ saveRecordBtn.addEventListener('click', async () => {
             startTime: startVal,
             endTime: endVal,
             allowance: allowanceVal,
+            leader: leaderVal,
             companions,
             transportType: transportTypeVal,
             driver,
@@ -852,8 +854,11 @@ const renderRecordCard = (record, container = recordsContainer) => {
     const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
 
     let detailsHtml = '';
+    if (record.leader) {
+        detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
+    }
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
-        detailsHtml = `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
+        detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
     }
 
     let receiptsHtml = '';
@@ -869,7 +874,22 @@ const renderRecordCard = (record, container = recordsContainer) => {
         receiptsHtml += `</div>`;
     }
 
-    let statusHtml = record.isSettled ? '<span class="badge bg-success rounded-pill px-2">已入帳</span>' : '';
+    let statusHtml = '';
+    if (record.isSettled) {
+        let settledStr = '已入帳';
+        if (record.settledAt) {
+            // Check if it's a date string or timestamp, format to YYYY/MM/DD
+            const d = new Date(record.settledAt);
+            if (!isNaN(d.getTime())) {
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                settledStr = `已入帳於 ${yyyy}/${mm}/${dd}`;
+            }
+        }
+        statusHtml = `<span class="badge bg-success rounded-pill px-2">${settledStr}</span>`;
+    }
+
     let cardClass = record.isSettled ? 'card record-card status-settled bg-custom-card text-main-custom' : 'card record-card bg-custom-card text-main-custom';
 
     // settled logic
@@ -918,29 +938,79 @@ const renderRecordCard = (record, container = recordsContainer) => {
     container.appendChild(col);
 };
 
+// Handle Settle Date Confirmation
+document.getElementById('confirmSettleBtn').addEventListener('click', async () => {
+    if (!pendingSettleDocId) return;
+
+    const settleDateStr = document.getElementById('settleDateInput').value;
+    if (!settleDateStr) {
+        alert("請選擇入帳日期");
+        return;
+    }
+
+    const { db, doc, updateDoc } = window.firebaseData;
+    const confirmBtn = document.getElementById('confirmSettleBtn');
+
+    try {
+        confirmBtn.disabled = true;
+        // Parse date string into full ISO string to match DB format
+        const settleDateObj = new Date(settleDateStr);
+        await updateDoc(doc(db, 'records', pendingSettleDocId), {
+            isSettled: true,
+            settledAt: settleDateObj.toISOString()
+        });
+
+        const record = currentRecords.find(r => r.id === pendingSettleDocId);
+        if (record) {
+            logAction('settle', record.tripName, { settledDate: settleDateStr.replace(/-/g, '/') });
+        }
+
+        settleDateModal.hide();
+    } catch (error) {
+        alert("更新狀態失敗：" + error.message);
+    } finally {
+        confirmBtn.disabled = false;
+        pendingSettleDocId = null;
+    }
+});
+
 // Handle Settle/Undo Toggle
+let pendingSettleDocId = null;
+const settleDateModal = new bootstrap.Modal(document.getElementById('settleDateModal'));
+
 document.getElementById('dashboardView').addEventListener('click', async (e) => {
     const settleBtn = e.target.closest('.toggle-settle-btn');
     if (settleBtn) {
         const docId = settleBtn.dataset.id;
         const action = settleBtn.dataset.action;
-        const { db, doc, updateDoc } = window.firebaseData;
-        try {
-            settleBtn.disabled = true;
-            await updateDoc(doc(db, 'records', docId), {
-                isSettled: action === 'settle',
-                settledAt: action === 'settle' ? new Date().toISOString() : null
-            });
 
-            // Log settle/undo status change
-            const record = currentRecords.find(r => r.id === docId);
-            if (record) {
-                logAction(action === 'settle' ? 'settle' : 'unsettle', record.tripName);
+        if (action === 'settle') {
+            // Open modal to pick date instead of settling immediately
+            pendingSettleDocId = docId;
+            // Use local date string instead of strict UTC to prevent off-by-one errors in Taiwan timezone
+            const now = new Date();
+            const offset = now.getTimezoneOffset() * 60000;
+            const localDateStr = new Date(now.getTime() - offset).toISOString().split('T')[0];
+            document.getElementById('settleDateInput').value = localDateStr;
+            settleDateModal.show();
+        } else if (action === 'undo') {
+            // Undo immediately
+            const { db, doc, updateDoc } = window.firebaseData;
+            try {
+                settleBtn.disabled = true;
+                await updateDoc(doc(db, 'records', docId), {
+                    isSettled: false,
+                    settledAt: null
+                });
+
+                const record = currentRecords.find(r => r.id === docId);
+                if (record) {
+                    logAction('unsettle', record.tripName);
+                }
+            } catch (error) {
+                alert("更新狀態失敗：" + error.message);
+                settleBtn.disabled = false;
             }
-
-        } catch (error) {
-            alert("更新狀態失敗：" + error.message);
-            settleBtn.disabled = false;
         }
         return;
     }
@@ -1018,6 +1088,7 @@ const openEditModal = (record) => {
     document.getElementById('visitingUnit').value = record.visitingUnit || '';
     startTimeInput.value = record.startTime || '';
     endTimeInput.value = record.endTime || '';
+    document.getElementById('leader').value = record.leader || '';
 
     // Clear and populate companions
     companionsContainer.innerHTML = '';
@@ -1127,7 +1198,7 @@ const renderCalendarList = () => {
 exportBtn.addEventListener('click', () => {
     if (!currentRecords || currentRecords.length === 0) return alert('沒有可匯出的紀錄。');
 
-    const headers = ['出差名稱', '地點', '拜訪單位', '同行', '開始時間', '結束時間', '雜費', '交通方式', '駕駛', '里程數', '交通費', '發票總計', '總計金額', '狀態'];
+    const headers = ['出差名稱', '地點', '拜訪單位', '帶隊官', '同行', '開始時間', '結束時間', '雜費', '交通方式', '駕駛', '里程數', '交通費', '發票總計', '總計金額', '狀態'];
 
     const rows = currentRecords.map(r => {
         const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
@@ -1138,6 +1209,7 @@ exportBtn.addEventListener('click', () => {
             `"${(r.tripName || '').replace(/"/g, '""')}"`,
             `"${(r.location || '').replace(/"/g, '""')}"`,
             `"${(r.visitingUnit || '').replace(/"/g, '""')}"`,
+            `"${(r.leader || '').replace(/"/g, '""')}"`,
             `"${(r.companions || '').replace(/"/g, '""')}"`,
             r.startTime.replace('T', ' '),
             r.endTime.replace('T', ' '),
@@ -1309,7 +1381,7 @@ function createCalendarDay(year, month, day, isOtherMonth) {
 // --- Global Audit Log Logic ---
 let auditLogs = [];
 
-const logAction = async (actionType, tripName) => {
+const logAction = async (actionType, tripName, details = null) => {
     const { db, collection, addDoc, serverTimestamp, currentUser } = window.firebaseData;
     if (!currentUser || !db) return;
 
@@ -1320,6 +1392,9 @@ const logAction = async (actionType, tripName) => {
             tripName: tripName || '未命名行程',
             createdAt: serverTimestamp ? serverTimestamp() : new Date().toISOString()
         };
+        if (details) {
+            logData.details = details;
+        }
 
         if (db === 'mock_db') {
             // Guest mode: save to local storage
@@ -1409,6 +1484,9 @@ const renderAuditLogs = () => {
                 break;
             case 'settle':
                 actionStr = '標記為已入帳';
+                if (log.details && log.details.settledDate) {
+                    actionStr += ` (入帳日期為 ${log.details.settledDate})`;
+                }
                 iconHtml = '<i class="bi bi-check-circle-fill text-success"></i>';
                 colorClass = 'text-success';
                 break;
