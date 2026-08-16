@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>個人差旅費追蹤</title>
-
-    <!-- PWA & iOS Icons -->
-    <link rel="apple-touch-icon" href="icon.jpg">
-    <link rel="icon" href="icon.jpg">
-
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -62,11 +57,8 @@
             --calendar-holiday: rgba(255, 255, 255, 0.1);
         }
 
-        html, body {
-            overflow-x: hidden;
-        }
-
         body {
+            overflow-x: hidden;
             background-color: var(--bg-main);
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
             color: var(--text-main);
@@ -310,49 +302,6 @@
             display: none;
         }
 
-        /* Navbar Mobile Optimizations */
-        .navbar-actions {
-            gap: 0.75rem; /* Desktop gap */
-        }
-        @media (max-width: 767.98px) {
-            .navbar-brand span {
-                display: none; /* Hide brand text on very small screens to make room if needed */
-            }
-            .navbar-actions {
-                gap: 0.4rem; /* Mobile gap */
-            }
-            .nav-action-text {
-                display: none;
-            }
-            .mobile-icon-btn {
-                width: 36px !important;
-                height: 36px !important;
-                padding: 0 !important;
-                border-radius: 50% !important;
-                display: flex !important;
-                align-items: center;
-                justify-content: center;
-            }
-            .mobile-icon-btn i {
-                margin: 0 !important;
-            }
-            #unsettledBadgeBtn {
-                padding-left: 0.75rem !important;
-                padding-right: 0.75rem !important;
-                font-size: 0.75rem;
-            }
-            #themeToggleBtn {
-                padding: 6px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .navbar .container {
-                padding-left: 0.5rem;
-                padding-right: 0.5rem;
-            }
-        }
-
 /* Custom Calendar Styles */
 .custom-calendar {
     user-select: none;
@@ -485,6 +434,7 @@
 }
 
 
+
 </style>
 
 <style>
@@ -501,7 +451,32 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
     background-color: var(--text-muted);
     color: var(--bg-card);
 }
+        /* Mobile Navbar Adjustments */
+        @media (max-width: 767.98px) {
+            .nav-text {
+                display: none;
+            }
+            .nav-icon-btn {
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+                width: 32px;
+                height: 32px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50% !important;
+            }
+            .nav-icon-btn i {
+                margin: 0 !important;
+            }
+            .navbar-actions {
+                gap: 0.25rem !important;
+            }
+        }
 </style>
+
+    <link rel="apple-touch-icon" href="icon.jpg">
+    <link rel="icon" href="icon.jpg">
 </head>
 <body>
 
@@ -514,23 +489,23 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
     </div>
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand sticky-top">
+        <nav class="navbar navbar-expand sticky-top">
         <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand m-0" href="#"><i class="bi bi-clipboard-check-fill me-2" style="color: var(--brand-primary);"></i><span>差旅費追蹤</span></a>
-            <div class="d-flex align-items-center navbar-actions">
+            <a class="navbar-brand m-0" href="#"><i class="bi bi-clipboard-check-fill me-2" style="color: var(--brand-primary);"></i>差旅費追蹤</a>
+            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end navbar-actions">
                 <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm" style="display: none;">未入帳 $0</button>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 mobile-icon-btn" data-bs-toggle="modal" data-bs-target="#zonesModal" title="戰區">
-                    <i class="bi bi-map"></i><span class="nav-action-text ms-1">戰區</span>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 nav-icon-btn" data-bs-toggle="modal" data-bs-target="#zonesModal" title="戰區">
+                    <i class="bi bi-map"></i><span class="nav-text ms-1">戰區</span>
                 </button>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 mobile-icon-btn" data-bs-toggle="modal" data-bs-target="#rulesModal" title="規定">
-                    <i class="bi bi-journal-text"></i><span class="nav-action-text ms-1">規定</span>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 nav-icon-btn" data-bs-toggle="modal" data-bs-target="#rulesModal" title="規定">
+                    <i class="bi bi-journal-text"></i><span class="nav-text ms-1">規定</span>
                 </button>
-                <button id="themeToggleBtn" class="border-0 bg-transparent text-main-custom p-1">
+                <button id="themeToggleBtn" class="mx-1" title="切換深淺色">
                     <i class="bi bi-moon-stars" id="themeIcon"></i>
                 </button>
                 <button id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background: var(--brand-primary);">登入</button>
-                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mobile-icon-btn" style="display: none;" title="登出">
-                    <i class="bi bi-box-arrow-right"></i><span class="nav-action-text ms-1">登出</span>
+                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 nav-icon-btn" style="display: none;" title="登出">
+                    <i class="bi bi-box-arrow-right"></i><span class="nav-text ms-1">登出</span>
                 </button>
             </div>
         </div>
