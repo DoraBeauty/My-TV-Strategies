@@ -94,6 +94,15 @@ function updateSegmentSlider() {
 // Run initially
 updateSegmentSlider();
 
+
+// Helper: Promise Timeout
+const withTimeout = (promise, ms, errorMessage = '操作逾時，請檢查網路狀態') => {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(errorMessage)), ms))
+    ]);
+};
+
 // Form Elements
 const form = document.getElementById('recordForm');
 const recordIdInput = document.getElementById('recordId');
@@ -721,6 +730,12 @@ saveRecordBtn.addEventListener('click', async () => {
         return;
     }
 
+    // Explicit auth check: must be a guest, or a logged in google user
+    if (!currentUser || (!currentUser.isGuest && !currentUser.uid)) {
+        alert('尚未登入，請先使用 Google 登入後再儲存！');
+        return;
+    }
+
     if (!window.firebaseData) {
         alert('系統尚未就緒，請重新整理後再試');
         return;
@@ -768,7 +783,7 @@ saveRecordBtn.addEventListener('click', async () => {
                 const file = fileInput.files[0];
                 const filename = `receipts/${currentUser.uid}/${Date.now()}_${file.name}`;
                 const storageRef = ref(storage, filename);
-                await uploadBytes(storageRef, file);
+                await withTimeout(uploadBytes(storageRef, file), 15000, '圖片上傳逾時，請檢查網路狀態或 Firebase Storage 規則');
                 url = await getDownloadURL(storageRef);
                 path = filename;
             }
@@ -799,13 +814,13 @@ saveRecordBtn.addEventListener('click', async () => {
         if (isEdit) {
             recordData.updatedAt = serverTimestamp();
             const docRef = doc(db, 'records', recordIdInput.value);
-            await updateDoc(docRef, recordData);
+            await withTimeout(updateDoc(docRef, recordData), 15000, '更新紀錄逾時，請檢查網路狀態或 Firestore 規則');
             logAction('update', tripName);
         } else {
             recordData.isSettled = false;
             recordData.settledAt = null;
             recordData.createdAt = serverTimestamp();
-            await addDoc(collection(db, 'records'), recordData);
+            await withTimeout(addDoc(collection(db, 'records'), recordData), 15000, '新增紀錄逾時，請檢查網路狀態或 Firestore 規則');
             logAction('create', tripName);
         }
 
@@ -816,8 +831,18 @@ saveRecordBtn.addEventListener('click', async () => {
         }
 
     } catch (error) {
-        console.error("Save error:", error);
-        alert(`儲存失敗：\n${error.message}\n\n若為權限錯誤，請確認您已登入，或 Firebase 規則是否正確設定。`);
+        console.error("Save error:", error.code, error.message, error);
+
+        let errorMsg = `儲存失敗：\n${error.message}`;
+        if (error.code === 'permission-denied' || (error.message && error.message.includes('permission'))) {
+            errorMsg = "Firebase 權限不足，請到 Console 設定 Firestore / Storage 規則。\n詳細：" + error.message;
+        } else if (error.message && error.message.includes('逾時')) {
+            errorMsg = error.message;
+        } else if (error.code === 'unavailable' || error.message.includes('network')) {
+            errorMsg = "網路連線異常，請檢查您的網路狀態。";
+        }
+
+        alert(errorMsg);
     } finally {
         saveRecordBtn.disabled = false;
         saveSpinner.classList.add('d-none');

@@ -28,3 +28,37 @@
 *   **UI Framework**: Bootstrap 5, Bootstrap Icons
 *   **Backend / Database**: Firebase (Firestore, Storage, Authentication)
 *   **Architecture**: Serverless SPA (Single Page Application) with Local Storage mock fallback.
+
+### Firebase Rules
+
+```javascript
+// Firestore Rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /records/{id} {
+      allow create: if request.auth != null
+                   && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                   && resource.data.userId == request.auth.uid;
+    }
+    match /auditLogs/{id} {
+      allow create: if request.auth != null
+                   && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null
+                   && resource.data.userId == request.auth.uid;
+    }
+  }
+}
+
+// Storage Rules
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /receipts/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null
+                        && request.auth.uid == userId;
+    }
+  }
+}
+```
