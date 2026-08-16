@@ -207,6 +207,18 @@ const startGuestMode = () => {
             triggerListeners();
         },
         query: () => 'mock_query', where: () => null, orderBy: () => null,
+        getDocs: async (q) => {
+            if (q === 'mock_audit_query') {
+                const raw = localStorage.getItem('guest_audit_logs');
+                const logs = raw ? JSON.parse(raw) : [];
+                return {
+                    forEach: (cb) => logs.forEach(r => cb({ id: r.id, data: () => r })),
+                    empty: logs.length === 0,
+                    size: logs.length
+                };
+            }
+            return { forEach: () => {}, empty: true, size: 0 };
+        },
         onSnapshot: (q, cb, errCb) => {
             mockListeners.push(cb);
             triggerListeners();
@@ -709,11 +721,16 @@ saveRecordBtn.addEventListener('click', async () => {
         return;
     }
 
-    const { db, storage, collection, doc, addDoc, updateDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, currentUser } = window.firebaseData;
+    if (!window.firebaseData) {
+        alert('系統尚未就緒，請重新整理後再試');
+        return;
+    }
 
     try {
         saveRecordBtn.disabled = true;
         saveSpinner.classList.remove('d-none');
+
+        const { db, storage, collection, doc, addDoc, updateDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, currentUser } = window.firebaseData;
 
         const isEdit = !!recordIdInput.value;
         const tripName = document.getElementById('tripName').value;
@@ -792,10 +809,15 @@ saveRecordBtn.addEventListener('click', async () => {
             logAction('create', tripName);
         }
 
-        if (bootstrapModalInstance) bootstrapModalInstance.hide();
+        const modalEl = document.getElementById('recordModal');
+        if (modalEl) {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modalInstance.hide();
+        }
 
     } catch (error) {
-        alert("儲存失敗：" + error.message);
+        console.error("Save error:", error);
+        alert(`儲存失敗：\n${error.message}\n\n若為權限錯誤，請確認您已登入，或 Firebase 規則是否正確設定。`);
     } finally {
         saveRecordBtn.disabled = false;
         saveSpinner.classList.add('d-none');
@@ -963,11 +985,17 @@ document.getElementById('confirmSettleBtn').addEventListener('click', async () =
         return;
     }
 
-    const { db, doc, updateDoc } = window.firebaseData;
+    if (!window.firebaseData) {
+        alert('系統尚未就緒，請重新整理後再試');
+        return;
+    }
+
     const confirmBtn = document.getElementById('confirmSettleBtn');
 
     try {
         confirmBtn.disabled = true;
+        const { db, doc, updateDoc } = window.firebaseData;
+
         // Parse date string into full ISO string to match DB format
         const settleDateObj = new Date(settleDateStr);
         await updateDoc(doc(db, 'records', pendingSettleDocId), {
@@ -980,8 +1008,14 @@ document.getElementById('confirmSettleBtn').addEventListener('click', async () =
             logAction('settle', record.tripName, { settledDate: settleDateStr.replace(/-/g, '/') });
         }
 
-        settleDateModal.hide();
+        const modalEl = document.getElementById('settleDateModal');
+        if (modalEl) {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modalInstance.hide();
+        }
+
     } catch (error) {
+        console.error("Settle error:", error);
         alert("更新狀態失敗：" + error.message);
     } finally {
         confirmBtn.disabled = false;
@@ -1426,6 +1460,7 @@ const logAction = async (actionType, tripName, details = null) => {
         }
     } catch (e) {
         console.error("Failed to log action:", e);
+        // Do not alert on every small log error to prevent annoying users, but log strictly
     }
 };
 
@@ -1445,6 +1480,23 @@ const fetchAndRenderAuditLogs = async () => {
             const raw = localStorage.getItem('guest_audit_logs');
             fetchedLogs = raw ? JSON.parse(raw) : [];
         } else {
+            // Note: This requires a composite index in Firestore on 'userId' ASC and 'createdAt' DESC.
+            /*
+            Firestore Security Rules required:
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /records/{id} {
+                  allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+                  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+                }
+                match /auditLogs/{id} {
+                  allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+                  allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+                }
+              }
+            }
+            */
             const q = query(
                 collection(db, 'auditLogs'),
                 where('userId', '==', currentUser.uid),
@@ -1460,8 +1512,8 @@ const fetchAndRenderAuditLogs = async () => {
         renderAuditLogs();
 
     } catch (error) {
-        container.innerHTML = `<div class="col-12 text-center text-danger py-4 small">讀取紀錄失敗</div>`;
-        console.error(error);
+        container.innerHTML = `<div class="col-12 text-center text-danger py-4 small">讀取紀錄失敗<br><span class="text-muted mt-2 d-block" style="font-size:0.7rem;">(若為「需建立索引」錯誤，請至 Firebase Console 設定 Composite Index)</span></div>`;
+        console.error("Fetch audit logs error:", error);
     }
 };
 
