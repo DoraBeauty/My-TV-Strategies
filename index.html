@@ -45,8 +45,8 @@
             --bg-main: #121212;
             --bg-hover: #2b2b2b;
             --bg-card: #1e1e1e;
-            --text-main: #f8f9fa;
-            --text-muted: #adb5bd;
+            --text-main: #ffffff;
+            --text-muted: #ced4da;
             --border-color: rgba(255, 255, 255, 0.08);
 
             --brand-primary: #6b7eff;
@@ -55,8 +55,8 @@
 
             --nav-bg: #2b2b2b;
             --nav-active-bg: #3f3f3f;
-            --nav-text: #adb5bd;
-            --nav-active-text: #f8f9fa;
+            --nav-text: #ced4da;
+            --nav-active-text: #ffffff;
             --nav-shadow: 0 2px 8px rgba(0,0,0,0.3);
 
             --calendar-pill-bg: rgba(107, 126, 255, 0.15);
@@ -178,6 +178,7 @@
             border-radius: 16px;
             background: var(--bg-card);
             box-shadow: var(--nav-shadow);
+            color: var(--text-main);
         }
         .status-settled {
             opacity: 0.8;
@@ -502,7 +503,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                 </button>
 
                 <button id="loginBtn" class="btn btn-sm rounded-pill px-2 px-md-3 text-white fw-bold d-none d-md-flex align-items-center justify-content-center" style="background: var(--brand-primary); height: 32px;">登入</button>
-                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-2 px-md-3 d-none d-md-flex align-items-center justify-content-center">
+                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-2 px-md-3 d-none align-items-center justify-content-center">
                     <i class="bi bi-box-arrow-right m-0"></i>
                     <span class="d-none d-md-inline ms-1">登出</span>
                 </button>
@@ -548,7 +549,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         <div class="card record-card mx-auto p-4" style="max-width: 400px;">
             <div class="card-body py-4">
                 <i class="bi bi-clipboard-check text-primary" style="font-size: 4rem;"></i>
-                <h3 class="mt-3 mb-4 fw-bold">差旅費追蹤</h3>
+                <h3 class="mt-3 mb-4 fw-bold text-main-custom">差旅費追蹤</h3>
                 <p class="text-muted mb-4 small">記錄行程、交通費與發票，一手掌握差旅報帳。</p>
                 <button id="largeLoginBtn" class="btn btn-primary btn-lg w-100 mb-3 rounded-pill fw-bold">
                     <i class="bi bi-google me-2"></i> Google 登入
@@ -654,32 +655,32 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
             <div class="row g-2 mb-4">
                 <div class="col-6">
                     <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #e0f7fa, #b2ebf2);">
-                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-calendar-check me-1"></i>出差天數</div>
-                        <h4 class="text-dark fw-bold m-0" id="statDays">0 天</h4>
+                        <div class="small fw-bold mb-1" style="color: #212529;"><i class="bi bi-calendar-check me-1"></i>出差天數</div>
+                        <h4 class="fw-bold m-0" id="statDays" style="color: #212529;">0 天</h4>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #fff3e0, #ffe0b2);">
-                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-wallet2 me-1"></i>雜費加總</div>
-                        <h4 class="text-dark fw-bold m-0">$<span id="statAllowance">0</span></h4>
+                        <div class="small fw-bold mb-1" style="color: #212529;"><i class="bi bi-wallet2 me-1"></i>雜費加總</div>
+                        <h4 class="fw-bold m-0" style="color: #212529;">$<span id="statAllowance">0</span></h4>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #fce4ec, #f8bbd0);">
-                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-building me-1"></i>住宿申報</div>
-                        <h4 class="text-dark fw-bold m-0">$<span id="statAccommodation">0</span></h4>
+                        <div class="small fw-bold mb-1" style="color: #212529;"><i class="bi bi-building me-1"></i>住宿申報</div>
+                        <h4 class="fw-bold m-0" style="color: #212529;">$<span id="statAccommodation">0</span></h4>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #e8eaf6, #c5cae9);">
-                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-train-front me-1"></i>車票/交通</div>
-                        <h4 class="text-dark fw-bold m-0">$<span id="statTransport">0</span></h4>
+                        <div class="small fw-bold mb-1" style="color: #212529;"><i class="bi bi-train-front me-1"></i>車票/交通</div>
+                        <h4 class="fw-bold m-0" style="color: #212529;">$<span id="statTransport">0</span></h4>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="card border-0 rounded-4 shadow-sm h-100 p-3" style="background: linear-gradient(135deg, #f1f8e9, #dcedc8);">
-                        <div class="text-dark small fw-bold mb-1"><i class="bi bi-receipt me-1"></i>其他發票</div>
-                        <h4 class="text-dark fw-bold m-0">$<span id="statOther">0</span></h4>
+                        <div class="small fw-bold mb-1" style="color: #212529;"><i class="bi bi-receipt me-1"></i>其他發票</div>
+                        <h4 class="fw-bold m-0" style="color: #212529;">$<span id="statOther">0</span></h4>
                     </div>
                 </div>
                 <div class="col-6">
