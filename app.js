@@ -11,12 +11,12 @@ import {
 
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyB-H_WrTxjXkb1eVTDK-Xa9Bo-JXYl6KSc",
+  authDomain: "business-trip-f7328.firebaseapp.com",
+  projectId: "business-trip-f7328",
+  storageBucket: "business-trip-f7328.firebasestorage.app",
+  messagingSenderId: "898958315644",
+  appId: "1:898958315644:web:f3b2f8a01661458029b9f9"
 };
 
 const app = initializeApp(firebaseConfig);
