@@ -3,11 +3,12 @@ import {
     getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
-    getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, serverTimestamp, getDocs
+    getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import {
     getStorage, ref, uploadBytes, getDownloadURL, deleteObject
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+
 
 const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
