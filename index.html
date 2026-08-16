@@ -58,12 +58,12 @@
         }
 
         body {
-            overflow-x: hidden;
             background-color: var(--bg-main);
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
             color: var(--text-main);
             -webkit-font-smoothing: antialiased;
             transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
         }
 
         /* Navbar */
@@ -142,6 +142,20 @@
         }
         [data-theme='dark'] {
             --accordion-icon-filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Mobile Icon Button overrides */
+        @media (max-width: 767.98px) {
+            .mobile-icon-btn {
+                width: 32px !important;
+                height: 32px !important;
+                padding: 0 !important;
+            }
+        }
+        @media (min-width: 768px) {
+            .mobile-icon-btn {
+                height: 32px !important;
+            }
         }
 
         /* Haptic-like Active States */
@@ -295,10 +309,7 @@
             backdrop-filter: blur(10px);
         }
 
-        #loginView {
-            display: block;
-        }
-        #dashboardView, #calendarViewWrapper {
+        #loginView, #dashboardView, #calendarViewWrapper {
             display: none;
         }
 
@@ -434,7 +445,6 @@
 }
 
 
-
 </style>
 
 <style>
@@ -451,32 +461,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
     background-color: var(--text-muted);
     color: var(--bg-card);
 }
-        /* Mobile Navbar Adjustments */
-        @media (max-width: 767.98px) {
-            .nav-text {
-                display: none;
-            }
-            .nav-icon-btn {
-                padding-left: 0.5rem !important;
-                padding-right: 0.5rem !important;
-                width: 32px;
-                height: 32px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50% !important;
-            }
-            .nav-icon-btn i {
-                margin: 0 !important;
-            }
-            .navbar-actions {
-                gap: 0.25rem !important;
-            }
-        }
 </style>
-
-    <link rel="apple-touch-icon" href="icon.jpg">
-    <link rel="icon" href="icon.jpg">
 </head>
 <body>
 
@@ -489,23 +474,30 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
     </div>
 
     <!-- Navbar -->
-        <nav class="navbar navbar-expand sticky-top">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a class="navbar-brand m-0" href="#"><i class="bi bi-clipboard-check-fill me-2" style="color: var(--brand-primary);"></i>差旅費追蹤</a>
-            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end navbar-actions">
-                <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm" style="display: none;">未入帳 $0</button>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 nav-icon-btn" data-bs-toggle="modal" data-bs-target="#zonesModal" title="戰區">
-                    <i class="bi bi-map"></i><span class="nav-text ms-1">戰區</span>
+    <nav class="navbar navbar-expand sticky-top px-2">
+        <div class="container d-flex justify-content-between align-items-center px-0">
+            <a class="navbar-brand m-0 fs-6 text-truncate" href="#"><i class="bi bi-clipboard-check-fill me-1" style="color: var(--brand-primary);"></i><span class="d-none d-sm-inline">差旅費追蹤</span></a>
+            <div class="d-flex align-items-center gap-1 gap-md-2">
+                <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill px-2 px-md-3 fw-bold shadow-sm" style="display: none;">未入帳 $0</button>
+
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 px-md-3 d-flex align-items-center justify-content-center mobile-icon-btn" data-bs-toggle="modal" data-bs-target="#zonesModal">
+                    <i class="bi bi-map m-0"></i>
+                    <span class="d-none d-md-inline ms-1">戰區</span>
                 </button>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 nav-icon-btn" data-bs-toggle="modal" data-bs-target="#rulesModal" title="規定">
-                    <i class="bi bi-journal-text"></i><span class="nav-text ms-1">規定</span>
+
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 px-md-3 d-flex align-items-center justify-content-center mobile-icon-btn" data-bs-toggle="modal" data-bs-target="#rulesModal">
+                    <i class="bi bi-journal-text m-0"></i>
+                    <span class="d-none d-md-inline ms-1">規定</span>
                 </button>
-                <button id="themeToggleBtn" class="mx-1" title="切換深淺色">
-                    <i class="bi bi-moon-stars" id="themeIcon"></i>
+
+                <button id="themeToggleBtn" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center me-0" style="width: 32px; height: 32px;" aria-label="切換深淺色模式">
+                    <i class="bi bi-moon-stars m-0" id="themeIcon"></i>
                 </button>
-                <button id="loginBtn" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background: var(--brand-primary);">登入</button>
-                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 nav-icon-btn" style="display: none;" title="登出">
-                    <i class="bi bi-box-arrow-right"></i><span class="nav-text ms-1">登出</span>
+
+                <button id="loginBtn" class="btn btn-sm rounded-pill px-2 px-md-3 text-white fw-bold d-flex align-items-center justify-content-center" style="background: var(--brand-primary); height: 32px;">登入</button>
+                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-2 px-md-3 align-items-center justify-content-center mobile-icon-btn d-none">
+                    <i class="bi bi-box-arrow-right m-0"></i>
+                    <span class="d-none d-md-inline ms-1">登出</span>
                 </button>
             </div>
         </div>

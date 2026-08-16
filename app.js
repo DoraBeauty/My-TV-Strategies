@@ -240,7 +240,8 @@ onAuthStateChanged(auth, (user) => {
         loginView.style.display = 'none';
         dashboardView.style.display = 'block';
         loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'inline-block';
+        logoutBtn.classList.add('d-flex');
+        logoutBtn.classList.remove('d-none');
         exportBtn.style.display = 'inline-block';
         statsNavBtn.style.display = 'inline-block';
         unsettledBadgeBtn.style.display = 'inline-block';
@@ -255,7 +256,8 @@ onAuthStateChanged(auth, (user) => {
         loginView.style.display = 'block';
         dashboardView.style.display = 'none';
         loginBtn.style.display = 'inline-block';
-        logoutBtn.style.display = 'none';
+        logoutBtn.classList.remove('d-flex');
+        logoutBtn.classList.add('d-none');
         exportBtn.style.display = 'none';
         statsNavBtn.style.display = 'none';
         unsettledBadgeBtn.style.display = 'none';
