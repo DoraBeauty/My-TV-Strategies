@@ -554,6 +554,9 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
 
             <input type="radio" class="btn-check" name="viewToggle" id="btnAuditLog" autocomplete="off">
             <label class="btn" for="btnAuditLog"><i class="bi bi-clock-history me-1"></i>編輯紀錄</label>
+
+            <input type="radio" class="btn-check" name="viewToggle" id="btnMap" autocomplete="off">
+            <label class="btn" for="btnMap"><i class="bi bi-geo-alt-fill me-1"></i>陣地圖資</label>
         </div>
 
         <!-- Loading Indicator -->
@@ -691,8 +694,18 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
             </div>
         </div>
 
-
-
+        <!-- Map View Wrapper -->
+        <div id="mapViewWrapper" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold m-0 text-main-custom"><i class="bi bi-geo-alt-fill me-2 text-primary"></i>陣地圖資庫</h4>
+                <button id="addLocationBtn" class="btn btn-primary rounded-pill shadow-sm fw-bold btn-sm px-3" data-bs-toggle="modal" data-bs-target="#locationModal">
+                    <i class="bi bi-plus-lg me-1"></i>新增陣地
+                </button>
+            </div>
+            <div id="locationsContainer" class="d-flex flex-column gap-3">
+                <!-- Location cards injected by JS -->
+            </div>
+        </div>
 
         <!-- FAB -->
         <button class="fab" data-bs-toggle="modal" data-bs-target="#recordModal" id="fabBtn">
@@ -1088,6 +1101,66 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         <button type="button" class="btn btn-custom-light text-main-custom flex-fill rounded-pill fw-bold py-2" data-bs-dismiss="modal">取消</button>
                         <button type="button" class="btn btn-danger flex-fill rounded-pill fw-bold py-2" id="confirmDeleteBtn">
                             <span class="spinner-border spinner-border-sm me-1 d-none" id="deleteSpinner"></span>
+                            確認刪除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Modal (Create/Edit) -->
+    <div class="modal fade" id="locationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="locationModalTitle">新增陣地</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3 pb-4">
+                    <form id="locationForm">
+                        <input type="hidden" id="locId"> <!-- For editing -->
+
+                        <div class="ios-input-label">陣地資訊</div>
+                        <div class="ios-input-group">
+                            <select class="ios-input mb-3 fw-bold" id="locRegion" required>
+                                <option value="" disabled selected>選擇地區...</option>
+                                <option value="北部">北部</option>
+                                <option value="中部">中部</option>
+                                <option value="南部">南部</option>
+                                <option value="東部">東部</option>
+                                <option value="外島">外島</option>
+                            </select>
+                            <input type="text" class="ios-input mb-3" id="locName" required placeholder="陣地名稱 (例如：大甲溪南岸陣地)">
+                            <input type="url" class="ios-input mb-2" id="locUrl" required placeholder="Google Maps 連結 (以 https:// 開頭)">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-3">
+                    <button type="button" class="btn btn-custom-light text-main-custom rounded-pill px-4 fw-bold" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="saveLocationBtn">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="saveLocationSpinner"></span>
+                        儲存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Location Confirmation Modal -->
+    <div class="modal fade" id="deleteLocationConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow bg-custom-card text-main-custom" style="border-radius: 20px;">
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-exclamation-circle text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2 text-main-custom">確定要刪除這個陣地嗎？</h5>
+                    <p class="text-muted small mb-4">刪除後將無法復原。</p>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-custom-light text-main-custom flex-fill rounded-pill fw-bold py-2" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger flex-fill rounded-pill fw-bold py-2" id="confirmDeleteLocationBtn">
+                            <span class="spinner-border spinner-border-sm me-1 d-none" id="deleteLocationSpinner"></span>
                             確認刪除
                         </button>
                     </div>

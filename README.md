@@ -48,6 +48,13 @@ service cloud.firestore {
       allow read: if request.auth != null
                    && resource.data.userId == request.auth.uid;
     }
+    match /locations/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                   && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+                   && (resource.data.userId == request.auth.uid || request.auth.token.email == 'hephaestus161@gmail.com');
+    }
   }
 }
 

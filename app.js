@@ -80,14 +80,16 @@ const viewToggleGroup = document.getElementById('viewToggleGroup');
 const fabBtn = document.getElementById('fabBtn');
 
 function updateSegmentSlider() {
-    // Assuming 3 options, 33.333% width each
-    segmentSlider.style.width = '33.333%';
+    // Assuming 4 options, 25% width each
+    segmentSlider.style.width = '25%';
     if (btnList.checked) {
         segmentSlider.style.transform = 'translateX(0)';
     } else if (btnCalendar.checked) {
         segmentSlider.style.transform = 'translateX(100%)';
     } else if (btnAuditLog.checked) {
         segmentSlider.style.transform = 'translateX(200%)';
+    } else if (btnMap.checked) {
+        segmentSlider.style.transform = 'translateX(300%)';
     }
 }
 
@@ -299,6 +301,8 @@ onAuthStateChanged(auth, (user) => {
 });
 
 
+const mapViewWrapper = document.getElementById('mapViewWrapper');
+
 // --- View Toggle (List/Calendar/Audit) ---
 const restoreMainViews = () => {
     statsViewWrapper.style.display = 'none';
@@ -312,23 +316,40 @@ const restoreMainViews = () => {
 
         calendarViewWrapper.style.display = 'none';
         auditLogViewWrapper.style.display = 'none';
+        if (mapViewWrapper) mapViewWrapper.style.display = 'none';
     } else if (btnCalendar.checked) {
         if (listControlsWrapper) listControlsWrapper.style.display = 'none';
         recordsContainer.style.display = 'none';
         calendarViewWrapper.style.display = 'block';
         auditLogViewWrapper.style.display = 'none';
+        if (mapViewWrapper) mapViewWrapper.style.display = 'none';
         renderCustomCalendar();
     } else if (btnAuditLog.checked) {
         if (listControlsWrapper) listControlsWrapper.style.display = 'none';
         recordsContainer.style.display = 'none';
         calendarViewWrapper.style.display = 'none';
         auditLogViewWrapper.style.display = 'block';
+        if (mapViewWrapper) mapViewWrapper.style.display = 'none';
         if (typeof renderAuditLogs === 'function') renderAuditLogs();
+    } else if (btnMap.checked) {
+        if (listControlsWrapper) listControlsWrapper.style.display = 'none';
+        recordsContainer.style.display = 'none';
+        calendarViewWrapper.style.display = 'none';
+        auditLogViewWrapper.style.display = 'none';
+        if (mapViewWrapper) mapViewWrapper.style.display = 'block';
+        if (fabBtn) fabBtn.style.display = 'none'; // Hide FAB on map view
     }
 };
 
 btnList.addEventListener('change', () => {
     if (btnList.checked) {
+        updateSegmentSlider();
+        restoreMainViews();
+    }
+});
+
+btnMap.addEventListener('change', () => {
+    if (btnMap.checked) {
         updateSegmentSlider();
         restoreMainViews();
     }
@@ -860,6 +881,9 @@ window.addEventListener('authReady', () => {
     const loadingIndicator = document.getElementById('loadingIndicator');
     loadingIndicator.style.display = 'block';
     recordsContainer.innerHTML = '';
+
+    // Also load locations
+    loadLocations();
 
     const q = query(
         collection(db, 'records'),
@@ -1824,4 +1848,279 @@ unsettledBadgeBtn.addEventListener('click', () => {
     // Set filter and trigger render
     statusFilterSelect.value = 'unsettled';
     renderFilteredRecordsList();
+});
+
+// --- Locations CRUD Logic ---
+let unsubscribeLocations = null;
+
+const locationsContainer = document.getElementById('locationsContainer');
+const locationModal = new bootstrap.Modal(document.getElementById('locationModal'));
+const locationForm = document.getElementById('locationForm');
+const locIdInput = document.getElementById('locId');
+const locRegionInput = document.getElementById('locRegion');
+const locNameInput = document.getElementById('locName');
+const locUrlInput = document.getElementById('locUrl');
+const saveLocationBtn = document.getElementById('saveLocationBtn');
+const saveLocationSpinner = document.getElementById('saveLocationSpinner');
+
+const deleteLocationConfirmModal = new bootstrap.Modal(document.getElementById('deleteLocationConfirmModal'));
+const confirmDeleteLocationBtn = document.getElementById('confirmDeleteLocationBtn');
+const deleteLocationSpinner = document.getElementById('deleteLocationSpinner');
+let locationToDeleteId = null;
+
+function loadLocations() {
+    if (unsubscribeLocations) {
+        unsubscribeLocations();
+    }
+
+    // For guest mode
+    if (currentUser && currentUser.isGuest) {
+        const localData = JSON.parse(localStorage.getItem('guest_locations') || '[]');
+        renderLocations(localData);
+        return;
+    }
+
+    if (!currentUser) return;
+
+    try {
+        const q = query(
+            collection(db, "locations"),
+            orderBy("createdAt", "desc")
+        );
+
+        unsubscribeLocations = onSnapshot(q, (snapshot) => {
+            const locs = [];
+            snapshot.forEach((doc) => {
+                locs.push({ id: doc.id, ...doc.data() });
+            });
+            renderLocations(locs);
+        }, (error) => {
+            console.error("Error loading locations:", error);
+            locationsContainer.innerHTML = `<div class="text-danger text-center">載入陣地資料失敗: ${error.message}</div>`;
+        });
+    } catch (e) {
+        console.error("Setup locations listener failed", e);
+    }
+}
+
+function renderLocations(locations) {
+    if (!locations || locations.length === 0) {
+        locationsContainer.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-geo-alt opacity-50 mb-3 d-block" style="font-size: 3rem;"></i>
+                <p>目前還沒有任何陣地圖資，點擊右上角新增吧！</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Group by region
+    const grouped = {
+        '北部': [],
+        '中部': [],
+        '南部': [],
+        '東部': [],
+        '外島': []
+    };
+
+    const others = [];
+
+    locations.forEach(loc => {
+        if (grouped[loc.region]) {
+            grouped[loc.region].push(loc);
+        } else {
+            others.push(loc);
+        }
+    });
+
+    let html = '';
+
+    // Admin email
+    const ADMIN_EMAIL = 'hephaestus161@gmail.com';
+    const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+    const currentUserId = currentUser ? currentUser.uid : null;
+
+    const renderGroup = (regionName, locs) => {
+        if (locs.length === 0) return '';
+
+        let groupHtml = `
+            <div class="card record-card bg-custom-card border-0 shadow-sm mb-3">
+                <div class="card-header bg-custom-light border-0 py-2 d-flex align-items-center rounded-top-4">
+                    <i class="bi bi-geo-alt text-primary me-2"></i>
+                    <span class="fw-bold text-main-custom">${escapeHtml(regionName)}</span>
+                    <span class="badge bg-secondary ms-2 rounded-pill">${locs.length}</span>
+                </div>
+                <div class="list-group list-group-flush rounded-bottom-4">
+        `;
+
+        locs.forEach(loc => {
+            const isOwner = currentUserId === loc.userId;
+            const canEditOrDelete = isOwner || isUserAdmin;
+
+            groupHtml += `
+                <div class="list-group-item bg-transparent border-color d-flex justify-content-between align-items-center py-3">
+                    <div class="d-flex flex-column gap-1">
+                        <span class="fw-bold text-main-custom">${escapeHtml(loc.name)}</span>
+                        ${isUserAdmin && !isOwner ? `<small class="text-muted"><i class="bi bi-person me-1"></i>建立者: ${escapeHtml(loc.userId)}</small>` : ''}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="${escapeHtml(loc.mapUrl)}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center">
+                            <i class="bi bi-cursor-fill me-1"></i> 導航
+                        </a>
+                        ${canEditOrDelete ? `
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-custom-light text-main-custom rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 30px; height: 30px; padding: 0;">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="border-radius: 12px;">
+                                    <li><button class="dropdown-item edit-location-btn" data-id="${loc.id}"><i class="bi bi-pencil me-2 text-muted"></i>編輯</button></li>
+                                    <li><button class="dropdown-item text-danger delete-location-btn" data-id="${loc.id}"><i class="bi bi-trash me-2"></i>刪除</button></li>
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        groupHtml += `
+                </div>
+            </div>
+        `;
+        return groupHtml;
+    };
+
+    html += renderGroup('北部', grouped['北部']);
+    html += renderGroup('中部', grouped['中部']);
+    html += renderGroup('南部', grouped['南部']);
+    html += renderGroup('東部', grouped['東部']);
+    html += renderGroup('外島', grouped['外島']);
+
+    if (others.length > 0) {
+        html += renderGroup('其他', others);
+    }
+
+    locationsContainer.innerHTML = html;
+
+    // Attach events
+    document.querySelectorAll('.edit-location-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            const loc = locations.find(l => l.id === id);
+            if (loc) {
+                document.getElementById('locationModalTitle').textContent = '編輯陣地';
+                locIdInput.value = loc.id;
+                locRegionInput.value = loc.region;
+                locNameInput.value = loc.name;
+                locUrlInput.value = loc.mapUrl;
+                locationModal.show();
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-location-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            locationToDeleteId = e.currentTarget.getAttribute('data-id');
+            deleteLocationConfirmModal.show();
+        });
+    });
+}
+
+// Ensure add button clears form
+document.getElementById('addLocationBtn').addEventListener('click', () => {
+    document.getElementById('locationModalTitle').textContent = '新增陣地';
+    locationForm.reset();
+    locIdInput.value = '';
+});
+
+saveLocationBtn.addEventListener('click', async () => {
+    if (!locationForm.checkValidity()) {
+        locationForm.reportValidity();
+        return;
+    }
+
+    const locId = locIdInput.value;
+    const region = locRegionInput.value;
+    const name = locNameInput.value.trim();
+    const mapUrl = locUrlInput.value.trim();
+
+    if (!currentUser) {
+        alert("請先登入");
+        return;
+    }
+
+    saveLocationBtn.disabled = true;
+    saveLocationSpinner.classList.remove('d-none');
+
+    try {
+        const locationData = {
+            region,
+            name,
+            mapUrl,
+            updatedAt: (currentUser && currentUser.isGuest) ? new Date().toISOString() : serverTimestamp()
+        };
+
+        if (currentUser && currentUser.isGuest) {
+            let localData = JSON.parse(localStorage.getItem('guest_locations') || '[]');
+            if (locId) {
+                // Update
+                const index = localData.findIndex(l => l.id === locId);
+                if (index !== -1) {
+                    localData[index] = { ...localData[index], ...locationData };
+                }
+            } else {
+                // Add
+                locationData.id = Date.now().toString();
+                locationData.userId = 'guest_user';
+                locationData.createdAt = new Date().toISOString();
+                localData.unshift(locationData);
+            }
+            localStorage.setItem('guest_locations', JSON.stringify(localData));
+            loadLocations();
+        } else {
+            if (locId) {
+                // Update
+                const locRef = doc(db, "locations", locId);
+                await withTimeout(updateDoc(locRef, locationData), 15000, '更新陣地逾時');
+            } else {
+                // Add
+                locationData.userId = currentUser.uid;
+                locationData.createdAt = serverTimestamp();
+                await withTimeout(addDoc(collection(db, "locations"), locationData), 15000, '新增陣地逾時');
+            }
+        }
+        locationModal.hide();
+    } catch (error) {
+        console.error("Error saving location:", error);
+        alert("儲存陣地失敗: " + error.message);
+    } finally {
+        saveLocationBtn.disabled = false;
+        saveLocationSpinner.classList.add('d-none');
+    }
+});
+
+confirmDeleteLocationBtn.addEventListener('click', async () => {
+    if (!locationToDeleteId) return;
+
+    confirmDeleteLocationBtn.disabled = true;
+    deleteLocationSpinner.classList.remove('d-none');
+
+    try {
+        if (currentUser && currentUser.isGuest) {
+            let localData = JSON.parse(localStorage.getItem('guest_locations') || '[]');
+            localData = localData.filter(l => l.id !== locationToDeleteId);
+            localStorage.setItem('guest_locations', JSON.stringify(localData));
+            loadLocations();
+        } else {
+            await withTimeout(deleteDoc(doc(db, "locations", locationToDeleteId)), 15000, '刪除陣地逾時');
+        }
+        deleteLocationConfirmModal.hide();
+        locationToDeleteId = null;
+    } catch (error) {
+        console.error("Error deleting location:", error);
+        alert("刪除失敗: " + error.message);
+    } finally {
+        confirmDeleteLocationBtn.disabled = false;
+        deleteLocationSpinner.classList.add('d-none');
+    }
 });
