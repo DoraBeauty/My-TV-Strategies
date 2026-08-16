@@ -30,19 +30,15 @@ let currentUser = null;
 const loginView = document.getElementById('loginView');
 const dashboardView = document.getElementById('dashboardView');
 const loginBtn = document.getElementById('loginBtn');
-const dropdownLoginBtn = document.getElementById('dropdownLoginBtn');
 const largeLoginBtn = document.getElementById('largeLoginBtn');
 const guestLoginBtn = document.getElementById('guestLoginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
-const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
 const exportBtn = document.getElementById('exportBtn');
 const unsettledBadgeBtn = document.getElementById('unsettledBadgeBtn');
 
 // Theme Toggle Logic
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 const themeIcon = document.getElementById('themeIcon');
-const dropdownThemeBtn = document.getElementById('dropdownThemeBtn');
-const dropdownThemeIcon = document.getElementById('dropdownThemeIcon');
 
 let isDarkMode = localStorage.getItem('theme') === 'dark';
 
@@ -51,15 +47,11 @@ function updateTheme() {
         document.documentElement.setAttribute('data-theme', 'dark');
         themeIcon.classList.remove('bi-moon-stars');
         themeIcon.classList.add('bi-sun-fill');
-        dropdownThemeIcon.classList.remove('bi-moon-stars');
-        dropdownThemeIcon.classList.add('bi-sun-fill');
         localStorage.setItem('theme', 'dark');
     } else {
         document.documentElement.removeAttribute('data-theme');
         themeIcon.classList.remove('bi-sun-fill');
         themeIcon.classList.add('bi-moon-stars');
-        dropdownThemeIcon.classList.remove('bi-sun-fill');
-        dropdownThemeIcon.classList.add('bi-moon-stars');
         localStorage.setItem('theme', 'light');
     }
 }
@@ -67,11 +59,6 @@ function updateTheme() {
 updateTheme();
 
 themeToggleBtn.addEventListener('click', () => {
-    isDarkMode = !isDarkMode;
-    updateTheme();
-});
-
-dropdownThemeBtn.addEventListener('click', () => {
     isDarkMode = !isDarkMode;
     updateTheme();
 });
@@ -170,15 +157,11 @@ const startGuestMode = () => {
 
     loginView.style.display = 'none';
     dashboardView.style.display = 'block';
-    loginBtn.classList.remove('d-none', 'd-md-flex');
+    loginBtn.classList.remove('d-flex');
     loginBtn.classList.add('d-none');
-    dropdownLoginBtn.classList.add('d-none');
-    dropdownLoginBtn.classList.remove('d-flex');
 
     logoutBtn.classList.remove('d-none');
-    logoutBtn.classList.add('d-none', 'd-md-flex');
-    dropdownLogoutBtn.classList.remove('d-none');
-    dropdownLogoutBtn.classList.add('d-flex');
+    logoutBtn.classList.add('d-flex');
 
     exportBtn.style.display = 'inline-block';
     statsNavBtn.style.display = 'inline-block';
@@ -250,11 +233,9 @@ const startGuestMode = () => {
 };
 
 loginBtn.addEventListener('click', handleLogin);
-dropdownLoginBtn.addEventListener('click', handleLogin);
 largeLoginBtn.addEventListener('click', handleLogin);
 if (guestLoginBtn) guestLoginBtn.addEventListener('click', startGuestMode);
 logoutBtn.addEventListener('click', handleLogout);
-dropdownLogoutBtn.addEventListener('click', handleLogout);
 
 onAuthStateChanged(auth, (user) => {
     if (currentUser && currentUser.isGuest) return;
@@ -264,15 +245,11 @@ onAuthStateChanged(auth, (user) => {
         loginView.style.display = 'none';
         dashboardView.style.display = 'block';
 
-        loginBtn.classList.remove('d-none', 'd-md-flex');
+        loginBtn.classList.remove('d-flex');
         loginBtn.classList.add('d-none');
-        dropdownLoginBtn.classList.add('d-none');
-        dropdownLoginBtn.classList.remove('d-flex');
 
         logoutBtn.classList.remove('d-none');
-        logoutBtn.classList.add('d-none', 'd-md-flex');
-        dropdownLogoutBtn.classList.remove('d-none');
-        dropdownLogoutBtn.classList.add('d-flex');
+        logoutBtn.classList.add('d-flex');
 
         exportBtn.style.display = 'inline-block';
         statsNavBtn.style.display = 'inline-block';
@@ -289,14 +266,10 @@ onAuthStateChanged(auth, (user) => {
         dashboardView.style.display = 'none';
 
         loginBtn.classList.remove('d-none');
-        loginBtn.classList.add('d-none', 'd-md-flex');
-        dropdownLoginBtn.classList.remove('d-none');
-        dropdownLoginBtn.classList.add('d-flex');
+        loginBtn.classList.add('d-flex');
 
-        logoutBtn.classList.remove('d-none', 'd-md-flex');
+        logoutBtn.classList.remove('d-flex');
         logoutBtn.classList.add('d-none');
-        dropdownLogoutBtn.classList.remove('d-flex');
-        dropdownLogoutBtn.classList.add('d-none');
 
         exportBtn.style.display = 'none';
         statsNavBtn.style.display = 'none';
@@ -872,7 +845,7 @@ window.addEventListener('authReady', () => {
             unsettledBadgeBtn.textContent = `未入帳 $${unsettledTotal.toLocaleString()}`;
             unsettledBadgeBtn.className = 'btn btn-sm btn-danger rounded-pill px-3 me-2 fw-bold shadow-sm';
         } else {
-            unsettledBadgeBtn.textContent = '$0';
+            unsettledBadgeBtn.textContent = '未入帳 $0';
             unsettledBadgeBtn.className = 'btn btn-sm btn-secondary rounded-pill px-3 me-2 fw-bold shadow-sm opacity-50';
         }
 

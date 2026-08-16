@@ -487,31 +487,10 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
             <div class="d-flex align-items-center gap-1 gap-md-2">
                 <button id="unsettledBadgeBtn" class="btn btn-sm btn-danger rounded-pill px-2 px-md-3 fw-bold shadow-sm" style="display: none;">未入帳 $0</button>
 
-                <!-- Desktop Navbar Items -->
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 px-md-3 d-none d-md-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#zonesModal">
-                    <i class="bi bi-map m-0"></i>
-                    <span class="d-none d-md-inline ms-1">戰區</span>
-                </button>
-
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 px-md-3 d-none d-md-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#rulesModal">
-                    <i class="bi bi-journal-text m-0"></i>
-                    <span class="d-none d-md-inline ms-1">規定</span>
-                </button>
-
-                <button id="themeToggleBtn" class="btn btn-sm rounded-circle d-none d-md-flex align-items-center justify-content-center me-0" style="width: 32px; height: 32px;" aria-label="切換深淺色模式">
-                    <i class="bi bi-moon-stars m-0" id="themeIcon"></i>
-                </button>
-
-                <button id="loginBtn" class="btn btn-sm rounded-pill px-2 px-md-3 text-white fw-bold d-none d-md-flex align-items-center justify-content-center" style="background: var(--brand-primary); height: 32px;">登入</button>
-                <button id="logoutBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-2 px-md-3 d-none align-items-center justify-content-center">
-                    <i class="bi bi-box-arrow-right m-0"></i>
-                    <span class="d-none d-md-inline ms-1">登出</span>
-                </button>
-
-                <!-- Mobile Dropdown Menu -->
-                <div class="dropdown d-md-none">
+                <!-- Dropdown Menu -->
+                <div class="dropdown">
                     <button class="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center" type="button" id="mobileMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" style="width: 32px; height: 32px;">
-                        <i class="bi bi-three-dots-vertical m-0"></i>
+                        <i class="bi bi-three-dots m-0"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="mobileMenuBtn" style="border-radius: 12px; background-color: var(--bg-card); border-color: var(--border-color);">
                         <li>
@@ -525,16 +504,16 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </button>
                         </li>
                         <li>
-                            <button id="dropdownThemeBtn" class="dropdown-item d-flex align-items-center py-2" style="color: var(--text-main);">
-                                <i class="bi bi-moon-stars me-2 text-muted" id="dropdownThemeIcon"></i> 主題切換
+                            <button id="themeToggleBtn" class="dropdown-item d-flex align-items-center py-2" style="color: var(--text-main);">
+                                <i class="bi bi-moon-stars me-2 text-muted" id="themeIcon"></i> 主題切換
                             </button>
                         </li>
                         <li><hr class="dropdown-divider" style="border-color: var(--border-color);"></li>
                         <li>
-                            <button id="dropdownLoginBtn" class="dropdown-item d-flex align-items-center py-2 fw-bold" style="color: var(--brand-primary);">
+                            <button id="loginBtn" class="dropdown-item d-flex align-items-center py-2 fw-bold" style="color: var(--brand-primary);">
                                 <i class="bi bi-box-arrow-in-right me-2"></i> 登入
                             </button>
-                            <button id="dropdownLogoutBtn" class="dropdown-item align-items-center py-2 text-danger d-none">
+                            <button id="logoutBtn" class="dropdown-item align-items-center py-2 text-danger d-none">
                                 <i class="bi bi-box-arrow-right me-2"></i> 登出
                             </button>
                         </li>
