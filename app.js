@@ -156,8 +156,10 @@ const startGuestMode = () => {
 
     loginView.style.display = 'none';
     dashboardView.style.display = 'block';
-    loginBtn.style.display = 'none';
-    logoutBtn.style.display = 'inline-block';
+    loginBtn.classList.remove('d-flex');
+    loginBtn.classList.add('d-none');
+    logoutBtn.classList.remove('d-none');
+    logoutBtn.classList.add('d-flex');
     exportBtn.style.display = 'inline-block';
     statsNavBtn.style.display = 'inline-block';
     unsettledBadgeBtn.style.display = 'inline-block';
@@ -239,7 +241,8 @@ onAuthStateChanged(auth, (user) => {
         currentUser = user;
         loginView.style.display = 'none';
         dashboardView.style.display = 'block';
-        loginBtn.style.display = 'none';
+        loginBtn.classList.remove('d-flex');
+        loginBtn.classList.add('d-none');
         logoutBtn.classList.add('d-flex');
         logoutBtn.classList.remove('d-none');
         exportBtn.style.display = 'inline-block';
@@ -255,7 +258,8 @@ onAuthStateChanged(auth, (user) => {
         currentUser = null;
         loginView.style.display = 'block';
         dashboardView.style.display = 'none';
-        loginBtn.style.display = 'inline-block';
+        loginBtn.classList.remove('d-none');
+        loginBtn.classList.add('d-flex');
         logoutBtn.classList.remove('d-flex');
         logoutBtn.classList.add('d-none');
         exportBtn.style.display = 'none';
