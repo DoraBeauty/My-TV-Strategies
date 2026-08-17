@@ -1914,9 +1914,65 @@ const renderFilteredRecordsList = () => {
                 <p class="small mb-0">請嘗試更換關鍵字或篩選狀態。</p>
             </div>
         `;
-    } else {
-        results.forEach(r => renderRecordCard(r));
+        return;
     }
+
+    // Sort results by startTime descending
+    results.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+
+    // Group by month (e.g. "2026年 8月")
+    const grouped = {};
+    results.forEach(r => {
+        const d = new Date(r.startTime);
+        const monthKey = `${d.getFullYear()}年 ${d.getMonth() + 1}月`;
+        if (!grouped[monthKey]) grouped[monthKey] = [];
+        grouped[monthKey].push(r);
+    });
+
+    // Create Accordion Container
+    const accordionId = 'recordsAccordion';
+    const accordionDiv = document.createElement('div');
+    accordionDiv.className = 'accordion accordion-custom mb-4 w-100';
+    accordionDiv.id = accordionId;
+
+    // Ordered month keys
+    const monthKeys = Object.keys(grouped);
+
+    monthKeys.forEach((monthStr, index) => {
+        const isFirst = index === 0;
+        const collapseId = `collapseMonth_${index}`;
+        const headerId = `headingMonth_${index}`;
+        const monthRecords = grouped[monthStr];
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'accordion-item border-0 mb-3 shadow-sm rounded-4 overflow-hidden';
+
+        itemDiv.innerHTML = `
+            <h2 class="accordion-header" id="${headerId}">
+                <button class="accordion-button ${isFirst ? '' : 'collapsed'} bg-custom-card text-main-custom fw-bold px-4 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${isFirst ? 'true' : 'false'}" aria-controls="${collapseId}">
+                    <i class="bi bi-calendar-event me-2 text-primary"></i>${monthStr}
+                    <span class="badge bg-custom-light text-muted ms-2 rounded-pill">${monthRecords.length}筆</span>
+                </button>
+            </h2>
+            <div id="${collapseId}" class="accordion-collapse collapse ${isFirst ? 'show' : ''}" aria-labelledby="${headerId}">
+                <div class="accordion-body bg-custom-light p-3">
+                    <div class="row g-3" id="container_${collapseId}">
+                    </div>
+                </div>
+            </div>
+        `;
+
+        accordionDiv.appendChild(itemDiv);
+    });
+
+    recordsContainer.appendChild(accordionDiv);
+
+    // Populate each month's container with its records
+    monthKeys.forEach((monthStr, index) => {
+        const collapseId = `collapseMonth_${index}`;
+        const monthContainer = document.getElementById(`container_${collapseId}`);
+        grouped[monthStr].forEach(r => renderRecordCard(r, monthContainer));
+    });
 };
 
 if (searchInput) {
