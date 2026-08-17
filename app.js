@@ -2030,6 +2030,7 @@ function renderLocations() {
 
         locs.forEach(loc => {
             const canEditOrDelete = isUserAdmin || (currentUser && currentUser.isGuest);
+            const isOwner = currentUserId ? loc.userId === currentUserId : false;
 
             groupHtml += `
                 <div class="list-group-item bg-transparent border-color d-flex justify-content-between align-items-center py-3">
