@@ -1901,6 +1901,8 @@ const deleteLocationConfirmModal = new bootstrap.Modal(document.getElementById('
 const confirmDeleteLocationBtn = document.getElementById('confirmDeleteLocationBtn');
 const deleteLocationSpinner = document.getElementById('deleteLocationSpinner');
 let locationToDeleteId = null;
+let currentLocations = [];
+const locationSearchInput = document.getElementById('locationSearchInput');
 
 function loadLocations() {
     if (unsubscribeLocations) {
@@ -1909,8 +1911,8 @@ function loadLocations() {
 
     // For guest mode
     if (currentUser && currentUser.isGuest) {
-        const localData = JSON.parse(localStorage.getItem('guest_locations') || '[]');
-        renderLocations(localData);
+        currentLocations = JSON.parse(localStorage.getItem('guest_locations') || '[]');
+        renderLocations();
         return;
     }
 
@@ -1924,11 +1926,11 @@ function loadLocations() {
         );
 
         unsubscribeLocations = onSnapshot(q, (snapshot) => {
-            const locs = [];
+            currentLocations = [];
             snapshot.forEach((doc) => {
-                locs.push({ id: doc.id, ...doc.data() });
+                currentLocations.push({ id: doc.id, ...doc.data() });
             });
-            renderLocations(locs);
+            renderLocations();
         }, (error) => {
             console.error("Error loading locations:", error);
             locationsContainer.innerHTML = `<div class="text-danger text-center">載入陣地資料失敗: ${error.message}</div>`;
@@ -1938,7 +1940,19 @@ function loadLocations() {
     }
 }
 
-function renderLocations(locations) {
+if (locationSearchInput) {
+    locationSearchInput.addEventListener('input', () => {
+        renderLocations();
+    });
+}
+
+function renderLocations() {
+    let locations = currentLocations;
+    const keyword = locationSearchInput ? locationSearchInput.value.trim().toLowerCase() : '';
+
+    if (keyword) {
+        locations = locations.filter(loc => loc.name && loc.name.toLowerCase().includes(keyword));
+    }
     if (!locations || locations.length === 0) {
         locationsContainer.innerHTML = `
             <div class="text-center text-muted py-5">
@@ -1975,17 +1989,30 @@ function renderLocations(locations) {
     const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
     const currentUserId = currentUser ? currentUser.uid : null;
 
+    let regionIndex = 0;
     const renderGroup = (regionName, locs) => {
         if (locs.length === 0) return '';
 
+        // Ensure a unique, HTML-safe ID for the collapse section
+        const regionIdSafe = `collapseRegion_${regionIndex++}`;
+
+        // If searching, auto-expand, otherwise default to collapsed
+        const isExpanded = keyword !== '' ? 'true' : 'false';
+        const collapseClass = keyword !== '' ? 'collapse show' : 'collapse';
+        const buttonClass = keyword !== '' ? 'accordion-button bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm' : 'accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm';
+
         let groupHtml = `
-            <div class="card record-card bg-custom-card border-0 shadow-sm mb-3">
-                <div class="card-header bg-custom-light border-0 py-2 d-flex align-items-center rounded-top-4">
-                    <i class="bi bi-geo-alt text-primary me-2"></i>
-                    <span class="fw-bold text-main-custom">${escapeHtml(regionName)}</span>
-                    <span class="badge bg-secondary ms-2 rounded-pill">${locs.length}</span>
-                </div>
-                <div class="list-group list-group-flush rounded-bottom-4">
+            <div class="accordion-item bg-transparent border-0 mb-3">
+                <h2 class="accordion-header" id="heading_${regionIdSafe}">
+                    <button class="${buttonClass}" type="button" data-bs-toggle="collapse" data-bs-target="#${regionIdSafe}" aria-expanded="${isExpanded}" aria-controls="${regionIdSafe}" style="border: none;">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>
+                        <span class="fw-bold text-main-custom me-2">${escapeHtml(regionName)}</span>
+                        <span class="badge bg-secondary rounded-pill">${locs.length}</span>
+                    </button>
+                </h2>
+                <div id="${regionIdSafe}" class="accordion-collapse ${collapseClass}" aria-labelledby="heading_${regionIdSafe}">
+                    <div class="accordion-body p-0 mt-2 rounded-4 shadow-sm bg-custom-card">
+                        <div class="list-group list-group-flush rounded-4">
         `;
 
         locs.forEach(loc => {
@@ -2019,13 +2046,15 @@ function renderLocations(locations) {
         });
 
         groupHtml += `
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
         return groupHtml;
     };
 
-    html += renderGroup('北部', grouped['北部']);
+    html = `<div class="accordion" id="locationsAccordion">${renderGroup('北部', grouped['北部'])}`;
     html += renderGroup('中部', grouped['中部']);
     html += renderGroup('南部', grouped['南部']);
     html += renderGroup('東部', grouped['東部']);
@@ -2034,6 +2063,8 @@ function renderLocations(locations) {
     if (others.length > 0) {
         html += renderGroup('其他', others);
     }
+
+    html += `</div>`; // Close accordion wrapper
 
     locationsContainer.innerHTML = html;
 
