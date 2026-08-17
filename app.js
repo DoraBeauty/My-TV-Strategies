@@ -1912,14 +1912,6 @@ function loadLocations() {
     // For guest mode
     if (currentUser && currentUser.isGuest) {
         currentLocations = JSON.parse(localStorage.getItem('guest_locations') || '[]');
-
-        // Sort guest locations descending
-        currentLocations.sort((a, b) => {
-            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return timeB - timeA;
-        });
-
         renderLocations();
         return;
     }
@@ -1927,23 +1919,17 @@ function loadLocations() {
     if (!currentUser) return;
 
     try {
-        // Fetch all locations globally, removing orderBy to prevent potential composite index/permission errors
-        // We will sort them in JavaScript instead.
-        const q = query(collection(db, "locations"));
+        const q = query(
+            collection(db, "locations"),
+            where("userId", "==", currentUser.uid),
+            orderBy("createdAt", "desc")
+        );
 
         unsubscribeLocations = onSnapshot(q, (snapshot) => {
             currentLocations = [];
             snapshot.forEach((doc) => {
                 currentLocations.push({ id: doc.id, ...doc.data() });
             });
-
-            // Sort client-side (descending by createdAt)
-            currentLocations.sort((a, b) => {
-                const timeA = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
-                const timeB = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
-                return timeB - timeA;
-            });
-
             renderLocations();
         }, (error) => {
             console.error("Error loading locations:", error);
@@ -1986,20 +1972,6 @@ function renderLocations() {
         '外島': []
     };
 
-    const ADMIN_EMAIL = 'hephaestus161@gmail.com';
-    const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
-    const isGuest = currentUser && currentUser.isGuest;
-
-    const addLocationBtn = document.getElementById('addLocationBtn');
-    if (addLocationBtn) {
-        // Show Add Location button if user is the global admin, OR if they are in local guest mode
-        if (isUserAdmin || isGuest) {
-            addLocationBtn.style.display = 'inline-block';
-        } else {
-            addLocationBtn.style.display = 'none';
-        }
-    }
-
     const others = [];
 
     locations.forEach(loc => {
@@ -2012,6 +1984,9 @@ function renderLocations() {
 
     let html = '';
 
+    // Admin email
+    const ADMIN_EMAIL = 'hephaestus161@gmail.com';
+    const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
     const currentUserId = currentUser ? currentUser.uid : null;
 
     let regionIndex = 0;
@@ -2041,9 +2016,8 @@ function renderLocations() {
         `;
 
         locs.forEach(loc => {
-            // Only the super admin is allowed to edit or delete any locations globally.
-            // In Guest Mode, allow editing their local data.
-            const canEditOrDelete = isUserAdmin || isGuest;
+            const isOwner = currentUserId === loc.userId;
+            const canEditOrDelete = isOwner || isUserAdmin;
 
             groupHtml += `
                 <div class="list-group-item bg-transparent border-color d-flex justify-content-between align-items-center py-3">
