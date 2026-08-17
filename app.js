@@ -1911,12 +1911,15 @@ function loadLocations() {
 
     // For guest mode
     if (currentUser && currentUser.isGuest) {
-        // Provide mock global locations for Guest Mode to demonstrate search, but prevent editing
-        currentLocations = [
-            {"id": "mock1", "region": "北部", "name": "北部示範陣地 (唯讀)", "mapUrl": "https://maps.google.com", "userId": "admin"},
-            {"id": "mock2", "region": "中部", "name": "大甲溪南岸陣地 (唯讀)", "mapUrl": "https://maps.google.com", "userId": "admin"},
-            {"id": "mock3", "region": "南部", "name": "南部測試陣地 (唯讀)", "mapUrl": "https://maps.google.com", "userId": "admin"}
-        ];
+        currentLocations = JSON.parse(localStorage.getItem('guest_locations') || '[]');
+
+        // Sort guest locations descending
+        currentLocations.sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+        });
+
         renderLocations();
         return;
     }
@@ -1924,17 +1927,23 @@ function loadLocations() {
     if (!currentUser) return;
 
     try {
-        // Remove 'where' clause to fetch all locations globally for all users
-        const q = query(
-            collection(db, "locations"),
-            orderBy("createdAt", "desc")
-        );
+        // Fetch all locations globally, removing orderBy to prevent potential composite index/permission errors
+        // We will sort them in JavaScript instead.
+        const q = query(collection(db, "locations"));
 
         unsubscribeLocations = onSnapshot(q, (snapshot) => {
             currentLocations = [];
             snapshot.forEach((doc) => {
                 currentLocations.push({ id: doc.id, ...doc.data() });
             });
+
+            // Sort client-side (descending by createdAt)
+            currentLocations.sort((a, b) => {
+                const timeA = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
+                const timeB = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
+                return timeB - timeA;
+            });
+
             renderLocations();
         }, (error) => {
             console.error("Error loading locations:", error);
@@ -1979,10 +1988,12 @@ function renderLocations() {
 
     const ADMIN_EMAIL = 'hephaestus161@gmail.com';
     const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+    const isGuest = currentUser && currentUser.isGuest;
 
     const addLocationBtn = document.getElementById('addLocationBtn');
     if (addLocationBtn) {
-        if (isUserAdmin) {
+        // Show Add Location button if user is the global admin, OR if they are in local guest mode
+        if (isUserAdmin || isGuest) {
             addLocationBtn.style.display = 'inline-block';
         } else {
             addLocationBtn.style.display = 'none';
@@ -2030,8 +2041,9 @@ function renderLocations() {
         `;
 
         locs.forEach(loc => {
-            // Only the super admin is allowed to edit or delete any locations now, based on user requirements
-            const canEditOrDelete = isUserAdmin;
+            // Only the super admin is allowed to edit or delete any locations globally.
+            // In Guest Mode, allow editing their local data.
+            const canEditOrDelete = isUserAdmin || isGuest;
 
             groupHtml += `
                 <div class="list-group-item bg-transparent border-color d-flex justify-content-between align-items-center py-3">
@@ -2141,7 +2153,22 @@ saveLocationBtn.addEventListener('click', async () => {
         };
 
         if (currentUser && currentUser.isGuest) {
-            alert("訪客模式下無法新增或編輯陣地圖資，此功能僅限管理員使用。");
+            let localData = JSON.parse(localStorage.getItem('guest_locations') || '[]');
+            if (locId) {
+                // Update
+                const index = localData.findIndex(l => l.id === locId);
+                if (index !== -1) {
+                    localData[index] = { ...localData[index], ...locationData };
+                }
+            } else {
+                // Add
+                locationData.id = Date.now().toString();
+                locationData.userId = 'guest_user';
+                locationData.createdAt = new Date().toISOString();
+                localData.unshift(locationData);
+            }
+            localStorage.setItem('guest_locations', JSON.stringify(localData));
+            loadLocations();
         } else {
             if (locId) {
                 // Update
@@ -2172,7 +2199,10 @@ confirmDeleteLocationBtn.addEventListener('click', async () => {
 
     try {
         if (currentUser && currentUser.isGuest) {
-            alert("訪客模式下無法刪除陣地圖資，此功能僅限管理員使用。");
+            let localData = JSON.parse(localStorage.getItem('guest_locations') || '[]');
+            localData = localData.filter(l => l.id !== locationToDeleteId);
+            localStorage.setItem('guest_locations', JSON.stringify(localData));
+            loadLocations();
         } else {
             await withTimeout(deleteDoc(doc(db, "locations", locationToDeleteId)), 15000, '刪除陣地逾時');
         }
