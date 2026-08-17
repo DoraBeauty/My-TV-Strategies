@@ -1911,7 +1911,12 @@ function loadLocations() {
 
     // For guest mode
     if (currentUser && currentUser.isGuest) {
-        currentLocations = JSON.parse(localStorage.getItem('guest_locations') || '[]');
+        // Provide mock global locations for Guest Mode to demonstrate search, but prevent editing
+        currentLocations = [
+            {"id": "mock1", "region": "北部", "name": "北部示範陣地 (唯讀)", "mapUrl": "https://maps.google.com", "userId": "admin"},
+            {"id": "mock2", "region": "中部", "name": "大甲溪南岸陣地 (唯讀)", "mapUrl": "https://maps.google.com", "userId": "admin"},
+            {"id": "mock3", "region": "南部", "name": "南部測試陣地 (唯讀)", "mapUrl": "https://maps.google.com", "userId": "admin"}
+        ];
         renderLocations();
         return;
     }
@@ -1919,9 +1924,9 @@ function loadLocations() {
     if (!currentUser) return;
 
     try {
+        // Remove 'where' clause to fetch all locations globally for all users
         const q = query(
             collection(db, "locations"),
-            where("userId", "==", currentUser.uid),
             orderBy("createdAt", "desc")
         );
 
@@ -1972,6 +1977,18 @@ function renderLocations() {
         '外島': []
     };
 
+    const ADMIN_EMAIL = 'hephaestus161@gmail.com';
+    const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+
+    const addLocationBtn = document.getElementById('addLocationBtn');
+    if (addLocationBtn) {
+        if (isUserAdmin) {
+            addLocationBtn.style.display = 'inline-block';
+        } else {
+            addLocationBtn.style.display = 'none';
+        }
+    }
+
     const others = [];
 
     locations.forEach(loc => {
@@ -1984,9 +2001,6 @@ function renderLocations() {
 
     let html = '';
 
-    // Admin email
-    const ADMIN_EMAIL = 'hephaestus161@gmail.com';
-    const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
     const currentUserId = currentUser ? currentUser.uid : null;
 
     let regionIndex = 0;
@@ -2016,8 +2030,8 @@ function renderLocations() {
         `;
 
         locs.forEach(loc => {
-            const isOwner = currentUserId === loc.userId;
-            const canEditOrDelete = isOwner || isUserAdmin;
+            // Only the super admin is allowed to edit or delete any locations now, based on user requirements
+            const canEditOrDelete = isUserAdmin;
 
             groupHtml += `
                 <div class="list-group-item bg-transparent border-color d-flex justify-content-between align-items-center py-3">
@@ -2127,22 +2141,7 @@ saveLocationBtn.addEventListener('click', async () => {
         };
 
         if (currentUser && currentUser.isGuest) {
-            let localData = JSON.parse(localStorage.getItem('guest_locations') || '[]');
-            if (locId) {
-                // Update
-                const index = localData.findIndex(l => l.id === locId);
-                if (index !== -1) {
-                    localData[index] = { ...localData[index], ...locationData };
-                }
-            } else {
-                // Add
-                locationData.id = Date.now().toString();
-                locationData.userId = 'guest_user';
-                locationData.createdAt = new Date().toISOString();
-                localData.unshift(locationData);
-            }
-            localStorage.setItem('guest_locations', JSON.stringify(localData));
-            loadLocations();
+            alert("訪客模式下無法新增或編輯陣地圖資，此功能僅限管理員使用。");
         } else {
             if (locId) {
                 // Update
@@ -2173,10 +2172,7 @@ confirmDeleteLocationBtn.addEventListener('click', async () => {
 
     try {
         if (currentUser && currentUser.isGuest) {
-            let localData = JSON.parse(localStorage.getItem('guest_locations') || '[]');
-            localData = localData.filter(l => l.id !== locationToDeleteId);
-            localStorage.setItem('guest_locations', JSON.stringify(localData));
-            loadLocations();
+            alert("訪客模式下無法刪除陣地圖資，此功能僅限管理員使用。");
         } else {
             await withTimeout(deleteDoc(doc(db, "locations", locationToDeleteId)), 15000, '刪除陣地逾時');
         }
