@@ -653,10 +653,10 @@ const handleDriverChange = () => {
     if (driverSelect.value === 'self') {
         mileageSection.classList.add('show');
         if (type === 'car') {
-            mileageRateHint.textContent = "汽車：每公里補助 $3";
+            mileageRateHint.textContent = "汽車：每公里補助 $3 (自動計算來回)";
             mileageInput.dataset.rate = "3";
         } else {
-            mileageRateHint.textContent = "機車：每公里補助 $2";
+            mileageRateHint.textContent = "機車：每公里補助 $2 (自動計算來回)";
             mileageInput.dataset.rate = "2";
         }
     } else {
@@ -725,7 +725,7 @@ function calculateTotal() {
     if ((type === 'car' || type === 'motorcycle') && driverSelect.value === 'self') {
         const mileage = parseFloat(mileageInput.value) || 0;
         const rate = parseFloat(mileageInput.dataset.rate) || 0;
-        transportCost = mileage * rate;
+        transportCost = mileage * 2 * rate;
     }
 
     let receiptTotal = 0;
@@ -826,7 +826,7 @@ saveRecordBtn.addEventListener('click', async () => {
         if ((transportTypeVal === 'car' || transportTypeVal === 'motorcycle') && driver === 'self') {
             mileageVal = parseFloat(mileageInput.value) || 0;
             const rate = parseFloat(mileageInput.dataset.rate) || 0;
-            transportCostVal = Math.round(mileageVal * rate);
+            transportCostVal = Math.round(mileageVal * 2 * rate);
         }
 
         // Process Receipts
@@ -931,19 +931,70 @@ window.addEventListener('authReady', () => {
         orderBy('createdAt', 'desc')
     );
 
+    let migrationAttempted = false;
+
     unsubscribeRecords = onSnapshot(q, async (snapshot) => {
         loadingIndicator.style.display = 'none';
         recordsContainer.innerHTML = '';
         currentRecords = [];
         let unsettledTotal = 0;
 
+        const { updateDoc, doc } = window.firebaseData;
+        let needsUpdate = [];
+
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const record = { id: docSnap.id, ...data };
+
+            // Migration logic
+            if (!migrationAttempted) {
+                if ((record.transportType === 'car' || record.transportType === 'motorcycle') && record.driver === 'self' && record.mileage > 0) {
+                    const rate = record.transportType === 'car' ? 3 : 2;
+                    const singleTripCost = Math.round(record.mileage * rate);
+                    const twoWayCost = Math.round(record.mileage * 2 * rate);
+
+                    if (record.transportCost === singleTripCost && record.transportCost !== twoWayCost) {
+                        const diff = twoWayCost - record.transportCost;
+                        record.transportCost = twoWayCost;
+                        record.totalAmount += diff;
+                        needsUpdate.push(record);
+                    }
+                }
+            }
+
             currentRecords.push(record);
 
             if (!record.isSettled) unsettledTotal += record.totalAmount;
         });
+
+        if (!migrationAttempted && needsUpdate.length > 0) {
+            migrationAttempted = true;
+            if (currentUser.isGuest) {
+                let localData = JSON.parse(localStorage.getItem('guest_records') || '[]');
+                for (const record of needsUpdate) {
+                    const index = localData.findIndex(r => r.id === record.id);
+                    if (index !== -1) {
+                        localData[index].transportCost = record.transportCost;
+                        localData[index].totalAmount = record.totalAmount;
+                    }
+                }
+                localStorage.setItem('guest_records', JSON.stringify(localData));
+                console.log(`Migrated ${needsUpdate.length} guest records for two-way mileage.`);
+                // For guest mode, changing localStorage doesn't auto-trigger onSnapshot like Firestore does.
+                // We've already updated currentRecords memory in the loop above, so UI will render correctly.
+            } else {
+                // Not waiting for these updates, fire and forget to avoid slowing down UI
+                for (const record of needsUpdate) {
+                    updateDoc(doc(db, 'records', record.id), {
+                        transportCost: record.transportCost,
+                        totalAmount: record.totalAmount
+                    }).then(() => console.log(`Migrated record ${record.id} for two-way mileage.`))
+                      .catch(e => console.error("Migration failed for", record.id, e));
+                }
+            }
+        } else if (!migrationAttempted) {
+            migrationAttempted = true; // Mark as attempted even if no updates needed
+        }
 
         // Use the new render function to apply active filters/search queries
         if (typeof renderFilteredRecordsList === 'function') {
@@ -984,7 +1035,11 @@ const renderRecordCard = (record, container = recordsContainer) => {
         detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
     }
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
-        detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
+        if (record.driver === 'self') {
+            detailsHtml += `<div class="text-muted small">駕駛：自己 (單趟里程: ${record.mileage || 0}km, 已計算來回)</div>`;
+        } else {
+            detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver)} (里程: ${record.mileage || 0}km)</div>`;
+        }
     }
 
     let receiptsHtml = '';
