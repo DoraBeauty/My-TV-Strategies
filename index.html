@@ -108,7 +108,7 @@
             padding: 6px;
             display: flex;
             position: relative;
-            margin-bottom: 24px;
+            margin-bottom: 20px; margin-top: 10px;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
             transition: background-color 0.3s;
         }
@@ -229,7 +229,7 @@
         .slide-section.show {
             max-height: 500px;
             opacity: 1;
-            margin-top: 0.5rem;
+            margin-top: 0.25rem;
         }
 
         /* FAB */
@@ -255,9 +255,9 @@
         .receipt-item {
             border: 1px solid var(--border-color);
             background: var(--bg-card);
-            padding: 12px;
+            padding: 16px;
             border-radius: 12px;
-            margin-bottom: 12px;
+            margin-bottom: 20px; margin-top: 10px;
             position: relative;
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
             animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -280,19 +280,19 @@
         }
         .delete-receipt-btn {
             position: absolute;
-            top: -8px;
-            right: -8px;
+            top: -12px;
+            right: -12px;
             color: white;
             background: var(--ios-red);
             border: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 12px;
-            font-size: 14px;
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            font-size: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             z-index: 10;
         }
 
@@ -1021,15 +1021,12 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         <div class="ios-input-label">同行與交通</div>
                         <div class="ios-input-group">
 
-                            <input type="text" class="ios-input mb-3" id="leader" placeholder="帶隊官 (選填)">
+                            <input type="text" class="ios-input mb-2" id="leader" placeholder="帶隊官 (選填)">
 
                             <!-- Multi-input for Companions -->
-                            <div class="bg-custom-card border rounded-4 p-3 mb-3 shadow-sm">
+                            <div class="bg-custom-card border rounded-4 p-3 mb-1 shadow-sm">
                                 <div class="fw-bold small mb-2 text-muted">同行人員 (選填)</div>
                                 <div id="companionsContainer">
-                                    <input type="text" class="ios-input mb-2 companion-input" placeholder="人員 1">
-                                    <input type="text" class="ios-input mb-2 companion-input" placeholder="人員 2">
-                                    <input type="text" class="ios-input mb-2 companion-input" placeholder="人員 3">
                                 </div>
                                 <button type="button" class="btn btn-custom-light btn-sm w-100 rounded-pill text-primary fw-bold mt-1" id="addCompanionBtn">
                                     <i class="bi bi-person-add me-1"></i>新增同行人員
@@ -1062,7 +1059,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         </div>
 
                         <!-- Section 3: Extra Receipts -->
-                        <div class="ios-input-label d-flex justify-content-between align-items-end mt-4 mb-2">
+                        <div class="ios-input-label d-flex justify-content-between align-items-end mt-2 mb-2">
                             <span>發票與額外花費</span>
                         </div>
                         <div id="receiptsContainer">

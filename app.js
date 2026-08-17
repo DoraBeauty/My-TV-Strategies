@@ -573,15 +573,36 @@ const getCompanionsList = () => {
     return list;
 };
 
-// Add Companion Button
-addCompanionBtn.addEventListener('click', () => {
+// Helper to create companion input wrapper
+const createCompanionInput = (value = '', index) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'd-flex align-items-center mb-2 companion-wrapper';
+
     const input = document.createElement('input');
     input.type = 'text';
-    input.className = 'ios-input mb-2 companion-input';
-    const num = companionsContainer.querySelectorAll('.companion-input').length + 1;
-    input.placeholder = `人員 ${num}`;
+    input.className = 'ios-input companion-input flex-grow-1';
+    input.placeholder = `人員`;
+    if (value) input.value = value;
     input.addEventListener('input', updateDriverOptions);
-    companionsContainer.appendChild(input);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'btn btn-link text-danger p-0 ms-2';
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.addEventListener('click', () => {
+        wrapper.remove();
+        updateDriverOptions();
+    });
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(deleteBtn);
+    return wrapper;
+};
+
+// Add Companion Button
+addCompanionBtn.addEventListener('click', () => {
+    const num = companionsContainer.querySelectorAll('.companion-input').length + 1;
+    companionsContainer.appendChild(createCompanionInput('', num));
 });
 
 const updateDriverOptions = () => {
@@ -614,9 +635,14 @@ const updateDriverOptions = () => {
 
 transportTypeSelect.addEventListener('change', updateDriverOptions);
 
-// Bind initial companion inputs
-document.querySelectorAll('.companion-input').forEach(input => {
-    input.addEventListener('input', updateDriverOptions);
+// Initialize default companion inputs on load
+document.addEventListener('DOMContentLoaded', () => {
+    // We already do this on modal open, but for initial state if modal is already open/in HTML:
+    if(companionsContainer.children.length === 0) {
+        for(let i=1; i<=3; i++) {
+            companionsContainer.appendChild(createCompanionInput('', i));
+        }
+    }
 });
 
 
@@ -661,7 +687,7 @@ const createReceiptEl = (data = null) => {
     }
 
     el.innerHTML = `
-        <button type="button" class="delete-receipt-btn"><i class="bi bi-x"></i></button>
+        <button type="button" class="delete-receipt-btn"><i class="bi bi-trash"></i></button>
         <div class="mb-2">
             <input type="text" class="ios-input receipt-name" placeholder="發票項目名稱 (例如：高鐵去程, 住宿)" value="${data ? escapeHtml(data.name) : ''}" required>
         </div>
@@ -733,6 +759,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 recordIdInput.value = '';
                 modalTitle.textContent = '新增紀錄';
                 receiptsContainer.innerHTML = '';
+
+                // Clear and add default 3 empty companion inputs
+                companionsContainer.innerHTML = '';
+                for(let i=1; i<=3; i++) {
+                    companionsContainer.appendChild(createCompanionInput('', i));
+                }
 
                 totalAmountDisplay.textContent = '0';
                 timeCalcHint.textContent = '請輸入起訖時間計算雜費';
@@ -1202,13 +1234,7 @@ const openEditModal = (record) => {
     // Ensure at least 3 inputs are shown initially, like a fresh form
     const totalInputs = Math.max(3, companionsList.length);
     for(let i=0; i<totalInputs; i++) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'ios-input mb-2 companion-input';
-        input.placeholder = `人員 ${i+1}`;
-        if (companionsList[i]) input.value = companionsList[i];
-        input.addEventListener('input', updateDriverOptions);
-        companionsContainer.appendChild(input);
+        companionsContainer.appendChild(createCompanionInput(companionsList[i] || '', i + 1));
     }
 
     transportTypeSelect.value = record.transportType || '';
