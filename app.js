@@ -951,6 +951,9 @@ const renderRecordCard = (record, container = recordsContainer) => {
     if (record.leader) {
         detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
     }
+    if (record.companions && record.companions.trim() !== '') {
+        detailsHtml += `<div class="text-muted small">同行人員：${escapeHtml(record.companions)}</div>`;
+    }
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
         detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
     }
