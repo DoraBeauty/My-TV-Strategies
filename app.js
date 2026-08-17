@@ -1919,17 +1919,21 @@ function loadLocations() {
     if (!currentUser) return;
 
     try {
-        const q = query(
-            collection(db, "locations"),
-            where("userId", "==", currentUser.uid),
-            orderBy("createdAt", "desc")
-        );
+        const q = query(collection(db, "locations"));
 
         unsubscribeLocations = onSnapshot(q, (snapshot) => {
             currentLocations = [];
             snapshot.forEach((doc) => {
                 currentLocations.push({ id: doc.id, ...doc.data() });
             });
+
+            // Sort by createdAt descending client-side to avoid index requirement
+            currentLocations.sort((a, b) => {
+                const timeA = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
+                const timeB = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
+                return timeB - timeA;
+            });
+
             renderLocations();
         }, (error) => {
             console.error("Error loading locations:", error);
@@ -1972,6 +1976,18 @@ function renderLocations() {
         '外島': []
     };
 
+    const ADMIN_EMAIL = 'hephaestus161@gmail.com';
+    const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+
+    const addLocationBtn = document.getElementById('addLocationBtn');
+    if (addLocationBtn) {
+        if (isUserAdmin || (currentUser && currentUser.isGuest)) {
+            addLocationBtn.style.display = 'inline-block';
+        } else {
+            addLocationBtn.style.display = 'none';
+        }
+    }
+
     const others = [];
 
     locations.forEach(loc => {
@@ -1984,9 +2000,6 @@ function renderLocations() {
 
     let html = '';
 
-    // Admin email
-    const ADMIN_EMAIL = 'hephaestus161@gmail.com';
-    const isUserAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
     const currentUserId = currentUser ? currentUser.uid : null;
 
     let regionIndex = 0;
@@ -2016,8 +2029,7 @@ function renderLocations() {
         `;
 
         locs.forEach(loc => {
-            const isOwner = currentUserId === loc.userId;
-            const canEditOrDelete = isOwner || isUserAdmin;
+            const canEditOrDelete = isUserAdmin || (currentUser && currentUser.isGuest);
 
             groupHtml += `
                 <div class="list-group-item bg-transparent border-color d-flex justify-content-between align-items-center py-3">
