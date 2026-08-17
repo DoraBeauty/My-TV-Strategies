@@ -80,16 +80,14 @@ const viewToggleGroup = document.getElementById('viewToggleGroup');
 const fabBtn = document.getElementById('fabBtn');
 
 function updateSegmentSlider() {
-    // Assuming 4 options, 25% width each
-    segmentSlider.style.width = '25%';
+    // Assuming 3 options, 33.333% width each
+    segmentSlider.style.width = '33.333%';
     if (btnList.checked) {
         segmentSlider.style.transform = 'translateX(0)';
     } else if (btnCalendar.checked) {
         segmentSlider.style.transform = 'translateX(100%)';
-    } else if (btnAuditLog.checked) {
-        segmentSlider.style.transform = 'translateX(200%)';
     } else if (btnMap.checked) {
-        segmentSlider.style.transform = 'translateX(300%)';
+        segmentSlider.style.transform = 'translateX(200%)';
     }
 }
 
@@ -306,6 +304,7 @@ const mapViewWrapper = document.getElementById('mapViewWrapper');
 // --- View Toggle (List/Calendar/Audit) ---
 const restoreMainViews = () => {
     statsViewWrapper.style.display = 'none';
+    auditLogViewWrapper.style.display = 'none';
     viewToggleGroup.style.display = 'flex';
     if (fabBtn) fabBtn.style.display = 'flex';
 
@@ -324,13 +323,6 @@ const restoreMainViews = () => {
         auditLogViewWrapper.style.display = 'none';
         if (mapViewWrapper) mapViewWrapper.style.display = 'none';
         renderCustomCalendar();
-    } else if (btnAuditLog.checked) {
-        if (listControlsWrapper) listControlsWrapper.style.display = 'none';
-        recordsContainer.style.display = 'none';
-        calendarViewWrapper.style.display = 'none';
-        auditLogViewWrapper.style.display = 'block';
-        if (mapViewWrapper) mapViewWrapper.style.display = 'none';
-        if (typeof renderAuditLogs === 'function') renderAuditLogs();
     } else if (btnMap.checked) {
         if (listControlsWrapper) listControlsWrapper.style.display = 'none';
         recordsContainer.style.display = 'none';
@@ -340,6 +332,24 @@ const restoreMainViews = () => {
         if (fabBtn) fabBtn.style.display = 'none'; // Hide FAB on map view
     }
 };
+
+
+btnAuditLog.addEventListener('click', () => {
+    // Hide main views
+    if (listControlsWrapper) listControlsWrapper.style.display = 'none';
+    recordsContainer.style.display = 'none';
+    calendarViewWrapper.style.display = 'none';
+    if (mapViewWrapper) mapViewWrapper.style.display = 'none';
+
+    // Hide the view toggle segment slider completely and fab btn
+    viewToggleGroup.style.display = 'none';
+    if (fabBtn) fabBtn.style.display = 'none';
+
+    // Show audit log
+    auditLogViewWrapper.style.display = 'block';
+
+    if (typeof fetchAndRenderAuditLogs === 'function') fetchAndRenderAuditLogs();
+});
 
 btnList.addEventListener('change', () => {
     if (btnList.checked) {
@@ -357,13 +367,6 @@ btnMap.addEventListener('change', () => {
 
 btnCalendar.addEventListener('change', () => {
     if (btnCalendar.checked) {
-        updateSegmentSlider();
-        restoreMainViews();
-    }
-});
-
-btnAuditLog.addEventListener('change', () => {
-    if (btnAuditLog.checked) {
         updateSegmentSlider();
         restoreMainViews();
     }
@@ -392,6 +395,11 @@ statsNavBtn.addEventListener('click', () => {
 });
 
 backFromStatsBtn.addEventListener('click', restoreMainViews);
+
+const backFromAuditBtn = document.getElementById('backFromAuditBtn');
+if (backFromAuditBtn) {
+    backFromAuditBtn.addEventListener('click', restoreMainViews);
+}
 
 
 // Renders the continuous capsule backgrounds behind the dates.

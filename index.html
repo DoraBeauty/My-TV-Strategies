@@ -504,6 +504,11 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </button>
                         </li>
                         <li>
+                            <button id="btnAuditLog" class="dropdown-item d-flex align-items-center py-2" style="color: var(--text-main);">
+                                <i class="bi bi-clock-history me-2 text-muted"></i> 編輯紀錄
+                            </button>
+                        </li>
+                        <li>
                             <button id="themeToggleBtn" class="dropdown-item d-flex align-items-center py-2" style="color: var(--text-main);">
                                 <i class="bi bi-moon-stars me-2 text-muted" id="themeIcon"></i> 主題切換
                             </button>
@@ -552,9 +557,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
             <input type="radio" class="btn-check" name="viewToggle" id="btnCalendar" autocomplete="off">
             <label class="btn" for="btnCalendar"><i class="bi bi-calendar3 me-1"></i>日曆</label>
 
-            <input type="radio" class="btn-check" name="viewToggle" id="btnAuditLog" autocomplete="off">
-            <label class="btn" for="btnAuditLog"><i class="bi bi-clock-history me-1"></i>編輯紀錄</label>
-
             <input type="radio" class="btn-check" name="viewToggle" id="btnMap" autocomplete="off">
             <label class="btn" for="btnMap"><i class="bi bi-geo-alt-fill me-1"></i>陣地圖資</label>
         </div>
@@ -599,6 +601,12 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
 
         <!-- Audit Log View Wrapper -->
         <div id="auditLogViewWrapper" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button id="backFromAuditBtn" class="btn btn-custom-light text-main-custom rounded-pill px-3 fw-bold">
+                    <i class="bi bi-arrow-left me-1"></i> 返回
+                </button>
+                <h4 class="fw-bold m-0 text-main-custom"><i class="bi bi-clock-history me-2 text-primary"></i>編輯紀錄</h4>
+            </div>
             <div id="auditLogsContainer" class="row g-3">
                 <!-- Audit logs injected by JS -->
             </div>
