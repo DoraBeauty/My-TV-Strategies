@@ -1885,6 +1885,7 @@ function loadLocations() {
     try {
         const q = query(
             collection(db, "locations"),
+            where("userId", "==", currentUser.uid),
             orderBy("createdAt", "desc")
         );
 
