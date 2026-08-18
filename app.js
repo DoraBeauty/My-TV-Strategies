@@ -103,77 +103,6 @@ const withTimeout = (promise, ms, errorMessage = '操作逾時，請檢查網路
     ]);
 };
 
-
-// --- Route Settings ---
-const defaultSettings = {
-    hsr: { km: 20, roundTripKm: 40, fee: 120 },
-    bus: { km: 10, roundTripKm: 20, fee: 60 }
-};
-
-let routeSettings = JSON.parse(localStorage.getItem('routeSettings')) || defaultSettings;
-
-const settingHsrKm = document.getElementById('settingHsrKm');
-const settingHsrRoundTrip = document.getElementById('settingHsrRoundTrip');
-const settingHsrFee = document.getElementById('settingHsrFee');
-
-const settingBusKm = document.getElementById('settingBusKm');
-const settingBusRoundTrip = document.getElementById('settingBusRoundTrip');
-const settingBusFee = document.getElementById('settingBusFee');
-
-const saveRouteSettingsBtn = document.getElementById('saveRouteSettingsBtn');
-
-function updateSettingsDisplay() {
-    const hsrKm = parseFloat(settingHsrKm.value) || 0;
-    const hsrRt = hsrKm * 2;
-    settingHsrRoundTrip.textContent = hsrRt;
-    settingHsrFee.textContent = hsrRt * 3;
-
-    const busKm = parseFloat(settingBusKm.value) || 0;
-    const busRt = busKm * 2;
-    settingBusRoundTrip.textContent = busRt;
-    settingBusFee.textContent = busRt * 3;
-}
-
-if(settingHsrKm) settingHsrKm.addEventListener('input', updateSettingsDisplay);
-if(settingBusKm) settingBusKm.addEventListener('input', updateSettingsDisplay);
-
-if (saveRouteSettingsBtn) {
-    saveRouteSettingsBtn.addEventListener('click', () => {
-        const hsrKm = parseFloat(settingHsrKm.value) || 0;
-        const busKm = parseFloat(settingBusKm.value) || 0;
-
-        if (hsrKm < 0 || busKm < 0) {
-            alert('距離不可為負數');
-            return;
-        }
-
-        routeSettings = {
-            hsr: { km: hsrKm, roundTripKm: hsrKm * 2, fee: hsrKm * 2 * 3 },
-            bus: { km: busKm, roundTripKm: busKm * 2, fee: busKm * 2 * 3 }
-        };
-
-        try {
-            localStorage.setItem('routeSettings', JSON.stringify(routeSettings));
-
-            // Close modal
-            const modalEl = document.getElementById('routeSettingsModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            if (modal) modal.hide();
-
-            calculateTotal(); // Trigger recalculation in case modal was opened from record form
-        } catch (e) {
-            alert('儲存設定失敗：' + e.message);
-        }
-    });
-}
-
-// Initialize Settings UI when modal opens
-document.getElementById('routeSettingsModal')?.addEventListener('show.bs.modal', () => {
-    settingHsrKm.value = routeSettings.hsr.km;
-    settingBusKm.value = routeSettings.bus.km;
-    updateSettingsDisplay();
-});
-
 // Form Elements
 const form = document.getElementById('recordForm');
 const recordIdInput = document.getElementById('recordId');
@@ -208,6 +137,7 @@ const busReturnPrice = document.getElementById('busReturnPrice');
 
 const recordNote = document.getElementById('recordNote');
 const publicTransportSection = document.getElementById('publicTransportSection');
+const clearPublicTransitBtn = document.getElementById('clearPublicTransitBtn');
 
 
 const receiptsContainer = document.getElementById('receiptsContainer');
@@ -701,10 +631,12 @@ const updateDriverOptions = () => {
 
     if (type === 'none') {
         // Clear public transport selection
+        radioLastChecked = null;
         hsrRadio.checked = false;
         busRadio.checked = false;
         hsrRadio.dispatchEvent(new Event('change'));
         busRadio.dispatchEvent(new Event('change'));
+        clearPublicTransitBtn.style.display = 'none';
 
         // Clear driver/mileage
         driverSelect.value = 'self';
@@ -720,10 +652,12 @@ const updateDriverOptions = () => {
         return;
     } else if (type === 'car' || type === 'motorcycle') {
         // Clear public transport selection
+        radioLastChecked = null;
         hsrRadio.checked = false;
         busRadio.checked = false;
         hsrRadio.dispatchEvent(new Event('change'));
         busRadio.dispatchEvent(new Event('change'));
+        clearPublicTransitBtn.style.display = 'none';
 
         driverSection.classList.add('show');
         const companions = getCompanionsList();
@@ -748,7 +682,11 @@ const updateDriverOptions = () => {
 
 transportTypeSelect.addEventListener('change', updateDriverOptions);
 
+// Make radios deselectable
+let radioLastChecked = null;
 const handlePublicTransitChange = () => {
+    clearPublicTransitBtn.style.display = (hsrRadio.checked || busRadio.checked) ? 'inline-block' : 'none';
+
     if (hsrRadio.checked) {
         hsrSection.classList.add('show');
 
@@ -758,9 +696,7 @@ const handlePublicTransitChange = () => {
         busReturnPrice.value = '';
         ['busGoThumb', 'busReturnThumb'].forEach(id => {
             const el = document.getElementById(id);
-            el.innerHTML = '';
-            el.dataset.url = '';
-            el.dataset.path = '';
+            if(el) { el.innerHTML = ''; el.dataset.url = ''; el.dataset.path = ''; }
         });
         document.querySelectorAll('.bus-go-file, .bus-return-file').forEach(el => el.value = '');
     } else if (busRadio.checked) {
@@ -772,9 +708,7 @@ const handlePublicTransitChange = () => {
         hsrReturnPrice.value = '';
         ['hsrGoThumb', 'hsrReturnThumb'].forEach(id => {
             const el = document.getElementById(id);
-            el.innerHTML = '';
-            el.dataset.url = '';
-            el.dataset.path = '';
+            if(el) { el.innerHTML = ''; el.dataset.url = ''; el.dataset.path = ''; }
         });
         document.querySelectorAll('.hsr-go-file, .hsr-return-file').forEach(el => el.value = '');
     } else {
@@ -786,9 +720,7 @@ const handlePublicTransitChange = () => {
         busGoPrice.value = ''; busReturnPrice.value = '';
         ['hsrGoThumb', 'hsrReturnThumb', 'busGoThumb', 'busReturnThumb'].forEach(id => {
             const el = document.getElementById(id);
-            el.innerHTML = '';
-            el.dataset.url = '';
-            el.dataset.path = '';
+            if(el) { el.innerHTML = ''; el.dataset.url = ''; el.dataset.path = ''; }
         });
         document.querySelectorAll('.hsr-go-file, .hsr-return-file, .bus-go-file, .bus-return-file').forEach(el => el.value = '');
     }
@@ -797,6 +729,16 @@ const handlePublicTransitChange = () => {
 
 hsrRadio.addEventListener('change', handlePublicTransitChange);
 busRadio.addEventListener('change', handlePublicTransitChange);
+
+clearPublicTransitBtn.addEventListener('click', () => {
+    hsrRadio.checked = false;
+    busRadio.checked = false;
+    handlePublicTransitChange();
+});
+
+
+
+
 
 [hsrGoPrice, hsrReturnPrice, busGoPrice, busReturnPrice].forEach(input => {
     if (input) input.addEventListener('input', calculateTotal);
@@ -893,7 +835,7 @@ function calculateTotal() {
     if ((type === 'car' || type === 'motorcycle') && driverSelect.value === 'self') {
         const mileage = parseFloat(mileageInput.value) || 0;
         const rate = parseFloat(mileageInput.dataset.rate) || 0;
-        transportCost += mileage * rate;
+        transportCost += (mileage * rate) || 0;
     }
 
     let publicTransportTickets = 0;
@@ -902,12 +844,12 @@ function calculateTotal() {
     if (hsrRadio.checked) {
         publicTransportTickets += parseFloat(hsrGoPrice.value) || 0;
         publicTransportTickets += parseFloat(hsrReturnPrice.value) || 0;
-        transportCost += routeSettings.hsr.fee;
+        transportCost += (routeSettings.hsr.fee || 0);
         notesArr.push(`已含高鐵路程費 $${routeSettings.hsr.fee}（來回${routeSettings.hsr.roundTripKm}km）`);
     } else if (busRadio.checked) {
         publicTransportTickets += parseFloat(busGoPrice.value) || 0;
         publicTransportTickets += parseFloat(busReturnPrice.value) || 0;
-        transportCost += routeSettings.bus.fee;
+        transportCost += (routeSettings.bus.fee || 0);
         notesArr.push(`已含客運路程費 $${routeSettings.bus.fee}（來回${routeSettings.bus.roundTripKm}km）`);
     }
 
@@ -923,8 +865,8 @@ function calculateTotal() {
     });
 
     const total = allowance + transportCost + publicTransportTickets + receiptTotal;
-    totalAmountInput.value = Math.round(total);
-    totalAmountDisplay.textContent = Math.round(total);
+    totalAmountInput.value = Math.round(total) || 0;
+    totalAmountDisplay.textContent = Math.round(total) || 0;
 }
 
 
@@ -991,6 +933,11 @@ saveRecordBtn.addEventListener('click', async () => {
         return;
     }
 
+    if (transportTypeSelect.value === 'public' && !hsrRadio.checked && !busRadio.checked) {
+        alert('請選擇高鐵或客運');
+        return;
+    }
+
     // Explicit auth check: must be a guest, or a logged in google user
     if (!currentUser || (!currentUser.isGuest && !currentUser.uid)) {
         alert('尚未登入，請先使用 Google 登入後再儲存！');
@@ -1014,7 +961,7 @@ saveRecordBtn.addEventListener('click', async () => {
         const visitingUnit = document.getElementById('visitingUnit').value;
         const startVal = startTimeInput.value;
         const endVal = endTimeInput.value;
-        const allowanceVal = parseInt(allowanceInput.value);
+        const allowanceVal = parseInt(allowanceInput.value) || 0;
         const leaderVal = document.getElementById('leader').value.trim();
         const companions = getCompanionsList().join(', '); // Join array into string for saving
         const transportTypeVal = transportTypeSelect.value;
@@ -1026,7 +973,7 @@ saveRecordBtn.addEventListener('click', async () => {
         if ((transportTypeVal === 'car' || transportTypeVal === 'motorcycle') && driver === 'self') {
             mileageVal = parseFloat(mileageInput.value) || 0;
             const rate = parseFloat(mileageInput.dataset.rate) || 0;
-            transportCostVal = Math.round(mileageVal * rate);
+            transportCostVal = Math.round(mileageVal * rate) || 0;
         }
 
         // Helper for file upload
@@ -1083,7 +1030,7 @@ saveRecordBtn.addEventListener('click', async () => {
             const hsrReturnUploaded = await uploadFileIfPresent(document.querySelector('.hsr-return-file'), tickets.hsr.return.imagePath, tickets.hsr.return.imageUrl);
             tickets.hsr.return.imageUrl = hsrReturnUploaded.url; tickets.hsr.return.imagePath = hsrReturnUploaded.path;
 
-            transportCostVal += tickets.hsr.routeFee;
+            transportCostVal += (tickets.hsr.routeFee || 0);
         }
 
         if (busRadio.checked) {
@@ -1093,10 +1040,10 @@ saveRecordBtn.addEventListener('click', async () => {
             const busReturnUploaded = await uploadFileIfPresent(document.querySelector('.bus-return-file'), tickets.bus.return.imagePath, tickets.bus.return.imageUrl);
             tickets.bus.return.imageUrl = busReturnUploaded.url; tickets.bus.return.imagePath = busReturnUploaded.path;
 
-            transportCostVal += tickets.bus.routeFee;
+            transportCostVal += (tickets.bus.routeFee || 0);
         }
 
-        const totalVal = parseInt(totalAmountInput.value);
+        const totalVal = parseInt(totalAmountInput.value) || 0;
 
         const recordData = {
             userId: currentUser.uid,
@@ -1242,6 +1189,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
     if (record.leader) {
         detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
     }
+
     if (record.companions) {
         let companionsArr = [];
         if (Array.isArray(record.companions)) {
@@ -1254,11 +1202,13 @@ const renderRecordCard = (record, container = recordsContainer) => {
             detailsHtml += `<div class="text-muted small">同行人員：${escapeHtml(companionsArr.join(', '))}</div>`;
         }
     }
+
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
         detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
     }
     if (record.note && record.note !== "無自動路程費") {
-        const notes = record.note.split('\n');
+        const notes = record.note.split('
+');
         notes.forEach(n => {
             detailsHtml += `<div class="text-muted small">${escapeHtml(n)}</div>`;
         });
@@ -1279,6 +1229,114 @@ const renderRecordCard = (record, container = recordsContainer) => {
     let comboLabel = [mainTypeLabel, ptLabel].filter(Boolean).join(' + ');
     if (!comboLabel) comboLabel = '無';
 
+
+    let receiptsHtml = '';
+
+    let allReceipts = [];
+    if (record.receipts && record.receipts.length > 0) {
+        allReceipts = [...record.receipts];
+    }
+
+    if (record.tickets) {
+        if (record.tickets.hsr) {
+            if (record.tickets.hsr.go.amount > 0 || record.tickets.hsr.go.imageUrl) allReceipts.push({ name: '高鐵去程', price: record.tickets.hsr.go.amount, url: record.tickets.hsr.go.imageUrl });
+            if (record.tickets.hsr.return.amount > 0 || record.tickets.hsr.return.imageUrl) allReceipts.push({ name: '高鐵回程', price: record.tickets.hsr.return.amount, url: record.tickets.hsr.return.imageUrl });
+        }
+        if (record.tickets.bus) {
+            if (record.tickets.bus.go.amount > 0 || record.tickets.bus.go.imageUrl) allReceipts.push({ name: '客運去程', price: record.tickets.bus.go.amount, url: record.tickets.bus.go.imageUrl });
+            if (record.tickets.bus.return.amount > 0 || record.tickets.bus.return.imageUrl) allReceipts.push({ name: '客運回程', price: record.tickets.bus.return.amount, url: record.tickets.bus.return.imageUrl });
+        }
+    }
+
+    if (allReceipts.length > 0) {
+        receiptsHtml += `<div class="mt-2 pt-2 border-top" style="border-color: var(--border-color) !important;">`;
+        allReceipts.forEach(r => {
+            if (r.url) {
+                receiptsHtml += `<div class="d-flex justify-content-between text-muted small">
+                    <span><a href="${r.url}" target="_blank" class="text-decoration-none"><i class="bi bi-file-earmark-image me-1"></i>${escapeHtml(r.name)}</a></span>
+                    <span>$${r.price}</span>
+                </div>`;
+            } else {
+                receiptsHtml += `<div class="d-flex justify-content-between text-muted small">
+                    <span>${escapeHtml(r.name)}</span>
+                    <span>$${r.price}</span>
+                </div>`;
+            }
+        });
+        receiptsHtml += `</div>`;
+    }
+
+    let statusHtml = '';
+    if (record.isSettled) {
+        let settledStr = '已入帳';
+        if (record.settledAt) {
+            // Check if it's a date string or timestamp, format to YYYY/MM/DD
+            const d = new Date(record.settledAt);
+            if (!isNaN(d.getTime())) {
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                settledStr = `已入帳於 ${yyyy}/${mm}/${dd}`;
+            }
+        }
+        statusHtml = `<span class="badge bg-success rounded-pill px-2">${settledStr}</span>`;
+    }
+
+    let cardClass = record.isSettled ? 'card record-card status-settled bg-custom-card text-main-custom' : 'card record-card bg-custom-card text-main-custom';
+
+    // settled logic
+    let actionBtnHtml = '';
+    if (record.isSettled) {
+        const diffDays = Math.ceil(Math.abs(new Date() - (record.settledAt ? new Date(record.settledAt) : new Date())) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 30) {
+            actionBtnHtml = `<button class="btn btn-sm btn-outline-secondary w-100 mt-3 toggle-settle-btn rounded-pill fw-bold" data-id="${record.id}" data-action="undo"><i class="bi bi-arrow-counterclockwise"></i> 復原未入帳</button>`;
+        }
+    } else {
+        actionBtnHtml = `<button class="btn btn-sm btn-outline-primary w-100 mt-3 toggle-settle-btn rounded-pill fw-bold" data-id="${record.id}" data-action="settle"><i class="bi bi-check2-circle"></i> 標記為已入帳</button>`;
+    }
+
+    col.innerHTML = `
+        <div class="${cardClass}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title fw-bold m-0 text-truncate text-main-custom">${escapeHtml(record.tripName)}</h5>
+                    ${statusHtml}
+                </div>
+                <div class="small text-primary mb-2"><i class="bi bi-geo-alt-fill me-1"></i>${escapeHtml(record.location)} ${record.visitingUnit ? '('+escapeHtml(record.visitingUnit)+')' : ''}</div>
+                <div class="small text-muted mb-2"><i class="bi bi-clock me-1"></i>${record.startTime.replace('T', ' ')} ~<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${record.endTime.replace('T', ' ')}</div>
+
+                <div class="d-flex justify-content-between text-muted small border-top pt-2 mt-2" style="border-color: var(--border-color) !important;">
+                    <span>雜費</span><span>$${record.allowance}</span>
+                </div>
+                <div class="d-flex justify-content-between text-muted small">
+                    <span>交通費 (${comboLabel})</span><span>$${totalTransportDisplay}</span>
+                </div>
+                ${detailsHtml}
+                ${receiptsHtml}
+
+                <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
+                    <span class="fw-bold text-main-custom">總計</span>
+                    <span class="fw-bold text-danger fs-5">$${record.totalAmount}</span>
+                </div>
+
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-custom-light btn-sm flex-fill edit-record-btn text-primary fw-bold rounded-pill" data-id="${record.id}"><i class="bi bi-pencil-square"></i> 編輯</button>
+                    <button class="btn btn-custom-light btn-sm flex-fill delete-record-btn text-danger fw-bold rounded-pill" data-id="${record.id}" data-trip="${escapeHtml(record.tripName)}"><i class="bi bi-trash"></i> 刪除</button>
+                </div>
+                ${actionBtnHtml}
+            </div>
+        </div>
+    `;
+    container.appendChild(col);
+};
+
+    let detailsHtml = '';
+    if (record.leader) {
+        detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
+    }
+    if (record.transportType === 'car' || record.transportType === 'motorcycle') {
+        detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
+    }
 
     let receiptsHtml = '';
     if (record.receipts && record.receipts.length > 0) {
@@ -1336,7 +1394,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
                     <span>雜費</span><span>$${record.allowance}</span>
                 </div>
                 <div class="d-flex justify-content-between text-muted small">
-                    <span>交通費 (${comboLabel})</span><span>$${totalTransportDisplay}</span>
+                    <span>交通費 (${typeMap[record.transportType] || '無'})</span><span>$${record.transportCost}</span>
                 </div>
                 ${detailsHtml}
                 ${receiptsHtml}
@@ -1535,79 +1593,11 @@ const openEditModal = (record) => {
         companionsContainer.appendChild(createCompanionInput(companionsList[i] || '', i + 1));
     }
 
-    // Handle Legacy 'public' type (now mapped to 'public' explicitly if it's the old version without transportTypes, or if it explicitly says public)
-    let mappedType = record.transportType || 'none';
-    if (mappedType === 'public') mappedType = 'public';
-    // If it's an old record that had 'public' but no tickets/types, it'll still just show 'public' and user can check boxes.
-    // Wait, if it has hsr/bus checked, we should ensure the transportType is 'public' so the section shows.
-    if (record.transportTypes && record.transportTypes.length > 0) {
-        mappedType = 'public';
-    }
-    transportTypeSelect.value = mappedType;
+    transportTypeSelect.value = record.transportType || '';
 
     updateDriverOptions();
     if (record.driver) driverSelect.value = record.driver;
     handleDriverChange();
-
-    // Handle HSR/Bus
-    if (record.transportTypes && record.transportTypes.includes('hsr')) {
-        hsrRadio.checked = true;
-        busRadio.checked = false;
-    } else if (record.transportTypes && record.transportTypes.includes('bus')) {
-        hsrRadio.checked = false;
-        busRadio.checked = true;
-    } else {
-        hsrRadio.checked = false;
-        busRadio.checked = false;
-    }
-
-    // Clear thumbs & files
-    ['hsrGoThumb', 'hsrReturnThumb', 'busGoThumb', 'busReturnThumb'].forEach(id => {
-        const el = document.getElementById(id);
-        el.innerHTML = '';
-        el.dataset.url = '';
-        el.dataset.path = '';
-    });
-    document.querySelectorAll('.hsr-go-file, .hsr-return-file, .bus-go-file, .bus-return-file').forEach(el => el.value = '');
-
-    if (record.tickets) {
-        if (record.tickets.hsr) {
-            hsrGoPrice.value = record.tickets.hsr.go.amount || '';
-            if (record.tickets.hsr.go.imageUrl) {
-                document.getElementById('hsrGoThumb').innerHTML = `<img src="${record.tickets.hsr.go.imageUrl}" class="receipt-thumbnail mt-2">`;
-                document.getElementById('hsrGoThumb').dataset.url = record.tickets.hsr.go.imageUrl;
-                document.getElementById('hsrGoThumb').dataset.path = record.tickets.hsr.go.imagePath;
-            }
-            hsrReturnPrice.value = record.tickets.hsr.return.amount || '';
-            if (record.tickets.hsr.return.imageUrl) {
-                document.getElementById('hsrReturnThumb').innerHTML = `<img src="${record.tickets.hsr.return.imageUrl}" class="receipt-thumbnail mt-2">`;
-                document.getElementById('hsrReturnThumb').dataset.url = record.tickets.hsr.return.imageUrl;
-                document.getElementById('hsrReturnThumb').dataset.path = record.tickets.hsr.return.imagePath;
-            }
-        }
-        if (record.tickets.bus) {
-            busGoPrice.value = record.tickets.bus.go.amount || '';
-            if (record.tickets.bus.go.imageUrl) {
-                document.getElementById('busGoThumb').innerHTML = `<img src="${record.tickets.bus.go.imageUrl}" class="receipt-thumbnail mt-2">`;
-                document.getElementById('busGoThumb').dataset.url = record.tickets.bus.go.imageUrl;
-                document.getElementById('busGoThumb').dataset.path = record.tickets.bus.go.imagePath;
-            }
-            busReturnPrice.value = record.tickets.bus.return.amount || '';
-            if (record.tickets.bus.return.imageUrl) {
-                document.getElementById('busReturnThumb').innerHTML = `<img src="${record.tickets.bus.return.imageUrl}" class="receipt-thumbnail mt-2">`;
-                document.getElementById('busReturnThumb').dataset.url = record.tickets.bus.return.imageUrl;
-                document.getElementById('busReturnThumb').dataset.path = record.tickets.bus.return.imagePath;
-            }
-        }
-    } else {
-        hsrGoPrice.value = ''; hsrReturnPrice.value = '';
-        busGoPrice.value = ''; busReturnPrice.value = '';
-    }
-
-    // Manually trigger events to show/hide sections
-    hsrRadio.dispatchEvent(new Event('change'));
-    busRadio.dispatchEvent(new Event('change'));
-
 
     if (record.mileage !== null) mileageInput.value = record.mileage;
 
@@ -1913,55 +1903,7 @@ const logAction = async (actionType, tripName, details = null) => {
     }
 };
 
-const cleanupOldAuditLogs = async () => {
-    const { db, collection, getDocs, doc, deleteDoc, query, where, currentUser } = window.firebaseData;
-    if (!currentUser || !db) return;
-
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-
-    try {
-        if (db === 'mock_db') {
-            const raw = localStorage.getItem('guest_audit_logs');
-            if (raw) {
-                let logs = JSON.parse(raw);
-                const initialLength = logs.length;
-                logs = logs.filter(log => {
-                    const logTime = new Date(log.createdAt).getTime();
-                    return (now - logTime) <= SEVEN_DAYS_MS;
-                });
-                if (logs.length !== initialLength) {
-                    localStorage.setItem('guest_audit_logs', JSON.stringify(logs));
-                }
-            }
-        } else {
-            // Real Firebase
-            const q = query(collection(db, 'auditLogs'), where('userId', '==', currentUser.uid));
-            const snapshot = await getDocs(q);
-
-            const deletePromises = [];
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.createdAt) {
-                    const logTime = data.createdAt.toDate ? data.createdAt.toDate().getTime() : data.createdAt;
-                    if ((now - logTime) > SEVEN_DAYS_MS) {
-                        deletePromises.push(deleteDoc(docSnap.ref));
-                    }
-                }
-            });
-
-            if (deletePromises.length > 0) {
-                await Promise.all(deletePromises);
-            }
-        }
-    } catch (e) {
-        console.error("Failed to cleanup old audit logs:", e);
-    }
-};
-
 const fetchAndRenderAuditLogs = async () => {
-    await cleanupOldAuditLogs(); // Cleanup before fetching
-
     const { db, collection, query, where, orderBy, getDocs, currentUser } = window.firebaseData;
     if (!currentUser || !db) return;
 
@@ -2232,7 +2174,6 @@ document.getElementById('resetStatsFilterBtn').addEventListener('click', () => {
 const renderFilteredRecordsList = () => {
     recordsContainer.innerHTML = '';
 
-
     if (!currentRecords || currentRecords.length === 0) {
         recordsContainer.innerHTML = `
             <div class="col-12 text-center py-5">
@@ -2243,7 +2184,6 @@ const renderFilteredRecordsList = () => {
         `;
         return;
     }
-
 
     const keyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
     const statusFilter = statusFilterSelect ? statusFilterSelect.value : 'all';
@@ -2324,9 +2264,6 @@ const renderFilteredRecordsList = () => {
         sortedMonths.forEach((month, index) => {
             const container = document.getElementById(`groupContainer_${index}`);
             groups[month].forEach(r => {
-                // Modify renderRecordCard so it takes the container and appends to it directly,
-                // instead of expecting `col` to be appended somewhere else. Wait, `renderRecordCard`
-                // natively appends `col` to the passed `container` argument.
                 renderRecordCard(r, container);
             });
         });
@@ -2672,3 +2609,124 @@ confirmDeleteLocationBtn.addEventListener('click', async () => {
         deleteLocationSpinner.classList.add('d-none');
     }
 });
+
+
+// --- Route Settings & Firestore Sync ---
+const settingHsrKm = document.getElementById('settingHsrKm');
+const settingHsrRoundTrip = document.getElementById('settingHsrRoundTrip');
+const settingHsrFee = document.getElementById('settingHsrFee');
+const settingBusKm = document.getElementById('settingBusKm');
+const settingBusRoundTrip = document.getElementById('settingBusRoundTrip');
+const settingBusFee = document.getElementById('settingBusFee');
+const saveRouteSettingsBtn = document.getElementById('saveRouteSettingsBtn');
+const routeSettingsForm = document.getElementById('routeSettingsForm');
+
+let userSettings = {
+    hsrKm: 20,
+    busKm: 10,
+    pricePerKm: 3
+};
+
+// Update local UI when inputs change
+const updateSettingsUI = () => {
+    if (!settingHsrKm || !settingBusKm) return;
+    const hsrKm = parseFloat(settingHsrKm.value) || 0;
+    settingHsrRoundTrip.textContent = (hsrKm * 2).toFixed(1).replace(/\.0$/, '');
+    settingHsrFee.textContent = Math.round(hsrKm * 2 * userSettings.pricePerKm);
+
+    const busKm = parseFloat(settingBusKm.value) || 0;
+    settingBusRoundTrip.textContent = (busKm * 2).toFixed(1).replace(/\.0$/, '');
+    settingBusFee.textContent = Math.round(busKm * 2 * userSettings.pricePerKm);
+};
+
+if (settingHsrKm) settingHsrKm.addEventListener('input', updateSettingsUI);
+if (settingBusKm) settingBusKm.addEventListener('input', updateSettingsUI);
+
+const loadSettings = async () => {
+    // 1. Load from localStorage
+    const localStr = localStorage.getItem('userSettings');
+    if (localStr) {
+        try {
+            userSettings = { ...userSettings, ...JSON.parse(localStr) };
+        } catch (e) { console.error('Failed to parse local settings'); }
+    }
+
+    // 2. Overwrite with Cloud Sync if logged in
+    if (window.firebaseData && window.firebaseData.currentUser && !isGuestMode) {
+        try {
+            const { db, doc } = window.firebaseData;
+            const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            const docSnap = await getDoc(doc(db, "userSettings", window.firebaseData.currentUser.uid));
+            if (docSnap.exists()) {
+                userSettings = { ...userSettings, ...docSnap.data() };
+                localStorage.setItem('userSettings', JSON.stringify(userSettings)); // sync to local
+            }
+        } catch(error) {
+            console.error("Error loading settings from Firestore:", error);
+        }
+    }
+
+    if (settingHsrKm) settingHsrKm.value = userSettings.hsrKm;
+    if (settingBusKm) settingBusKm.value = userSettings.busKm;
+    updateSettingsUI();
+};
+
+if (saveRouteSettingsBtn) {
+    saveRouteSettingsBtn.addEventListener('click', async () => {
+        if (routeSettingsForm && !routeSettingsForm.checkValidity()) {
+            routeSettingsForm.reportValidity();
+            return;
+        }
+
+        const newSettings = {
+            hsrKm: parseFloat(settingHsrKm.value) || 0,
+            busKm: parseFloat(settingBusKm.value) || 0,
+            pricePerKm: 3
+        };
+
+        // Save locally
+        localStorage.setItem('userSettings', JSON.stringify(newSettings));
+        userSettings = newSettings;
+
+        showToast('設定已更新！', 'success');
+
+        // Sync to cloud
+        if (window.firebaseData && window.firebaseData.currentUser && !isGuestMode) {
+            try {
+                const { db, doc } = window.firebaseData;
+                const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                await setDoc(doc(db, "userSettings", window.firebaseData.currentUser.uid), newSettings, { merge: true });
+                console.log("Settings synced to Firestore successfully.");
+            } catch (error) {
+                console.error("Error syncing settings to Firestore:", error);
+                showToast('雲端同步失敗，但已儲存在本機', 'warning');
+            }
+        }
+
+        const modalEl = document.getElementById('routeSettingsModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
+
+        // Trigger updates if modal is open
+        if (transportTypeSelect && transportTypeSelect.value === 'public') {
+            handlePublicTransitChange();
+        }
+    });
+}
+
+// Hook into existing global auth state updates, or handle it via a global setup.
+// We can just rely on the existing observer setting window.firebaseData.
+const checkAuthAndLoad = () => {
+    if (isGuestMode || (window.firebaseData && window.firebaseData.currentUser)) {
+        loadSettings();
+    } else {
+        setTimeout(checkAuthAndLoad, 500); // Check again in 500ms
+    }
+};
+checkAuthAndLoad();
+
+
+// Load settings initially (for guest mode / before auth loads)
+loadSettings();
