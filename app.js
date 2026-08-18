@@ -1226,8 +1226,14 @@ const renderRecordCard = (record, container = recordsContainer) => {
     if (record.leader) {
         detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
     }
-    if (record.companions && record.companions.trim() !== '') {
-        const companionsArr = record.companions.split(',').map(s => s.trim()).filter(Boolean);
+    if (record.companions) {
+        let companionsArr = [];
+        if (Array.isArray(record.companions)) {
+            companionsArr = record.companions.filter(Boolean);
+        } else if (typeof record.companions === 'string' && record.companions.trim() !== '') {
+            companionsArr = record.companions.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
         if (companionsArr.length > 0) {
             detailsHtml += `<div class="text-muted small">同行人員：${escapeHtml(companionsArr.join(', '))}</div>`;
         }
@@ -2247,7 +2253,62 @@ const renderFilteredRecordsList = () => {
             </div>
         `;
     } else {
-        results.forEach(r => renderRecordCard(r));
+        // Group by month
+        const groups = {};
+        // Sort descending by start time so newest is first
+        results.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+
+        results.forEach(r => {
+            const date = new Date(r.startTime);
+            const monthKey = `${date.getFullYear()}年 ${String(date.getMonth() + 1).padStart(2, '0')}月`;
+            if (!groups[monthKey]) groups[monthKey] = [];
+            groups[monthKey].push(r);
+        });
+
+        const accordionId = 'recordsAccordion';
+        let html = `<div class="accordion w-100" id="${accordionId}">`;
+
+        // Ensure month keys are sorted descending as well
+        const sortedMonths = Object.keys(groups).sort((a, b) => {
+            // Replace strings to get format like 202305 to sort numerically
+            const aNum = parseInt(a.replace('年 ', '').replace('月', ''));
+            const bNum = parseInt(b.replace('年 ', '').replace('月', ''));
+            return bNum - aNum;
+        });
+
+        // They should all be collapsed by default according to the new request
+        sortedMonths.forEach((month, index) => {
+            // Need a valid ID for Bootstrap collapse without spaces
+            const collapseId = `collapseMonth_${index}`;
+            const headerId = `headingMonth_${index}`;
+
+            html += `
+            <div class="accordion-item bg-transparent border-0 mb-3">
+                <h2 class="accordion-header" id="${headerId}">
+                    <button class="accordion-button collapsed bg-custom-light text-main-custom fw-bold rounded-4 shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}" style="border: none;">
+                        <i class="bi bi-calendar-check me-2 text-primary"></i> ${month} <span class="badge bg-primary rounded-pill ms-2">${groups[month].length}</span>
+                    </button>
+                </h2>
+                <div id="${collapseId}" class="accordion-collapse collapse" aria-labelledby="${headerId}">
+                    <div class="accordion-body px-0 py-3">
+                        <div class="row g-3" id="groupContainer_${index}"></div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+        recordsContainer.innerHTML = html;
+
+        // Now append cards to their respective containers
+        sortedMonths.forEach((month, index) => {
+            const container = document.getElementById(`groupContainer_${index}`);
+            groups[month].forEach(r => {
+                // Modify renderRecordCard so it takes the container and appends to it directly,
+                // instead of expecting `col` to be appended somewhere else. Wait, `renderRecordCard`
+                // natively appends `col` to the passed `container` argument.
+                renderRecordCard(r, container);
+            });
+        });
     }
 };
 
