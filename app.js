@@ -103,6 +103,77 @@ const withTimeout = (promise, ms, errorMessage = '操作逾時，請檢查網路
     ]);
 };
 
+
+// --- Route Settings ---
+const defaultSettings = {
+    hsr: { km: 20, roundTripKm: 40, fee: 120 },
+    bus: { km: 10, roundTripKm: 20, fee: 60 }
+};
+
+let routeSettings = JSON.parse(localStorage.getItem('routeSettings')) || defaultSettings;
+
+const settingHsrKm = document.getElementById('settingHsrKm');
+const settingHsrRoundTrip = document.getElementById('settingHsrRoundTrip');
+const settingHsrFee = document.getElementById('settingHsrFee');
+
+const settingBusKm = document.getElementById('settingBusKm');
+const settingBusRoundTrip = document.getElementById('settingBusRoundTrip');
+const settingBusFee = document.getElementById('settingBusFee');
+
+const saveRouteSettingsBtn = document.getElementById('saveRouteSettingsBtn');
+
+function updateSettingsDisplay() {
+    const hsrKm = parseFloat(settingHsrKm.value) || 0;
+    const hsrRt = hsrKm * 2;
+    settingHsrRoundTrip.textContent = hsrRt;
+    settingHsrFee.textContent = hsrRt * 3;
+
+    const busKm = parseFloat(settingBusKm.value) || 0;
+    const busRt = busKm * 2;
+    settingBusRoundTrip.textContent = busRt;
+    settingBusFee.textContent = busRt * 3;
+}
+
+if(settingHsrKm) settingHsrKm.addEventListener('input', updateSettingsDisplay);
+if(settingBusKm) settingBusKm.addEventListener('input', updateSettingsDisplay);
+
+if (saveRouteSettingsBtn) {
+    saveRouteSettingsBtn.addEventListener('click', () => {
+        const hsrKm = parseFloat(settingHsrKm.value) || 0;
+        const busKm = parseFloat(settingBusKm.value) || 0;
+
+        if (hsrKm < 0 || busKm < 0) {
+            alert('距離不可為負數');
+            return;
+        }
+
+        routeSettings = {
+            hsr: { km: hsrKm, roundTripKm: hsrKm * 2, fee: hsrKm * 2 * 3 },
+            bus: { km: busKm, roundTripKm: busKm * 2, fee: busKm * 2 * 3 }
+        };
+
+        try {
+            localStorage.setItem('routeSettings', JSON.stringify(routeSettings));
+
+            // Close modal
+            const modalEl = document.getElementById('routeSettingsModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            calculateTotal(); // Trigger recalculation in case modal was opened from record form
+        } catch (e) {
+            alert('儲存設定失敗：' + e.message);
+        }
+    });
+}
+
+// Initialize Settings UI when modal opens
+document.getElementById('routeSettingsModal')?.addEventListener('show.bs.modal', () => {
+    settingHsrKm.value = routeSettings.hsr.km;
+    settingBusKm.value = routeSettings.bus.km;
+    updateSettingsDisplay();
+});
+
 // Form Elements
 const form = document.getElementById('recordForm');
 const recordIdInput = document.getElementById('recordId');
@@ -123,6 +194,20 @@ const driverSelect = document.getElementById('driverSelect');
 const mileageSection = document.getElementById('mileageSection');
 const mileageInput = document.getElementById('mileage');
 const mileageRateHint = document.getElementById('mileageRateHint');
+
+// HSR / Bus Form Elements
+const hsrCheckbox = document.getElementById('hsrCheckbox');
+const hsrSection = document.getElementById('hsrSection');
+const hsrGoPrice = document.getElementById('hsrGoPrice');
+const hsrReturnPrice = document.getElementById('hsrReturnPrice');
+
+const busCheckbox = document.getElementById('busCheckbox');
+const busSection = document.getElementById('busSection');
+const busGoPrice = document.getElementById('busGoPrice');
+const busReturnPrice = document.getElementById('busReturnPrice');
+
+const recordNote = document.getElementById('recordNote');
+
 
 const receiptsContainer = document.getElementById('receiptsContainer');
 const addReceiptBtn = document.getElementById('addReceiptBtn');
@@ -635,6 +720,47 @@ const updateDriverOptions = () => {
 
 transportTypeSelect.addEventListener('change', updateDriverOptions);
 
+hsrCheckbox.addEventListener('change', () => {
+    if (hsrCheckbox.checked) {
+        hsrSection.classList.add('show');
+    } else {
+        hsrSection.classList.remove('show');
+        hsrGoPrice.value = '';
+        hsrReturnPrice.value = '';
+        ['hsrGoThumb', 'hsrReturnThumb'].forEach(id => {
+            const el = document.getElementById(id);
+            el.innerHTML = '';
+            el.dataset.url = '';
+            el.dataset.path = '';
+        });
+        document.querySelectorAll('.hsr-go-file, .hsr-return-file').forEach(el => el.value = '');
+    }
+    calculateTotal();
+});
+
+busCheckbox.addEventListener('change', () => {
+    if (busCheckbox.checked) {
+        busSection.classList.add('show');
+    } else {
+        busSection.classList.remove('show');
+        busGoPrice.value = '';
+        busReturnPrice.value = '';
+        ['busGoThumb', 'busReturnThumb'].forEach(id => {
+            const el = document.getElementById(id);
+            el.innerHTML = '';
+            el.dataset.url = '';
+            el.dataset.path = '';
+        });
+        document.querySelectorAll('.bus-go-file, .bus-return-file').forEach(el => el.value = '');
+    }
+    calculateTotal();
+});
+
+[hsrGoPrice, hsrReturnPrice, busGoPrice, busReturnPrice].forEach(input => {
+    if (input) input.addEventListener('input', calculateTotal);
+});
+
+
 // Initialize default companion inputs on load
 document.addEventListener('DOMContentLoaded', () => {
     // We already do this on modal open, but for initial state if modal is already open/in HTML:
@@ -725,7 +851,30 @@ function calculateTotal() {
     if ((type === 'car' || type === 'motorcycle') && driverSelect.value === 'self') {
         const mileage = parseFloat(mileageInput.value) || 0;
         const rate = parseFloat(mileageInput.dataset.rate) || 0;
-        transportCost = mileage * rate;
+        transportCost += mileage * rate;
+    }
+
+    let publicTransportTickets = 0;
+    let notesArr = [];
+
+    if (hsrCheckbox.checked) {
+        publicTransportTickets += parseFloat(hsrGoPrice.value) || 0;
+        publicTransportTickets += parseFloat(hsrReturnPrice.value) || 0;
+        transportCost += routeSettings.hsr.fee;
+        notesArr.push(`已含高鐵路程費 $${routeSettings.hsr.fee}（來回${routeSettings.hsr.roundTripKm}km）`);
+    }
+
+    if (busCheckbox.checked) {
+        publicTransportTickets += parseFloat(busGoPrice.value) || 0;
+        publicTransportTickets += parseFloat(busReturnPrice.value) || 0;
+        transportCost += routeSettings.bus.fee;
+        notesArr.push(`已含客運路程費 $${routeSettings.bus.fee}（來回${routeSettings.bus.roundTripKm}km）`);
+    }
+
+    if (notesArr.length > 0) {
+        recordNote.value = notesArr.join('\n');
+    } else {
+        recordNote.value = "無自動路程費";
     }
 
     let receiptTotal = 0;
@@ -733,7 +882,7 @@ function calculateTotal() {
         receiptTotal += parseFloat(input.value) || 0;
     });
 
-    const total = allowance + transportCost + receiptTotal;
+    const total = allowance + transportCost + publicTransportTickets + receiptTotal;
     totalAmountInput.value = Math.round(total);
     totalAmountDisplay.textContent = Math.round(total);
 }
@@ -829,6 +978,19 @@ saveRecordBtn.addEventListener('click', async () => {
             transportCostVal = Math.round(mileageVal * rate);
         }
 
+        // Helper for file upload
+        const uploadFileIfPresent = async (fileInput, oldPath, oldUrl) => {
+            if (fileInput && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const filename = `receipts/${currentUser.uid}/${Date.now()}_${file.name}`;
+                const storageRef = ref(storage, filename);
+                await withTimeout(uploadBytes(storageRef, file), 15000, '圖片上傳逾時，請檢查網路狀態或 Firebase Storage 規則');
+                const url = await getDownloadURL(storageRef);
+                return { path: filename, url: url };
+            }
+            return { path: oldPath || null, url: oldUrl || null };
+        };
+
         // Process Receipts
         const receipts = [];
         const receiptEls = document.querySelectorAll('#receiptsContainer .receipt-item');
@@ -836,20 +998,51 @@ saveRecordBtn.addEventListener('click', async () => {
             const name = el.querySelector('.receipt-name').value;
             const price = parseFloat(el.querySelector('.receipt-price').value) || 0;
             const fileInput = el.querySelector('.receipt-file');
+            let oldPath = el.querySelector('.receipt-old-path') ? el.querySelector('.receipt-old-path').value : null;
+            let oldUrl = el.querySelector('.receipt-old-url') ? el.querySelector('.receipt-old-url').value : null;
 
-            let path = el.querySelector('.receipt-old-path') ? el.querySelector('.receipt-old-path').value : null;
-            let url = el.querySelector('.receipt-old-url') ? el.querySelector('.receipt-old-url').value : null;
+            const uploaded = await uploadFileIfPresent(fileInput, oldPath, oldUrl);
+            receipts.push({ name, price, path: uploaded.path, url: uploaded.url });
+        }
 
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const filename = `receipts/${currentUser.uid}/${Date.now()}_${file.name}`;
-                const storageRef = ref(storage, filename);
-                await withTimeout(uploadBytes(storageRef, file), 15000, '圖片上傳逾時，請檢查網路狀態或 Firebase Storage 規則');
-                url = await getDownloadURL(storageRef);
-                path = filename;
+        // Process HSR/Bus Tickets
+        let transportTypes = [];
+        if (hsrCheckbox.checked) transportTypes.push('hsr');
+        if (busCheckbox.checked) transportTypes.push('bus');
+
+        let tickets = {
+            hsr: {
+                go: { amount: parseFloat(hsrGoPrice.value) || 0, imageUrl: document.getElementById('hsrGoThumb').dataset.url || null, imagePath: document.getElementById('hsrGoThumb').dataset.path || null },
+                return: { amount: parseFloat(hsrReturnPrice.value) || 0, imageUrl: document.getElementById('hsrReturnThumb').dataset.url || null, imagePath: document.getElementById('hsrReturnThumb').dataset.path || null },
+                routeFee: routeSettings.hsr.fee,
+                routeKmRoundTrip: routeSettings.hsr.roundTripKm
+            },
+            bus: {
+                go: { amount: parseFloat(busGoPrice.value) || 0, imageUrl: document.getElementById('busGoThumb').dataset.url || null, imagePath: document.getElementById('busGoThumb').dataset.path || null },
+                return: { amount: parseFloat(busReturnPrice.value) || 0, imageUrl: document.getElementById('busReturnThumb').dataset.url || null, imagePath: document.getElementById('busReturnThumb').dataset.path || null },
+                routeFee: routeSettings.bus.fee,
+                routeKmRoundTrip: routeSettings.bus.roundTripKm
             }
+        };
 
-            receipts.push({ name, price, path, url });
+        if (hsrCheckbox.checked) {
+            const hsrGoUploaded = await uploadFileIfPresent(document.querySelector('.hsr-go-file'), tickets.hsr.go.imagePath, tickets.hsr.go.imageUrl);
+            tickets.hsr.go.imageUrl = hsrGoUploaded.url; tickets.hsr.go.imagePath = hsrGoUploaded.path;
+
+            const hsrReturnUploaded = await uploadFileIfPresent(document.querySelector('.hsr-return-file'), tickets.hsr.return.imagePath, tickets.hsr.return.imageUrl);
+            tickets.hsr.return.imageUrl = hsrReturnUploaded.url; tickets.hsr.return.imagePath = hsrReturnUploaded.path;
+
+            transportCostVal += tickets.hsr.routeFee;
+        }
+
+        if (busCheckbox.checked) {
+            const busGoUploaded = await uploadFileIfPresent(document.querySelector('.bus-go-file'), tickets.bus.go.imagePath, tickets.bus.go.imageUrl);
+            tickets.bus.go.imageUrl = busGoUploaded.url; tickets.bus.go.imagePath = busGoUploaded.path;
+
+            const busReturnUploaded = await uploadFileIfPresent(document.querySelector('.bus-return-file'), tickets.bus.return.imagePath, tickets.bus.return.imageUrl);
+            tickets.bus.return.imageUrl = busReturnUploaded.url; tickets.bus.return.imagePath = busReturnUploaded.path;
+
+            transportCostVal += tickets.bus.routeFee;
         }
 
         const totalVal = parseInt(totalAmountInput.value);
@@ -870,6 +1063,9 @@ saveRecordBtn.addEventListener('click', async () => {
             transportCost: transportCostVal,
             receipts,
             totalAmount: totalVal,
+            transportTypes,
+            tickets,
+            note: recordNote.value
         };
 
         if (isEdit) {
@@ -986,6 +1182,28 @@ const renderRecordCard = (record, container = recordsContainer) => {
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
         detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
     }
+    if (record.note && record.note !== "無自動路程費") {
+        const notes = record.note.split('\n');
+        notes.forEach(n => {
+            detailsHtml += `<div class="text-muted small">${escapeHtml(n)}</div>`;
+        });
+    }
+
+    // Aggregate public transport types for display label
+    let publicTransportStr = [];
+    if (record.transportTypes) {
+        if (record.transportTypes.includes('hsr')) publicTransportStr.push('高鐵');
+        if (record.transportTypes.includes('bus')) publicTransportStr.push('客運');
+    } else if (record.transportType === 'public') {
+        publicTransportStr.push('大眾/其他'); // Legacy fallback
+    }
+    const ptLabel = publicTransportStr.length > 0 ? publicTransportStr.join('/') : '';
+    const mainTypeLabel = typeMap[record.transportType] || '';
+
+    // Combine labels
+    let comboLabel = [mainTypeLabel, ptLabel].filter(Boolean).join(' + ');
+    if (!comboLabel) comboLabel = '無';
+
 
     let receiptsHtml = '';
     if (record.receipts && record.receipts.length > 0) {
@@ -1043,7 +1261,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
                     <span>雜費</span><span>$${record.allowance}</span>
                 </div>
                 <div class="d-flex justify-content-between text-muted small">
-                    <span>交通費 (${typeMap[record.transportType] || '無'})</span><span>$${record.transportCost}</span>
+                    <span>交通費 (${comboLabel})</span><span>$${record.transportCost}</span>
                 </div>
                 ${detailsHtml}
                 ${receiptsHtml}
@@ -1237,11 +1455,66 @@ const openEditModal = (record) => {
         companionsContainer.appendChild(createCompanionInput(companionsList[i] || '', i + 1));
     }
 
-    transportTypeSelect.value = record.transportType || '';
+    // Handle Legacy 'public' type
+    let mappedType = record.transportType || '';
+    if (mappedType === 'public') mappedType = 'none';
+    transportTypeSelect.value = mappedType;
 
     updateDriverOptions();
     if (record.driver) driverSelect.value = record.driver;
     handleDriverChange();
+
+    // Handle HSR/Bus
+    hsrCheckbox.checked = record.transportTypes && record.transportTypes.includes('hsr');
+    busCheckbox.checked = record.transportTypes && record.transportTypes.includes('bus');
+
+    // Clear thumbs & files
+    ['hsrGoThumb', 'hsrReturnThumb', 'busGoThumb', 'busReturnThumb'].forEach(id => {
+        const el = document.getElementById(id);
+        el.innerHTML = '';
+        el.dataset.url = '';
+        el.dataset.path = '';
+    });
+    document.querySelectorAll('.hsr-go-file, .hsr-return-file, .bus-go-file, .bus-return-file').forEach(el => el.value = '');
+
+    if (record.tickets) {
+        if (record.tickets.hsr) {
+            hsrGoPrice.value = record.tickets.hsr.go.amount || '';
+            if (record.tickets.hsr.go.imageUrl) {
+                document.getElementById('hsrGoThumb').innerHTML = `<img src="${record.tickets.hsr.go.imageUrl}" class="receipt-thumbnail mt-2">`;
+                document.getElementById('hsrGoThumb').dataset.url = record.tickets.hsr.go.imageUrl;
+                document.getElementById('hsrGoThumb').dataset.path = record.tickets.hsr.go.imagePath;
+            }
+            hsrReturnPrice.value = record.tickets.hsr.return.amount || '';
+            if (record.tickets.hsr.return.imageUrl) {
+                document.getElementById('hsrReturnThumb').innerHTML = `<img src="${record.tickets.hsr.return.imageUrl}" class="receipt-thumbnail mt-2">`;
+                document.getElementById('hsrReturnThumb').dataset.url = record.tickets.hsr.return.imageUrl;
+                document.getElementById('hsrReturnThumb').dataset.path = record.tickets.hsr.return.imagePath;
+            }
+        }
+        if (record.tickets.bus) {
+            busGoPrice.value = record.tickets.bus.go.amount || '';
+            if (record.tickets.bus.go.imageUrl) {
+                document.getElementById('busGoThumb').innerHTML = `<img src="${record.tickets.bus.go.imageUrl}" class="receipt-thumbnail mt-2">`;
+                document.getElementById('busGoThumb').dataset.url = record.tickets.bus.go.imageUrl;
+                document.getElementById('busGoThumb').dataset.path = record.tickets.bus.go.imagePath;
+            }
+            busReturnPrice.value = record.tickets.bus.return.amount || '';
+            if (record.tickets.bus.return.imageUrl) {
+                document.getElementById('busReturnThumb').innerHTML = `<img src="${record.tickets.bus.return.imageUrl}" class="receipt-thumbnail mt-2">`;
+                document.getElementById('busReturnThumb').dataset.url = record.tickets.bus.return.imageUrl;
+                document.getElementById('busReturnThumb').dataset.path = record.tickets.bus.return.imagePath;
+            }
+        }
+    } else {
+        hsrGoPrice.value = ''; hsrReturnPrice.value = '';
+        busGoPrice.value = ''; busReturnPrice.value = '';
+    }
+
+    // Manually trigger events to show/hide sections
+    hsrCheckbox.dispatchEvent(new Event('change'));
+    busCheckbox.dispatchEvent(new Event('change'));
+
 
     if (record.mileage !== null) mileageInput.value = record.mileage;
 
