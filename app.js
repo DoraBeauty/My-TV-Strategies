@@ -941,38 +941,41 @@ document.addEventListener('DOMContentLoaded', () => {
             delete allowanceInput.dataset.manualOverride;
             timeCalcHint.innerHTML = '';
 
-            if (!e.relatedTarget || !e.relatedTarget.closest) return;
-            const btn = e.relatedTarget.closest('.fab');
-            if (btn) {
-                form.reset();
-                recordIdInput.value = '';
-                modalTitle.textContent = '新增紀錄';
-                receiptsContainer.innerHTML = '';
+            const isEditBtn = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.btn-outline-primary');
+            if (isEditBtn) return; // Ignore if opened via edit button
 
-                // Clear and add default 3 empty companion inputs
-                companionsContainer.innerHTML = '';
-                for(let i=1; i<=3; i++) {
-                    companionsContainer.appendChild(createCompanionInput('', i));
-                }
+            // Otherwise reset the form
+            form.reset();
+            recordIdInput.value = '';
+            modalTitle.textContent = '新增紀錄';
+            receiptsContainer.innerHTML = '';
 
-                // Reset transport UI explicitly
-                transportTypeSelect.value = 'none';
-                updateDriverOptions();
+            // Set default start/end times
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
 
-                totalAmountDisplay.textContent = '0';
-                timeCalcHint.textContent = '請輸入起訖時間計算雜費';
-                timeCalcHint.classList.remove('text-danger');
+            // Construct strings for today at 07:00 and 18:00
+            const defaultStart = `${yyyy}-${mm}-${dd}T07:00`;
+            const defaultEnd = `${yyyy}-${mm}-${dd}T18:00`;
 
-                // Prefill dates to current time and +1 hour
-                const now = new Date();
-                // offset timezone
-                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                startTimeInput.value = now.toISOString().slice(0,16);
-                const later = new Date(now.getTime() + 60 * 60 * 1000);
-                endTimeInput.value = later.toISOString().slice(0,16);
-                calculateAllowance();
-                updateDriverOptions();
+            document.getElementById('startTime').value = defaultStart;
+            document.getElementById('endTime').value = defaultEnd;
+
+            // Clear and add default 3 empty companion inputs
+            companionsContainer.innerHTML = '';
+            for(let i=1; i<=3; i++) {
+                companionsContainer.appendChild(createCompanionInput('', i));
             }
+
+            // Reset transport UI explicitly
+            transportTypeSelect.value = 'none';
+            updateDriverOptions();
+
+            // Trigger time inputs to calculate allowance and total
+            startTimeInput.dispatchEvent(new Event('input'));
+            endTimeInput.dispatchEvent(new Event('input'));
         });
     }
 });
@@ -1222,6 +1225,12 @@ const renderRecordCard = (record, container = recordsContainer) => {
     let detailsHtml = '';
     if (record.leader) {
         detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
+    }
+    if (record.companions && record.companions.trim() !== '') {
+        const companionsArr = record.companions.split(',').map(s => s.trim()).filter(Boolean);
+        if (companionsArr.length > 0) {
+            detailsHtml += `<div class="text-muted small">同行人員：${escapeHtml(companionsArr.join(', '))}</div>`;
+        }
     }
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
         detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
