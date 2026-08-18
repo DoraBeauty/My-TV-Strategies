@@ -3,7 +3,7 @@ import {
     getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
-    getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, getDocs, getDoc, setDoc
+    getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import {
     getStorage, ref, uploadBytes, getDownloadURL, deleteObject
@@ -117,10 +117,7 @@ const timeCalcHint = document.getElementById('timeCalcHint');
 
 const companionsContainer = document.getElementById('companionsContainer');
 const addCompanionBtn = document.getElementById('addCompanionBtn');
-const getSelectedTransportType = () => {
-    const checked = document.querySelector('input[name="transportType"]:checked');
-    return checked ? checked.value : '';
-};
+const transportTypeSelect = document.getElementById('transportType');
 const driverSection = document.getElementById('driverSection');
 const driverSelect = document.getElementById('driverSelect');
 const mileageSection = document.getElementById('mileageSection');
@@ -129,7 +126,6 @@ const mileageRateHint = document.getElementById('mileageRateHint');
 
 const receiptsContainer = document.getElementById('receiptsContainer');
 const addReceiptBtn = document.getElementById('addReceiptBtn');
-const memoInput = document.getElementById('memo');
 
 const totalAmountInput = document.getElementById('totalAmount');
 const totalAmountDisplay = document.getElementById('totalAmountDisplay');
@@ -220,18 +216,6 @@ const startGuestMode = () => {
             triggerListeners();
         },
         query: () => 'mock_query', where: () => null, orderBy: () => null,
-        getDoc: async (docRef) => {
-            if (docRef.path === 'userSettings/guest') {
-                const data = localStorage.getItem('guest_settings');
-                return { exists: () => !!data, data: () => data ? JSON.parse(data) : null };
-            }
-            return { exists: () => false, data: () => null };
-        },
-        setDoc: async (docRef, data) => {
-            if (docRef.path === 'userSettings/guest') {
-                localStorage.setItem('guest_settings', JSON.stringify(data));
-            }
-        },
         getDocs: async (q) => {
             if (q === 'mock_audit_query') {
                 const raw = localStorage.getItem('guest_audit_logs');
@@ -293,7 +277,7 @@ onAuthStateChanged(auth, (user) => {
         unsettledBadgeBtn.style.display = 'inline-block';
 
         window.firebaseData = {
-            db, storage, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, getDocs, getDoc, setDoc, deleteObject, currentUser
+            db, storage, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, getDocs, deleteObject, currentUser
         };
 
         window.dispatchEvent(new Event('authReady'));
@@ -622,7 +606,7 @@ addCompanionBtn.addEventListener('click', () => {
 });
 
 const updateDriverOptions = () => {
-    const type = getSelectedTransportType();
+    const type = transportTypeSelect.value;
     if (type !== 'car' && type !== 'motorcycle') {
         driverSection.classList.remove('show');
         mileageSection.classList.remove('show');
@@ -649,6 +633,8 @@ const updateDriverOptions = () => {
     handleDriverChange();
 };
 
+transportTypeSelect.addEventListener('change', updateDriverOptions);
+
 // Initialize default companion inputs on load
 document.addEventListener('DOMContentLoaded', () => {
     // We already do this on modal open, but for initial state if modal is already open/in HTML:
@@ -661,16 +647,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 const handleDriverChange = () => {
-    const type = getSelectedTransportType();
+    const type = transportTypeSelect.value;
     if (type !== 'car' && type !== 'motorcycle') return;
 
     if (driverSelect.value === 'self') {
         mileageSection.classList.add('show');
         if (type === 'car') {
-            mileageRateHint.textContent = "汽車：每公里補助 $3 (自動計算來回)";
+            mileageRateHint.textContent = "汽車：每公里補助 $3";
             mileageInput.dataset.rate = "3";
         } else {
-            mileageRateHint.textContent = "機車：每公里補助 $2 (自動計算來回)";
+            mileageRateHint.textContent = "機車：每公里補助 $2";
             mileageInput.dataset.rate = "2";
         }
     } else {
@@ -735,51 +721,11 @@ function calculateTotal() {
     const allowance = parseFloat(allowanceInput.value) || 0;
 
     let transportCost = 0;
-    const type = getSelectedTransportType();
-
-    // Default memo generation
-    let autoMemo = '';
-
+    const type = transportTypeSelect.value;
     if ((type === 'car' || type === 'motorcycle') && driverSelect.value === 'self') {
         const mileage = parseFloat(mileageInput.value) || 0;
         const rate = parseFloat(mileageInput.dataset.rate) || 0;
-        transportCost = mileage * 2 * rate;
-    } else if (type === 'public') {
-        // Add public transport fee inputs
-        document.querySelectorAll('.public-fee-input').forEach(input => {
-            transportCost += parseFloat(input.value) || 0;
-        });
-
-        // Add short distance fees and generate memo
-        const hsrSelected = document.getElementById('publicHsr').checked;
-        const busSelected = document.getElementById('publicBus').checked;
-
-        if (hsrSelected) {
-            transportCost += userSettings.hsrFee;
-            autoMemo = `已自動加上兵整中心到高鐵站來回路程費 ${userSettings.hsrFee} 元（來回 ${userSettings.hsrDistance} 公里）`;
-        } else if (busSelected) {
-            transportCost += userSettings.busFee;
-            autoMemo = `已自動加上兵整中心到客運站來回路程費 ${userSettings.busFee} 元（來回 ${userSettings.busDistance} 公里）`;
-        }
-    }
-
-    // Combine memo if needed, checking for existing user text that isn't our auto memo
-    if (memoInput) {
-        const currentMemo = memoInput.value.trim();
-        const oldHsrMemoRegex = /已自動加上兵整中心到高鐵站來回路程費 \d+ 元（來回 \d+ 公里）/g;
-        const oldBusMemoRegex = /已自動加上兵整中心到客運站來回路程費 \d+ 元（來回 \d+ 公里）/g;
-
-        // Clean up old auto memo strings
-        let cleanMemo = currentMemo.replace(oldHsrMemoRegex, '').replace(oldBusMemoRegex, '').trim();
-
-        // Combine clean memo with new auto memo
-        if (autoMemo && cleanMemo) {
-            memoInput.value = `${autoMemo}\n${cleanMemo}`;
-        } else if (autoMemo) {
-            memoInput.value = autoMemo;
-        } else {
-            memoInput.value = cleanMemo;
-        }
+        transportCost = mileage * rate;
     }
 
     let receiptTotal = 0;
@@ -819,13 +765,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 for(let i=1; i<=3; i++) {
                     companionsContainer.appendChild(createCompanionInput('', i));
                 }
-
-                // Reset custom sub fields that might not be handled by form.reset() smoothly if dynamically injected
-                document.getElementById('publicTransportInputsContainer').innerHTML = '';
-                document.getElementById('publicTransportSection').classList.remove('show');
-                document.getElementById('driverSection').classList.remove('show');
-                document.getElementById('mileageSection').classList.remove('show');
-                if(memoInput) memoInput.value = '';
 
                 totalAmountDisplay.textContent = '0';
                 timeCalcHint.textContent = '請輸入起訖時間計算雜費';
@@ -878,45 +817,16 @@ saveRecordBtn.addEventListener('click', async () => {
         const allowanceVal = parseInt(allowanceInput.value);
         const leaderVal = document.getElementById('leader').value.trim();
         const companions = getCompanionsList().join(', '); // Join array into string for saving
-        const transportTypeVal = getSelectedTransportType();
+        const transportTypeVal = transportTypeSelect.value;
         const driver = driverSelect.value;
 
         let mileageVal = null;
         let transportCostVal = 0;
 
-        // Public Transport Options
-        let publicShort = '';
-        let publicLong = [];
-        let publicFees = [];
-
-        if (transportTypeVal === 'public') {
-            const shortChecked = document.querySelector('input[name="publicShort"]:checked');
-            if (shortChecked) publicShort = shortChecked.value;
-
-            document.querySelectorAll('input.public-transport-sub[type="checkbox"]:checked').forEach(cb => {
-                publicLong.push(cb.value);
-            });
-
-            document.querySelectorAll('.public-fee-input').forEach(input => {
-                const type = input.dataset.type;
-                const dir = input.dataset.dir;
-                const val = parseFloat(input.value) || 0;
-                if (val > 0) {
-                    publicFees.push({ type, dir, amount: val });
-                }
-                transportCostVal += val;
-            });
-
-            // Short distance fees
-            if (publicShort === 'hsr') {
-                transportCostVal += userSettings.hsrFee;
-            } else if (publicShort === 'bus') {
-                transportCostVal += userSettings.busFee;
-            }
-        } else if ((transportTypeVal === 'car' || transportTypeVal === 'motorcycle') && driver === 'self') {
+        if ((transportTypeVal === 'car' || transportTypeVal === 'motorcycle') && driver === 'self') {
             mileageVal = parseFloat(mileageInput.value) || 0;
             const rate = parseFloat(mileageInput.dataset.rate) || 0;
-            transportCostVal = Math.round(mileageVal * 2 * rate);
+            transportCostVal = Math.round(mileageVal * rate);
         }
 
         // Process Receipts
@@ -944,8 +854,6 @@ saveRecordBtn.addEventListener('click', async () => {
 
         const totalVal = parseInt(totalAmountInput.value);
 
-        const memoVal = memoInput ? memoInput.value.trim() : '';
-
         const recordData = {
             userId: currentUser.uid,
             tripName,
@@ -957,14 +865,10 @@ saveRecordBtn.addEventListener('click', async () => {
             leader: leaderVal,
             companions,
             transportType: transportTypeVal,
-            publicShort,
-            publicLong,
-            publicFees,
             driver,
             mileage: mileageVal,
             transportCost: transportCostVal,
             receipts,
-            memo: memoVal,
             totalAmount: totalVal,
         };
 
@@ -1018,9 +922,8 @@ window.addEventListener('authReady', () => {
     loadingIndicator.style.display = 'block';
     recordsContainer.innerHTML = '';
 
-    // Also load locations and user settings
+    // Also load locations
     loadLocations();
-    loadUserSettings();
 
     const q = query(
         collection(db, 'records'),
@@ -1028,70 +931,19 @@ window.addEventListener('authReady', () => {
         orderBy('createdAt', 'desc')
     );
 
-    let migrationAttempted = false;
-
     unsubscribeRecords = onSnapshot(q, async (snapshot) => {
         loadingIndicator.style.display = 'none';
         recordsContainer.innerHTML = '';
         currentRecords = [];
         let unsettledTotal = 0;
 
-        const { updateDoc, doc } = window.firebaseData;
-        let needsUpdate = [];
-
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             const record = { id: docSnap.id, ...data };
-
-            // Migration logic
-            if (!migrationAttempted) {
-                if ((record.transportType === 'car' || record.transportType === 'motorcycle') && record.driver === 'self' && record.mileage > 0) {
-                    const rate = record.transportType === 'car' ? 3 : 2;
-                    const singleTripCost = Math.round(record.mileage * rate);
-                    const twoWayCost = Math.round(record.mileage * 2 * rate);
-
-                    if (record.transportCost === singleTripCost && record.transportCost !== twoWayCost) {
-                        const diff = twoWayCost - record.transportCost;
-                        record.transportCost = twoWayCost;
-                        record.totalAmount += diff;
-                        needsUpdate.push(record);
-                    }
-                }
-            }
-
             currentRecords.push(record);
 
             if (!record.isSettled) unsettledTotal += record.totalAmount;
         });
-
-        if (!migrationAttempted && needsUpdate.length > 0) {
-            migrationAttempted = true;
-            if (currentUser.isGuest) {
-                let localData = JSON.parse(localStorage.getItem('guest_records') || '[]');
-                for (const record of needsUpdate) {
-                    const index = localData.findIndex(r => r.id === record.id);
-                    if (index !== -1) {
-                        localData[index].transportCost = record.transportCost;
-                        localData[index].totalAmount = record.totalAmount;
-                    }
-                }
-                localStorage.setItem('guest_records', JSON.stringify(localData));
-                console.log(`Migrated ${needsUpdate.length} guest records for two-way mileage.`);
-                // For guest mode, changing localStorage doesn't auto-trigger onSnapshot like Firestore does.
-                // We've already updated currentRecords memory in the loop above, so UI will render correctly.
-            } else {
-                // Not waiting for these updates, fire and forget to avoid slowing down UI
-                for (const record of needsUpdate) {
-                    updateDoc(doc(db, 'records', record.id), {
-                        transportCost: record.transportCost,
-                        totalAmount: record.totalAmount
-                    }).then(() => console.log(`Migrated record ${record.id} for two-way mileage.`))
-                      .catch(e => console.error("Migration failed for", record.id, e));
-                }
-            }
-        } else if (!migrationAttempted) {
-            migrationAttempted = true; // Mark as attempted even if no updates needed
-        }
 
         // Use the new render function to apply active filters/search queries
         if (typeof renderFilteredRecordsList === 'function') {
@@ -1125,35 +977,14 @@ const renderRecordCard = (record, container = recordsContainer) => {
     const col = document.createElement('div');
     col.className = 'col-12 col-md-6 col-lg-4';
 
-    const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾運輸' };
-    const publicSubMap = { 'hsr': '高鐵', 'bus': '客運', 'none': '無接駁', 'plane': '機票', 'ship': '搭船' };
+    const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
 
     let detailsHtml = '';
     if (record.leader) {
         detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
     }
-    if (record.companions && record.companions.trim() !== '') {
-        detailsHtml += `<div class="text-muted small">同行人員：${escapeHtml(record.companions)}</div>`;
-    }
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
-        if (record.driver === 'self') {
-            detailsHtml += `<div class="text-muted small">駕駛：自己 (單趟里程: ${record.mileage || 0}km, 已計算來回)</div>`;
-        } else {
-            detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver)} (里程: ${record.mileage || 0}km)</div>`;
-        }
-    } else if (record.transportType === 'public') {
-        let publicDetails = [];
-        if (record.publicShort && record.publicShort !== 'none') publicDetails.push(publicSubMap[record.publicShort]);
-        if (record.publicLong && record.publicLong.length > 0) {
-            record.publicLong.forEach(item => publicDetails.push(publicSubMap[item]));
-        }
-        if (publicDetails.length > 0) {
-            detailsHtml += `<div class="text-muted small">大眾運輸細項：${publicDetails.join(' + ')}</div>`;
-        }
-    }
-
-    if (record.memo && record.memo.trim() !== '') {
-        detailsHtml += `<div class="text-muted small mt-1 pb-1 border-bottom" style="white-space: pre-line; word-break: break-all;">備註/說明：${escapeHtml(record.memo)}</div>`;
+        detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
     }
 
     let receiptsHtml = '';
@@ -1406,39 +1237,7 @@ const openEditModal = (record) => {
         companionsContainer.appendChild(createCompanionInput(companionsList[i] || '', i + 1));
     }
 
-    const transportRadio = document.querySelector(`input[name="transportType"][value="${record.transportType || ''}"]`);
-    if (transportRadio) {
-        transportRadio.checked = true;
-        transportRadio.dispatchEvent(new Event('change'));
-    }
-
-    // Restore the sub-options for public transport and the memo
-    if (record.transportType === 'public') {
-        if (record.publicShort) {
-            const shortRadio = document.getElementById(`public${record.publicShort.charAt(0).toUpperCase() + record.publicShort.slice(1)}`);
-            if (shortRadio) shortRadio.checked = true;
-        }
-
-        if (record.publicLong) {
-            document.querySelectorAll('input.public-transport-sub[type="checkbox"]').forEach(cb => {
-                cb.checked = record.publicLong.includes(cb.value);
-            });
-        }
-
-        renderPublicTransportInputs();
-
-        // Restore public fee inputs
-        if (record.publicFees) {
-            record.publicFees.forEach(fee => {
-                const input = document.querySelector(`.public-fee-input[data-type="${fee.type}"][data-dir="${fee.dir}"]`);
-                if (input) input.value = fee.amount;
-            });
-        }
-    }
-
-    if (memoInput && record.memo !== undefined) {
-        memoInput.value = record.memo;
-    }
+    transportTypeSelect.value = record.transportType || '';
 
     updateDriverOptions();
     if (record.driver) driverSelect.value = record.driver;
@@ -1531,20 +1330,10 @@ const renderCalendarList = () => {
 exportBtn.addEventListener('click', () => {
     if (!currentRecords || currentRecords.length === 0) return alert('沒有可匯出的紀錄。');
 
-    const headers = ['出差名稱', '地點', '拜訪單位', '帶隊官', '同行', '開始時間', '結束時間', '雜費', '交通方式', '大眾運輸細項', '駕駛', '里程數', '交通費', '發票總計', '總計金額', '備註', '狀態'];
+    const headers = ['出差名稱', '地點', '拜訪單位', '帶隊官', '同行', '開始時間', '結束時間', '雜費', '交通方式', '駕駛', '里程數', '交通費', '發票總計', '總計金額', '狀態'];
 
     const rows = currentRecords.map(r => {
-        const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾運輸' };
-        const publicSubMap = { 'hsr': '高鐵', 'bus': '客運', 'none': '無接駁', 'plane': '機票', 'ship': '搭船' };
-
-        let publicDetails = [];
-        if (r.transportType === 'public') {
-            if (r.publicShort && r.publicShort !== 'none') publicDetails.push(publicSubMap[r.publicShort]);
-            if (r.publicLong && r.publicLong.length > 0) {
-                r.publicLong.forEach(item => publicDetails.push(publicSubMap[item]));
-            }
-        }
-
+        const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
         let receiptTotal = 0;
         if (r.receipts) r.receipts.forEach(x => receiptTotal += x.price);
 
@@ -1558,13 +1347,11 @@ exportBtn.addEventListener('click', () => {
             r.endTime.replace('T', ' '),
             r.allowance || 0,
             typeMap[r.transportType] || '',
-            `"${publicDetails.join(' + ')}"`,
             r.driver === 'self' ? '自己' : r.driver || '',
             r.mileage !== null ? r.mileage : '',
             r.transportCost || 0,
             receiptTotal,
             r.totalAmount || 0,
-            `"${(r.memo || '').replace(/"/g, '""')}"`,
             r.isSettled ? '已入帳' : '未入帳'
         ];
         return row.join(',');
@@ -2072,65 +1859,9 @@ const renderFilteredRecordsList = () => {
                 <p class="small mb-0">請嘗試更換關鍵字或篩選狀態。</p>
             </div>
         `;
-        return;
+    } else {
+        results.forEach(r => renderRecordCard(r));
     }
-
-    // Sort results by startTime descending
-    results.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-
-    // Group by month (e.g. "2026年 8月")
-    const grouped = {};
-    results.forEach(r => {
-        const d = new Date(r.startTime);
-        const monthKey = `${d.getFullYear()}年 ${d.getMonth() + 1}月`;
-        if (!grouped[monthKey]) grouped[monthKey] = [];
-        grouped[monthKey].push(r);
-    });
-
-    // Create Accordion Container
-    const accordionId = 'recordsAccordion';
-    const accordionDiv = document.createElement('div');
-    accordionDiv.className = 'accordion accordion-custom mb-4 w-100';
-    accordionDiv.id = accordionId;
-
-    // Ordered month keys
-    const monthKeys = Object.keys(grouped);
-
-    monthKeys.forEach((monthStr, index) => {
-        const isFirst = index === 0;
-        const collapseId = `collapseMonth_${index}`;
-        const headerId = `headingMonth_${index}`;
-        const monthRecords = grouped[monthStr];
-
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'accordion-item border-0 mb-3 shadow-sm rounded-4 overflow-hidden';
-
-        itemDiv.innerHTML = `
-            <h2 class="accordion-header" id="${headerId}">
-                <button class="accordion-button ${isFirst ? '' : 'collapsed'} bg-custom-card text-main-custom fw-bold px-4 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${isFirst ? 'true' : 'false'}" aria-controls="${collapseId}">
-                    <i class="bi bi-calendar-event me-2 text-primary"></i>${monthStr}
-                    <span class="badge bg-custom-light text-muted ms-2 rounded-pill">${monthRecords.length}筆</span>
-                </button>
-            </h2>
-            <div id="${collapseId}" class="accordion-collapse collapse ${isFirst ? 'show' : ''}" aria-labelledby="${headerId}">
-                <div class="accordion-body bg-custom-light p-3">
-                    <div class="row g-3" id="container_${collapseId}">
-                    </div>
-                </div>
-            </div>
-        `;
-
-        accordionDiv.appendChild(itemDiv);
-    });
-
-    recordsContainer.appendChild(accordionDiv);
-
-    // Populate each month's container with its records
-    monthKeys.forEach((monthStr, index) => {
-        const collapseId = `collapseMonth_${index}`;
-        const monthContainer = document.getElementById(`container_${collapseId}`);
-        grouped[monthStr].forEach(r => renderRecordCard(r, monthContainer));
-    });
 };
 
 if (searchInput) {
@@ -2471,165 +2202,4 @@ confirmDeleteLocationBtn.addEventListener('click', async () => {
         confirmDeleteLocationBtn.disabled = false;
         deleteLocationSpinner.classList.add('d-none');
     }
-});
-
-// --- User Settings Logic ---
-let userSettings = {
-    hsrDistance: 40,
-    hsrFee: 120,
-    busDistance: 20,
-    busFee: 60
-};
-
-async function loadUserSettings() {
-    if (!window.firebaseData || !window.firebaseData.currentUser) return;
-    const { currentUser, db, doc, getDoc } = window.firebaseData;
-
-    try {
-        const uid = currentUser.isGuest ? 'guest' : currentUser.uid;
-        const docRef = doc(db, 'userSettings', uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            userSettings = { ...userSettings, ...docSnap.data() };
-        }
-
-        // Populate settings modal
-        document.getElementById('settingHsrDistance').value = userSettings.hsrDistance;
-        document.getElementById('settingHsrFee').value = userSettings.hsrFee;
-        document.getElementById('settingBusDistance').value = userSettings.busDistance;
-        document.getElementById('settingBusFee').value = userSettings.busFee;
-    } catch(e) {
-        console.error("Error loading settings", e);
-    }
-}
-
-document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
-    if (!window.firebaseData || !window.firebaseData.currentUser) return;
-    const { currentUser, db, doc, setDoc } = window.firebaseData;
-
-    const spinner = document.getElementById('saveSettingsSpinner');
-    const btn = document.getElementById('saveSettingsBtn');
-
-    spinner.classList.remove('d-none');
-    btn.disabled = true;
-
-    const newSettings = {
-        hsrDistance: parseInt(document.getElementById('settingHsrDistance').value) || 0,
-        hsrFee: parseInt(document.getElementById('settingHsrFee').value) || 0,
-        busDistance: parseInt(document.getElementById('settingBusDistance').value) || 0,
-        busFee: parseInt(document.getElementById('settingBusFee').value) || 0
-    };
-
-    try {
-        const uid = currentUser.isGuest ? 'guest' : currentUser.uid;
-        await setDoc(doc(db, 'userSettings', uid), newSettings);
-        userSettings = { ...userSettings, ...newSettings };
-
-        const settingsModalEl = document.getElementById('settingsModal');
-        const settingsModal = bootstrap.Modal.getInstance(settingsModalEl) || new bootstrap.Modal(settingsModalEl);
-        settingsModal.hide();
-
-        if (document.getElementById('recordModal').classList.contains('show')) {
-             calculateTotal();
-        }
-    } catch (e) {
-        console.error("Error saving settings", e);
-        alert("儲存設定失敗");
-    } finally {
-        spinner.classList.add('d-none');
-        btn.disabled = false;
-    }
-});
-
-function renderPublicTransportInputs() {
-    const container = document.getElementById('publicTransportInputsContainer');
-    if (!container) return;
-
-    // Save current values to prevent state loss
-    const currentValues = {};
-    document.querySelectorAll('.public-fee-input').forEach(input => {
-        currentValues[`${input.dataset.type}_${input.dataset.dir}`] = input.value;
-    });
-
-    container.innerHTML = '';
-
-    const hsrSelected = document.getElementById('publicHsr').checked;
-    const busSelected = document.getElementById('publicBus').checked;
-    const planeSelected = document.getElementById('publicPlane').checked;
-    const shipSelected = document.getElementById('publicShip').checked;
-
-    const types = [];
-    if (hsrSelected) types.push({ id: 'hsr', name: '高鐵', icon: 'bi-train-front' });
-    if (busSelected) types.push({ id: 'bus', name: '客運', icon: 'bi-bus-front' });
-    if (planeSelected) types.push({ id: 'plane', name: '機票', icon: 'bi-airplane' });
-    if (shipSelected) types.push({ id: 'ship', name: '搭船', icon: 'bi-water' });
-
-    types.forEach(type => {
-        const outVal = currentValues[`${type.id}_outbound`] || "0";
-        const inVal = currentValues[`${type.id}_inbound`] || "0";
-        container.innerHTML += `
-            <div class="mt-3 pt-3 border-top public-input-group" data-type="${type.id}">
-                <div class="fw-bold mb-2 text-main-custom d-flex align-items-center">
-                    <i class="bi ${type.icon} me-2 text-primary"></i>${type.name} 費用
-                </div>
-                <div class="row g-2 mb-2">
-                    <div class="col-6">
-                        <div class="d-flex flex-column">
-                            <span class="small text-muted mb-1">去程金額</span>
-                            <div class="d-flex align-items-center ios-input bg-custom-light">
-                                <span class="text-primary fw-bold me-1">$</span>
-                                <input type="number" class="w-100 bg-transparent border-0 public-fee-input" data-type="${type.id}" data-dir="outbound" value="${outVal}" min="0" step="1">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="d-flex flex-column">
-                            <span class="small text-muted mb-1">回程金額</span>
-                            <div class="d-flex align-items-center ios-input bg-custom-light">
-                                <span class="text-primary fw-bold me-1">$</span>
-                                <input type="number" class="w-100 bg-transparent border-0 public-fee-input" data-type="${type.id}" data-dir="inbound" value="${inVal}" min="0" step="1">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-2 text-center">
-                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill fw-bold" onclick="document.getElementById('addReceiptBtn').click()">
-                        <i class="bi bi-camera me-1"></i>上傳車票照片
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-
-    document.querySelectorAll('.public-fee-input').forEach(input => {
-        input.addEventListener('input', calculateTotal);
-    });
-
-    calculateTotal();
-}
-
-document.querySelectorAll('input[name="transportType"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-        const val = radio.value;
-        const publicSection = document.getElementById('publicTransportSection');
-
-        if (val === 'public') {
-            publicSection.classList.add('show');
-            driverSection.classList.remove('show');
-            mileageSection.classList.remove('show');
-            renderPublicTransportInputs();
-        } else {
-            publicSection.classList.remove('show');
-            driverSection.classList.add('show');
-            handleDriverChange();
-        }
-        calculateTotal();
-    });
-});
-
-document.querySelectorAll('.public-transport-sub').forEach(el => {
-    el.addEventListener('change', () => {
-        renderPublicTransportInputs();
-    });
 });

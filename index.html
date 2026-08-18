@@ -513,11 +513,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                 <i class="bi bi-moon-stars me-2 text-muted" id="themeIcon"></i> 主題切換
                             </button>
                         </li>
-                        <li>
-                            <button class="dropdown-item d-flex align-items-center py-2" data-bs-toggle="modal" data-bs-target="#settingsModal" style="color: var(--text-main);">
-                                <i class="bi bi-gear me-2 text-muted"></i> 路程設定
-                            </button>
-                        </li>
                         <li><hr class="dropdown-divider" style="border-color: var(--border-color);"></li>
                         <li>
                             <button id="loginBtn" class="dropdown-item d-flex align-items-center py-2 fw-bold" style="color: var(--brand-primary);">
@@ -914,60 +909,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
             </div>
         </div>
     </div>
-    <!-- Settings Modal -->
-    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-custom-card border-0 shadow-lg" style="border-radius: 1.5rem;">
-                <div class="modal-header border-0 pb-0 pt-4 px-4">
-                    <h5 class="modal-title fw-bold text-main-custom" id="settingsModalLabel">路程設定</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body pt-3 pb-4 px-4">
-                    <p class="text-muted small mb-4">設定營區到交通轉乘站的來回距離與費用，系統將在計算時自動帶入。</p>
-
-                    <form id="settingsForm">
-                        <div class="ios-input-label mb-2 fw-bold text-main-custom">高鐵路程費設定</div>
-                        <div class="ios-input-group mb-4 border rounded-4 p-3 shadow-sm bg-custom-light">
-                            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-                                <span class="fw-bold text-muted small">來回距離 (公里)</span>
-                                <input type="number" class="ios-input text-end fw-bold bg-transparent border-0 w-50 p-0" id="settingHsrDistance" value="40" min="0" step="1">
-                            </div>
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="fw-bold text-muted small">來回金額 (元)</span>
-                                <div class="d-flex align-items-center w-50">
-                                    <span class="text-primary fw-bold me-2 ms-auto">$</span>
-                                    <input type="number" class="ios-input text-end text-primary fw-bold bg-transparent border-0 p-0 w-100" id="settingHsrFee" value="120" min="0" step="1">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="ios-input-label mb-2 fw-bold text-main-custom">客運路程費設定</div>
-                        <div class="ios-input-group border rounded-4 p-3 shadow-sm bg-custom-light">
-                            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-                                <span class="fw-bold text-muted small">來回距離 (公里)</span>
-                                <input type="number" class="ios-input text-end fw-bold bg-transparent border-0 w-50 p-0" id="settingBusDistance" value="20" min="0" step="1">
-                            </div>
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="fw-bold text-muted small">來回金額 (元)</span>
-                                <div class="d-flex align-items-center w-50">
-                                    <span class="text-primary fw-bold me-2 ms-auto">$</span>
-                                    <input type="number" class="ios-input text-end text-primary fw-bold bg-transparent border-0 p-0 w-100" id="settingBusFee" value="60" min="0" step="1">
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer border-0 pt-0 pb-3 px-4">
-                    <button type="button" class="btn btn-custom-light text-main-custom rounded-pill px-4 fw-bold" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="saveSettingsBtn">
-                        <span class="spinner-border spinner-border-sm me-1 d-none" id="saveSettingsSpinner"></span>
-                        儲存設定
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content bg-custom-card border-0 shadow-lg" style="border-radius: 1.5rem;">
@@ -1098,44 +1039,12 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                 </button>
                             </div>
 
-                            <div class="fw-bold small mb-2 text-muted">交通工具</div>
-                            <div class="modern-segmented-control mb-3">
-                                <input type="radio" class="btn-check" name="transportType" id="transportCar" value="car">
-                                <label class="btn fw-bold" for="transportCar">自行開車</label>
-
-                                <input type="radio" class="btn-check" name="transportType" id="transportMoto" value="motorcycle">
-                                <label class="btn fw-bold" for="transportMoto">自行騎車</label>
-
-                                <input type="radio" class="btn-check" name="transportType" id="transportPublic" value="public">
-                                <label class="btn fw-bold" for="transportPublic">大眾運輸</label>
-                            </div>
-
-                            <!-- Public Transport Sub-options -->
-                            <div id="publicTransportSection" class="slide-section bg-custom-card border rounded-4 p-3 shadow-sm mb-3">
-                                <div class="fw-bold small mb-2 text-muted">短程接駁 (單選)</div>
-                                <div class="modern-segmented-control mb-3">
-                                    <input type="radio" class="btn-check public-transport-sub" name="publicShort" id="publicHsr" value="hsr">
-                                    <label class="btn fw-bold" for="publicHsr">高鐵</label>
-
-                                    <input type="radio" class="btn-check public-transport-sub" name="publicShort" id="publicBus" value="bus">
-                                    <label class="btn fw-bold" for="publicBus">客運</label>
-
-                                    <input type="radio" class="btn-check public-transport-sub" name="publicShort" id="publicNone" value="none" checked>
-                                    <label class="btn fw-bold" for="publicNone">皆無</label>
-                                </div>
-
-                                <div class="fw-bold small mb-2 text-muted">長程交通 (複選)</div>
-                                <div class="d-flex gap-2 mb-3">
-                                    <input type="checkbox" class="btn-check public-transport-sub" id="publicPlane" value="plane">
-                                    <label class="btn btn-outline-primary rounded-pill fw-bold flex-grow-1" for="publicPlane">機票</label>
-
-                                    <input type="checkbox" class="btn-check public-transport-sub" id="publicShip" value="ship">
-                                    <label class="btn btn-outline-primary rounded-pill fw-bold flex-grow-1" for="publicShip">搭船</label>
-                                </div>
-
-                                <!-- Dynamic Input sections for public transports -->
-                                <div id="publicTransportInputsContainer"></div>
-                            </div>
+                            <select class="ios-input fw-bold" id="transportType" required>
+                                <option value="" disabled selected>選擇交通工具...</option>
+                                <option value="car">自行開車</option>
+                                <option value="motorcycle">自行騎機車</option>
+                                <option value="public">大眾運輸 / 其他</option>
+                            </select>
 
                             <!-- Dynamic Driver Select (shows if car/moto) -->
                             <div id="driverSection" class="slide-section bg-custom-card border rounded-4 p-3 shadow-sm">
@@ -1165,10 +1074,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         <button type="button" class="btn btn-outline-primary bg-custom-card w-100 rounded-pill py-2 fw-bold shadow-sm" id="addReceiptBtn">
                             <i class="bi bi-plus-lg me-1"></i>新增一筆發票
                         </button>
-
-                        <!-- Note/Memo Section -->
-                        <div class="ios-input-label mt-3 mb-2">備註/說明</div>
-                        <textarea class="ios-input" id="memo" rows="3" placeholder="備註/說明 (例如：補充說明或是系統自動帶入路程費說明)"></textarea>
 
                         <!-- Total -->
                         <div class="card border-0 bg-primary text-white mt-4 rounded-4 shadow-sm" style="transform: none !important;">
