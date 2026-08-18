@@ -1052,7 +1052,10 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </select>
 
                             <div id="publicTransportSection" class="slide-section bg-custom-card border rounded-4 p-3 mb-2 shadow-sm">
-                                <div class="fw-bold small mb-2 text-muted">大眾運輸 (擇一)</div>
+                                <div class="fw-bold small mb-2 text-muted d-flex justify-content-between">
+                                    <span>大眾運輸 (擇一)</span>
+                                    <button type="button" class="btn btn-link text-decoration-none p-0 m-0 small" id="clearPublicTransitBtn" style="font-size: 0.8rem; display: none;">清除選擇</button>
+                                </div>
                                 <div class="d-flex gap-4 mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="publicTransitType" id="hsrRadio" value="hsr">
@@ -1091,7 +1094,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                     <input type="file" class="ios-input bus-return-file" accept="image/*" style="font-size: 0.8rem;">
                                     <div id="busReturnThumb"></div>
                                 </div>
-                            </div> <!-- End publicTransportSection -->
+                            </div>
 
                             <!-- Dynamic Driver Select (shows if car/moto) -->
                             <div id="driverSection" class="slide-section bg-custom-card border rounded-4 p-3 shadow-sm">
