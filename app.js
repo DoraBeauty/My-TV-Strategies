@@ -196,12 +196,12 @@ const mileageInput = document.getElementById('mileage');
 const mileageRateHint = document.getElementById('mileageRateHint');
 
 // HSR / Bus Form Elements
-const hsrCheckbox = document.getElementById('hsrCheckbox');
+const hsrRadio = document.getElementById('hsrRadio');
 const hsrSection = document.getElementById('hsrSection');
 const hsrGoPrice = document.getElementById('hsrGoPrice');
 const hsrReturnPrice = document.getElementById('hsrReturnPrice');
 
-const busCheckbox = document.getElementById('busCheckbox');
+const busRadio = document.getElementById('busRadio');
 const busSection = document.getElementById('busSection');
 const busGoPrice = document.getElementById('busGoPrice');
 const busReturnPrice = document.getElementById('busReturnPrice');
@@ -701,10 +701,10 @@ const updateDriverOptions = () => {
 
     if (type === 'none') {
         // Clear public transport selection
-        hsrCheckbox.checked = false;
-        busCheckbox.checked = false;
-        hsrCheckbox.dispatchEvent(new Event('change'));
-        busCheckbox.dispatchEvent(new Event('change'));
+        hsrRadio.checked = false;
+        busRadio.checked = false;
+        hsrRadio.dispatchEvent(new Event('change'));
+        busRadio.dispatchEvent(new Event('change'));
 
         // Clear driver/mileage
         driverSelect.value = 'self';
@@ -720,10 +720,10 @@ const updateDriverOptions = () => {
         return;
     } else if (type === 'car' || type === 'motorcycle') {
         // Clear public transport selection
-        hsrCheckbox.checked = false;
-        busCheckbox.checked = false;
-        hsrCheckbox.dispatchEvent(new Event('change'));
-        busCheckbox.dispatchEvent(new Event('change'));
+        hsrRadio.checked = false;
+        busRadio.checked = false;
+        hsrRadio.dispatchEvent(new Event('change'));
+        busRadio.dispatchEvent(new Event('change'));
 
         driverSection.classList.add('show');
         const companions = getCompanionsList();
@@ -748,28 +748,11 @@ const updateDriverOptions = () => {
 
 transportTypeSelect.addEventListener('change', updateDriverOptions);
 
-hsrCheckbox.addEventListener('change', () => {
-    if (hsrCheckbox.checked) {
+const handlePublicTransitChange = () => {
+    if (hsrRadio.checked) {
         hsrSection.classList.add('show');
-    } else {
-        hsrSection.classList.remove('show');
-        hsrGoPrice.value = '';
-        hsrReturnPrice.value = '';
-        ['hsrGoThumb', 'hsrReturnThumb'].forEach(id => {
-            const el = document.getElementById(id);
-            el.innerHTML = '';
-            el.dataset.url = '';
-            el.dataset.path = '';
-        });
-        document.querySelectorAll('.hsr-go-file, .hsr-return-file').forEach(el => el.value = '');
-    }
-    calculateTotal();
-});
 
-busCheckbox.addEventListener('change', () => {
-    if (busCheckbox.checked) {
-        busSection.classList.add('show');
-    } else {
+        // Hide and clear bus
         busSection.classList.remove('show');
         busGoPrice.value = '';
         busReturnPrice.value = '';
@@ -780,9 +763,40 @@ busCheckbox.addEventListener('change', () => {
             el.dataset.path = '';
         });
         document.querySelectorAll('.bus-go-file, .bus-return-file').forEach(el => el.value = '');
+    } else if (busRadio.checked) {
+        busSection.classList.add('show');
+
+        // Hide and clear hsr
+        hsrSection.classList.remove('show');
+        hsrGoPrice.value = '';
+        hsrReturnPrice.value = '';
+        ['hsrGoThumb', 'hsrReturnThumb'].forEach(id => {
+            const el = document.getElementById(id);
+            el.innerHTML = '';
+            el.dataset.url = '';
+            el.dataset.path = '';
+        });
+        document.querySelectorAll('.hsr-go-file, .hsr-return-file').forEach(el => el.value = '');
+    } else {
+        // Neither checked
+        hsrSection.classList.remove('show');
+        busSection.classList.remove('show');
+
+        hsrGoPrice.value = ''; hsrReturnPrice.value = '';
+        busGoPrice.value = ''; busReturnPrice.value = '';
+        ['hsrGoThumb', 'hsrReturnThumb', 'busGoThumb', 'busReturnThumb'].forEach(id => {
+            const el = document.getElementById(id);
+            el.innerHTML = '';
+            el.dataset.url = '';
+            el.dataset.path = '';
+        });
+        document.querySelectorAll('.hsr-go-file, .hsr-return-file, .bus-go-file, .bus-return-file').forEach(el => el.value = '');
     }
     calculateTotal();
-});
+};
+
+hsrRadio.addEventListener('change', handlePublicTransitChange);
+busRadio.addEventListener('change', handlePublicTransitChange);
 
 [hsrGoPrice, hsrReturnPrice, busGoPrice, busReturnPrice].forEach(input => {
     if (input) input.addEventListener('input', calculateTotal);
@@ -885,14 +899,12 @@ function calculateTotal() {
     let publicTransportTickets = 0;
     let notesArr = [];
 
-    if (hsrCheckbox.checked) {
+    if (hsrRadio.checked) {
         publicTransportTickets += parseFloat(hsrGoPrice.value) || 0;
         publicTransportTickets += parseFloat(hsrReturnPrice.value) || 0;
         transportCost += routeSettings.hsr.fee;
         notesArr.push(`已含高鐵路程費 $${routeSettings.hsr.fee}（來回${routeSettings.hsr.roundTripKm}km）`);
-    }
-
-    if (busCheckbox.checked) {
+    } else if (busRadio.checked) {
         publicTransportTickets += parseFloat(busGoPrice.value) || 0;
         publicTransportTickets += parseFloat(busReturnPrice.value) || 0;
         transportCost += routeSettings.bus.fee;
@@ -1039,8 +1051,8 @@ saveRecordBtn.addEventListener('click', async () => {
 
         // Process HSR/Bus Tickets
         let transportTypes = [];
-        if (hsrCheckbox.checked) transportTypes.push('hsr');
-        if (busCheckbox.checked) transportTypes.push('bus');
+        if (hsrRadio.checked) transportTypes.push('hsr');
+        if (busRadio.checked) transportTypes.push('bus');
 
         let tickets = {
             hsr: {
@@ -1057,7 +1069,7 @@ saveRecordBtn.addEventListener('click', async () => {
             }
         };
 
-        if (hsrCheckbox.checked) {
+        if (hsrRadio.checked) {
             const hsrGoUploaded = await uploadFileIfPresent(document.querySelector('.hsr-go-file'), tickets.hsr.go.imagePath, tickets.hsr.go.imageUrl);
             tickets.hsr.go.imageUrl = hsrGoUploaded.url; tickets.hsr.go.imagePath = hsrGoUploaded.path;
 
@@ -1067,7 +1079,7 @@ saveRecordBtn.addEventListener('click', async () => {
             transportCostVal += tickets.hsr.routeFee;
         }
 
-        if (busCheckbox.checked) {
+        if (busRadio.checked) {
             const busGoUploaded = await uploadFileIfPresent(document.querySelector('.bus-go-file'), tickets.bus.go.imagePath, tickets.bus.go.imageUrl);
             tickets.bus.go.imageUrl = busGoUploaded.url; tickets.bus.go.imagePath = busGoUploaded.path;
 
@@ -1502,8 +1514,16 @@ const openEditModal = (record) => {
     handleDriverChange();
 
     // Handle HSR/Bus
-    hsrCheckbox.checked = record.transportTypes && record.transportTypes.includes('hsr');
-    busCheckbox.checked = record.transportTypes && record.transportTypes.includes('bus');
+    if (record.transportTypes && record.transportTypes.includes('hsr')) {
+        hsrRadio.checked = true;
+        busRadio.checked = false;
+    } else if (record.transportTypes && record.transportTypes.includes('bus')) {
+        hsrRadio.checked = false;
+        busRadio.checked = true;
+    } else {
+        hsrRadio.checked = false;
+        busRadio.checked = false;
+    }
 
     // Clear thumbs & files
     ['hsrGoThumb', 'hsrReturnThumb', 'busGoThumb', 'busReturnThumb'].forEach(id => {
@@ -1549,8 +1569,8 @@ const openEditModal = (record) => {
     }
 
     // Manually trigger events to show/hide sections
-    hsrCheckbox.dispatchEvent(new Event('change'));
-    busCheckbox.dispatchEvent(new Event('change'));
+    hsrRadio.dispatchEvent(new Event('change'));
+    busRadio.dispatchEvent(new Event('change'));
 
 
     if (record.mileage !== null) mileageInput.value = record.mileage;
