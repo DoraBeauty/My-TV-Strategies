@@ -1222,6 +1222,18 @@ const renderRecordCard = (record, container = recordsContainer) => {
 
     const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
 
+    let totalTransportDisplay = parseFloat(record.transportCost) || 0;
+    if (record.tickets) {
+        if (record.tickets.hsr) {
+            totalTransportDisplay += parseFloat(record.tickets.hsr.go.amount) || 0;
+            totalTransportDisplay += parseFloat(record.tickets.hsr.return.amount) || 0;
+        }
+        if (record.tickets.bus) {
+            totalTransportDisplay += parseFloat(record.tickets.bus.go.amount) || 0;
+            totalTransportDisplay += parseFloat(record.tickets.bus.return.amount) || 0;
+        }
+    }
+
     let detailsHtml = '';
     if (record.leader) {
         detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
@@ -1320,7 +1332,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
                     <span>雜費</span><span>$${record.allowance}</span>
                 </div>
                 <div class="d-flex justify-content-between text-muted small">
-                    <span>交通費 (${comboLabel})</span><span>$${record.transportCost}</span>
+                    <span>交通費 (${comboLabel})</span><span>$${totalTransportDisplay}</span>
                 </div>
                 ${detailsHtml}
                 ${receiptsHtml}
