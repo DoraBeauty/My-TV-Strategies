@@ -1052,12 +1052,20 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </select>
 
                             <div id="publicTransportSection" class="slide-section bg-custom-card border rounded-4 p-3 mb-2 shadow-sm">
-                                <div class="fw-bold small mb-2 text-muted">大眾運輸 (可複選)</div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="hsrCheckbox" value="hsr">
-                                    <label class="form-check-label fw-bold" for="hsrCheckbox">
-                                        高鐵
-                                    </label>
+                                <div class="fw-bold small mb-2 text-muted">大眾運輸 (擇一)</div>
+                                <div class="d-flex gap-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="publicTransitType" id="hsrRadio" value="hsr">
+                                        <label class="form-check-label fw-bold" for="hsrRadio">
+                                            高鐵
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="publicTransitType" id="busRadio" value="bus">
+                                        <label class="form-check-label fw-bold" for="busRadio">
+                                            客運
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <div id="hsrSection" class="slide-section bg-custom-light border rounded-4 p-3 mb-3">
@@ -1070,13 +1078,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                     <input type="number" class="ios-input mb-2 ticket-price" id="hsrReturnPrice" placeholder="回程金額" min="0">
                                     <input type="file" class="ios-input hsr-return-file" accept="image/*" style="font-size: 0.8rem;">
                                     <div id="hsrReturnThumb"></div>
-                                </div>
-
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="busCheckbox" value="bus">
-                                    <label class="form-check-label fw-bold" for="busCheckbox">
-                                        客運
-                                    </label>
                                 </div>
 
                                 <div id="busSection" class="slide-section bg-custom-light border rounded-4 p-3 mt-2">
