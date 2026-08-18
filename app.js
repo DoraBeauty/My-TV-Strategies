@@ -207,6 +207,7 @@ const busGoPrice = document.getElementById('busGoPrice');
 const busReturnPrice = document.getElementById('busReturnPrice');
 
 const recordNote = document.getElementById('recordNote');
+const publicTransportSection = document.getElementById('publicTransportSection');
 
 
 const receiptsContainer = document.getElementById('receiptsContainer');
@@ -692,30 +693,57 @@ addCompanionBtn.addEventListener('click', () => {
 
 const updateDriverOptions = () => {
     const type = transportTypeSelect.value;
-    if (type !== 'car' && type !== 'motorcycle') {
-        driverSection.classList.remove('show');
-        mileageSection.classList.remove('show');
+
+    // Reset and hide everything first
+    driverSection.classList.remove('show');
+    mileageSection.classList.remove('show');
+    publicTransportSection.classList.remove('show');
+
+    if (type === 'none') {
+        // Clear public transport selection
+        hsrCheckbox.checked = false;
+        busCheckbox.checked = false;
+        hsrCheckbox.dispatchEvent(new Event('change'));
+        busCheckbox.dispatchEvent(new Event('change'));
+
+        // Clear driver/mileage
+        driverSelect.value = 'self';
+        mileageInput.value = '';
+
         return;
+    } else if (type === 'public') {
+        publicTransportSection.classList.add('show');
+
+        // Clear driver/mileage
+        driverSelect.value = 'self';
+        mileageInput.value = '';
+        return;
+    } else if (type === 'car' || type === 'motorcycle') {
+        // Clear public transport selection
+        hsrCheckbox.checked = false;
+        busCheckbox.checked = false;
+        hsrCheckbox.dispatchEvent(new Event('change'));
+        busCheckbox.dispatchEvent(new Event('change'));
+
+        driverSection.classList.add('show');
+        const companions = getCompanionsList();
+
+        // Save current selection to restore if possible
+        const currentVal = driverSelect.value;
+        driverSelect.innerHTML = '<option value="self">自己 (計算里程費)</option>';
+
+        companions.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = `${c} (不計算里程費)`;
+            driverSelect.appendChild(opt);
+        });
+
+        if (Array.from(driverSelect.options).some(o => o.value === currentVal)) {
+            driverSelect.value = currentVal;
+        }
+        handleDriverChange();
     }
-
-    driverSection.classList.add('show');
-    const companions = getCompanionsList();
-
-    // Save current selection to restore if possible
-    const currentVal = driverSelect.value;
-    driverSelect.innerHTML = '<option value="self">自己 (計算里程費)</option>';
-
-    companions.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = `${c} (不計算里程費)`;
-        driverSelect.appendChild(opt);
-    });
-
-    if (Array.from(driverSelect.options).some(o => o.value === currentVal)) {
-        driverSelect.value = currentVal;
-    }
-    handleDriverChange();
 };
 
 transportTypeSelect.addEventListener('change', updateDriverOptions);
@@ -914,6 +942,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 for(let i=1; i<=3; i++) {
                     companionsContainer.appendChild(createCompanionInput('', i));
                 }
+
+                // Reset transport UI explicitly
+                transportTypeSelect.value = 'none';
+                updateDriverOptions();
 
                 totalAmountDisplay.textContent = '0';
                 timeCalcHint.textContent = '請輸入起訖時間計算雜費';
@@ -1455,9 +1487,14 @@ const openEditModal = (record) => {
         companionsContainer.appendChild(createCompanionInput(companionsList[i] || '', i + 1));
     }
 
-    // Handle Legacy 'public' type
-    let mappedType = record.transportType || '';
-    if (mappedType === 'public') mappedType = 'none';
+    // Handle Legacy 'public' type (now mapped to 'public' explicitly if it's the old version without transportTypes, or if it explicitly says public)
+    let mappedType = record.transportType || 'none';
+    if (mappedType === 'public') mappedType = 'public';
+    // If it's an old record that had 'public' but no tickets/types, it'll still just show 'public' and user can check boxes.
+    // Wait, if it has hsr/bus checked, we should ensure the transportType is 'public' so the section shows.
+    if (record.transportTypes && record.transportTypes.length > 0) {
+        mappedType = 'public';
+    }
     transportTypeSelect.value = mappedType;
 
     updateDriverOptions();
