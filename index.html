@@ -1045,13 +1045,13 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </div>
 
                             <select class="ios-input fw-bold mb-2" id="transportType" required>
-                                <option value="" disabled selected>選擇自用交通工具...</option>
+                                <option value="none" selected>無</option>
+                                <option value="public">大眾交通工具</option>
                                 <option value="car">自行開車</option>
                                 <option value="motorcycle">自行騎機車</option>
-                                <option value="none">無</option>
                             </select>
 
-                            <div class="bg-custom-card border rounded-4 p-3 mb-2 shadow-sm">
+                            <div id="publicTransportSection" class="slide-section bg-custom-card border rounded-4 p-3 mb-2 shadow-sm">
                                 <div class="fw-bold small mb-2 text-muted">大眾運輸 (可複選)</div>
                                 <div class="form-check mb-2">
                                     <input class="form-check-input" type="checkbox" id="hsrCheckbox" value="hsr">
@@ -1090,7 +1090,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                     <input type="file" class="ios-input bus-return-file" accept="image/*" style="font-size: 0.8rem;">
                                     <div id="busReturnThumb"></div>
                                 </div>
-                            </div>
+                            </div> <!-- End publicTransportSection -->
 
                             <!-- Dynamic Driver Select (shows if car/moto) -->
                             <div id="driverSection" class="slide-section bg-custom-card border rounded-4 p-3 shadow-sm">
