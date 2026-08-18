@@ -2602,7 +2602,7 @@ if (saveRouteSettingsBtn) {
         localStorage.setItem('userSettings', JSON.stringify(newSettings));
         userSettings = newSettings;
 
-        showToast('設定已更新！', 'success');
+        alert('設定已更新！');
 
         // Sync to cloud
         if (window.firebaseData && window.firebaseData.currentUser && !(currentUser && currentUser.isGuest)) {
@@ -2613,7 +2613,7 @@ if (saveRouteSettingsBtn) {
                 console.log("Settings synced to Firestore successfully.");
             } catch (error) {
                 console.error("Error syncing settings to Firestore:", error);
-                showToast('雲端同步失敗，但已儲存在本機', 'warning');
+                alert('雲端同步失敗，但已儲存在本機');
             }
         }
 
