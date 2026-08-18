@@ -1207,8 +1207,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
         detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
     }
     if (record.note && record.note !== "無自動路程費") {
-        const notes = record.note.split('
-');
+        const notes = record.note.split('\n');
         notes.forEach(n => {
             detailsHtml += `<div class="text-muted small">${escapeHtml(n)}</div>`;
         });
@@ -1310,91 +1309,6 @@ const renderRecordCard = (record, container = recordsContainer) => {
                 </div>
                 <div class="d-flex justify-content-between text-muted small">
                     <span>交通費 (${comboLabel})</span><span>$${totalTransportDisplay}</span>
-                </div>
-                ${detailsHtml}
-                ${receiptsHtml}
-
-                <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
-                    <span class="fw-bold text-main-custom">總計</span>
-                    <span class="fw-bold text-danger fs-5">$${record.totalAmount}</span>
-                </div>
-
-                <div class="d-flex gap-2 mt-3">
-                    <button class="btn btn-custom-light btn-sm flex-fill edit-record-btn text-primary fw-bold rounded-pill" data-id="${record.id}"><i class="bi bi-pencil-square"></i> 編輯</button>
-                    <button class="btn btn-custom-light btn-sm flex-fill delete-record-btn text-danger fw-bold rounded-pill" data-id="${record.id}" data-trip="${escapeHtml(record.tripName)}"><i class="bi bi-trash"></i> 刪除</button>
-                </div>
-                ${actionBtnHtml}
-            </div>
-        </div>
-    `;
-    container.appendChild(col);
-};
-
-    let detailsHtml = '';
-    if (record.leader) {
-        detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
-    }
-    if (record.transportType === 'car' || record.transportType === 'motorcycle') {
-        detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
-    }
-
-    let receiptsHtml = '';
-    if (record.receipts && record.receipts.length > 0) {
-        receiptsHtml = `<div class="mt-2 border-top pt-2"><div class="small fw-bold mb-1">發票明細：</div>`;
-        record.receipts.forEach(r => {
-            let img = r.url ? `<a href="${r.url}" target="_blank" class="ms-2"><i class="bi bi-image text-primary"></i></a>` : '';
-            receiptsHtml += `<div class="d-flex justify-content-between text-muted small">
-                <span>${escapeHtml(r.name)} ${img}</span>
-                <span>$${r.price}</span>
-            </div>`;
-        });
-        receiptsHtml += `</div>`;
-    }
-
-    let statusHtml = '';
-    if (record.isSettled) {
-        let settledStr = '已入帳';
-        if (record.settledAt) {
-            // Check if it's a date string or timestamp, format to YYYY/MM/DD
-            const d = new Date(record.settledAt);
-            if (!isNaN(d.getTime())) {
-                const yyyy = d.getFullYear();
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                const dd = String(d.getDate()).padStart(2, '0');
-                settledStr = `已入帳於 ${yyyy}/${mm}/${dd}`;
-            }
-        }
-        statusHtml = `<span class="badge bg-success rounded-pill px-2">${settledStr}</span>`;
-    }
-
-    let cardClass = record.isSettled ? 'card record-card status-settled bg-custom-card text-main-custom' : 'card record-card bg-custom-card text-main-custom';
-
-    // settled logic
-    let actionBtnHtml = '';
-    if (record.isSettled) {
-        const diffDays = Math.ceil(Math.abs(new Date() - (record.settledAt ? new Date(record.settledAt) : new Date())) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 30) {
-            actionBtnHtml = `<button class="btn btn-sm btn-outline-secondary w-100 mt-3 toggle-settle-btn rounded-pill fw-bold" data-id="${record.id}" data-action="undo"><i class="bi bi-arrow-counterclockwise"></i> 復原未入帳</button>`;
-        }
-    } else {
-        actionBtnHtml = `<button class="btn btn-sm btn-outline-primary w-100 mt-3 toggle-settle-btn rounded-pill fw-bold" data-id="${record.id}" data-action="settle"><i class="bi bi-check2-circle"></i> 標記為已入帳</button>`;
-    }
-
-    col.innerHTML = `
-        <div class="${cardClass}">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title fw-bold m-0 text-truncate text-main-custom">${escapeHtml(record.tripName)}</h5>
-                    ${statusHtml}
-                </div>
-                <div class="small text-primary mb-2"><i class="bi bi-geo-alt-fill me-1"></i>${escapeHtml(record.location)} ${record.visitingUnit ? '('+escapeHtml(record.visitingUnit)+')' : ''}</div>
-                <div class="small text-muted mb-2"><i class="bi bi-clock me-1"></i>${record.startTime.replace('T', ' ')} ~<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${record.endTime.replace('T', ' ')}</div>
-
-                <div class="d-flex justify-content-between text-muted small border-top pt-2 mt-2" style="border-color: var(--border-color) !important;">
-                    <span>雜費</span><span>$${record.allowance}</span>
-                </div>
-                <div class="d-flex justify-content-between text-muted small">
-                    <span>交通費 (${typeMap[record.transportType] || '無'})</span><span>$${record.transportCost}</span>
                 </div>
                 ${detailsHtml}
                 ${receiptsHtml}
@@ -2652,7 +2566,7 @@ const loadSettings = async () => {
     }
 
     // 2. Overwrite with Cloud Sync if logged in
-    if (window.firebaseData && window.firebaseData.currentUser && !isGuestMode) {
+    if (window.firebaseData && window.firebaseData.currentUser && !(currentUser && currentUser.isGuest)) {
         try {
             const { db, doc } = window.firebaseData;
             const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
@@ -2691,7 +2605,7 @@ if (saveRouteSettingsBtn) {
         showToast('設定已更新！', 'success');
 
         // Sync to cloud
-        if (window.firebaseData && window.firebaseData.currentUser && !isGuestMode) {
+        if (window.firebaseData && window.firebaseData.currentUser && !(currentUser && currentUser.isGuest)) {
             try {
                 const { db, doc } = window.firebaseData;
                 const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
@@ -2719,7 +2633,7 @@ if (saveRouteSettingsBtn) {
 // Hook into existing global auth state updates, or handle it via a global setup.
 // We can just rely on the existing observer setting window.firebaseData.
 const checkAuthAndLoad = () => {
-    if (isGuestMode || (window.firebaseData && window.firebaseData.currentUser)) {
+    if ((currentUser && currentUser.isGuest) || (window.firebaseData && window.firebaseData.currentUser)) {
         loadSettings();
     } else {
         setTimeout(checkAuthAndLoad, 500); // Check again in 500ms
