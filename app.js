@@ -937,14 +937,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Reset form on open if no ID (Create Mode)
         modalEl.addEventListener('show.bs.modal', (e) => {
+            // Only reset if opened specifically by the FAB button.
+            const isFab = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.fab');
+            if (!isFab) return;
+
             // Reset override flag and hint on open
             delete allowanceInput.dataset.manualOverride;
             timeCalcHint.innerHTML = '';
 
-            const isEditBtn = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.btn-outline-primary');
-            if (isEditBtn) return; // Ignore if opened via edit button
-
-            // Otherwise reset the form
+            // Reset the form for new record
             form.reset();
             recordIdInput.value = '';
             modalTitle.textContent = '新增紀錄';
@@ -972,6 +973,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Reset transport UI explicitly
             transportTypeSelect.value = 'none';
             updateDriverOptions();
+
+            totalAmountDisplay.textContent = '0';
+            timeCalcHint.textContent = '請輸入起訖時間計算雜費';
 
             // Trigger time inputs to calculate allowance and total
             startTimeInput.dispatchEvent(new Event('input'));
@@ -1222,6 +1226,18 @@ const renderRecordCard = (record, container = recordsContainer) => {
 
     const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
 
+    let totalTransportDisplay = parseFloat(record.transportCost) || 0;
+    if (record.tickets) {
+        if (record.tickets.hsr) {
+            totalTransportDisplay += parseFloat(record.tickets.hsr.go.amount) || 0;
+            totalTransportDisplay += parseFloat(record.tickets.hsr.return.amount) || 0;
+        }
+        if (record.tickets.bus) {
+            totalTransportDisplay += parseFloat(record.tickets.bus.go.amount) || 0;
+            totalTransportDisplay += parseFloat(record.tickets.bus.return.amount) || 0;
+        }
+    }
+
     let detailsHtml = '';
     if (record.leader) {
         detailsHtml += `<div class="text-muted small">帶隊官：${escapeHtml(record.leader)}</div>`;
@@ -1320,7 +1336,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
                     <span>雜費</span><span>$${record.allowance}</span>
                 </div>
                 <div class="d-flex justify-content-between text-muted small">
-                    <span>交通費 (${comboLabel})</span><span>$${record.transportCost}</span>
+                    <span>交通費 (${comboLabel})</span><span>$${totalTransportDisplay}</span>
                 </div>
                 ${detailsHtml}
                 ${receiptsHtml}
@@ -1507,7 +1523,12 @@ const openEditModal = (record) => {
 
     // Clear and populate companions
     companionsContainer.innerHTML = '';
-    const companionsList = record.companions ? record.companions.split(',').map(s => s.trim()) : [];
+    let companionsList = [];
+    if (Array.isArray(record.companions)) {
+        companionsList = record.companions;
+    } else if (typeof record.companions === 'string' && record.companions.trim() !== '') {
+        companionsList = record.companions.split(',').map(s => s.trim());
+    }
     // Ensure at least 3 inputs are shown initially, like a fresh form
     const totalInputs = Math.max(3, companionsList.length);
     for(let i=0; i<totalInputs; i++) {
