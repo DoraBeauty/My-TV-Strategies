@@ -1877,7 +1877,55 @@ const logAction = async (actionType, tripName, details = null) => {
     }
 };
 
+const cleanupOldAuditLogs = async () => {
+    const { db, collection, getDocs, doc, deleteDoc, query, where, currentUser } = window.firebaseData;
+    if (!currentUser || !db) return;
+
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    try {
+        if (db === 'mock_db') {
+            const raw = localStorage.getItem('guest_audit_logs');
+            if (raw) {
+                let logs = JSON.parse(raw);
+                const initialLength = logs.length;
+                logs = logs.filter(log => {
+                    const logTime = new Date(log.createdAt).getTime();
+                    return (now - logTime) <= SEVEN_DAYS_MS;
+                });
+                if (logs.length !== initialLength) {
+                    localStorage.setItem('guest_audit_logs', JSON.stringify(logs));
+                }
+            }
+        } else {
+            // Real Firebase
+            const q = query(collection(db, 'auditLogs'), where('userId', '==', currentUser.uid));
+            const snapshot = await getDocs(q);
+
+            const deletePromises = [];
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.createdAt) {
+                    const logTime = data.createdAt.toDate ? data.createdAt.toDate().getTime() : data.createdAt;
+                    if ((now - logTime) > SEVEN_DAYS_MS) {
+                        deletePromises.push(deleteDoc(docSnap.ref));
+                    }
+                }
+            });
+
+            if (deletePromises.length > 0) {
+                await Promise.all(deletePromises);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to cleanup old audit logs:", e);
+    }
+};
+
 const fetchAndRenderAuditLogs = async () => {
+    await cleanupOldAuditLogs(); // Cleanup before fetching
+
     const { db, collection, query, where, orderBy, getDocs, currentUser } = window.firebaseData;
     if (!currentUser || !db) return;
 
