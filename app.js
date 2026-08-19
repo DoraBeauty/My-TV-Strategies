@@ -827,6 +827,16 @@ addReceiptBtn.addEventListener('click', () => {
     receiptsContainer.appendChild(createReceiptEl());
 });
 
+function getRouteFees() {
+    const price = userSettings.pricePerKm || 3;
+    const hsrKm = userSettings.hsrKm || 0;
+    const busKm = userSettings.busKm || 0;
+    return {
+        hsr: { km: hsrKm, roundTripKm: hsrKm * 2, fee: Math.round(hsrKm * 2 * price) },
+        bus: { km: busKm, roundTripKm: busKm * 2, fee: Math.round(busKm * 2 * price) }
+    };
+}
+
 function calculateTotal() {
     const allowance = parseFloat(allowanceInput.value) || 0;
 
@@ -841,16 +851,18 @@ function calculateTotal() {
     let publicTransportTickets = 0;
     let notesArr = [];
 
+    const routeFees = getRouteFees();
+
     if (hsrRadio.checked) {
         publicTransportTickets += parseFloat(hsrGoPrice.value) || 0;
         publicTransportTickets += parseFloat(hsrReturnPrice.value) || 0;
-        transportCost += (routeSettings.hsr.fee || 0);
-        notesArr.push(`已含高鐵路程費 $${routeSettings.hsr.fee}（來回${routeSettings.hsr.roundTripKm}km）`);
+        transportCost += (routeFees.hsr.fee || 0);
+        notesArr.push(`已含高鐵路程費 $${routeFees.hsr.fee}（來回${routeFees.hsr.roundTripKm}km）`);
     } else if (busRadio.checked) {
         publicTransportTickets += parseFloat(busGoPrice.value) || 0;
         publicTransportTickets += parseFloat(busReturnPrice.value) || 0;
-        transportCost += (routeSettings.bus.fee || 0);
-        notesArr.push(`已含客運路程費 $${routeSettings.bus.fee}（來回${routeSettings.bus.roundTripKm}km）`);
+        transportCost += (routeFees.bus.fee || 0);
+        notesArr.push(`已含客運路程費 $${routeFees.bus.fee}（來回${routeFees.bus.roundTripKm}km）`);
     }
 
     if (notesArr.length > 0) {
@@ -1008,18 +1020,20 @@ saveRecordBtn.addEventListener('click', async () => {
         if (hsrRadio.checked) transportTypes.push('hsr');
         if (busRadio.checked) transportTypes.push('bus');
 
+        const currentRouteFees = getRouteFees();
+
         let tickets = {
             hsr: {
                 go: { amount: parseFloat(hsrGoPrice.value) || 0, imageUrl: document.getElementById('hsrGoThumb').dataset.url || null, imagePath: document.getElementById('hsrGoThumb').dataset.path || null },
                 return: { amount: parseFloat(hsrReturnPrice.value) || 0, imageUrl: document.getElementById('hsrReturnThumb').dataset.url || null, imagePath: document.getElementById('hsrReturnThumb').dataset.path || null },
-                routeFee: routeSettings.hsr.fee,
-                routeKmRoundTrip: routeSettings.hsr.roundTripKm
+                routeFee: currentRouteFees.hsr.fee,
+                routeKmRoundTrip: currentRouteFees.hsr.roundTripKm
             },
             bus: {
                 go: { amount: parseFloat(busGoPrice.value) || 0, imageUrl: document.getElementById('busGoThumb').dataset.url || null, imagePath: document.getElementById('busGoThumb').dataset.path || null },
                 return: { amount: parseFloat(busReturnPrice.value) || 0, imageUrl: document.getElementById('busReturnThumb').dataset.url || null, imagePath: document.getElementById('busReturnThumb').dataset.path || null },
-                routeFee: routeSettings.bus.fee,
-                routeKmRoundTrip: routeSettings.bus.roundTripKm
+                routeFee: currentRouteFees.bus.fee,
+                routeKmRoundTrip: currentRouteFees.bus.roundTripKm
             }
         };
 
