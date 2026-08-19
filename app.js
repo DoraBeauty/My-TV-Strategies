@@ -778,6 +778,9 @@ const handleDriverChange = () => {
             mileageRateHint.textContent = "機車：每公里補助 $2";
             mileageInput.dataset.rate = "2";
         }
+
+        // Let calculateTotal handle the text updates so it's always consistent
+        calculateTotal();
     } else {
         // Someone else is driving, no mileage for self
         mileageSection.classList.remove('show');
@@ -854,7 +857,16 @@ function calculateTotal() {
     if ((type === 'car' || type === 'motorcycle') && driverSelect.value === 'self') {
         const mileage = parseFloat(mileageInput.value) || 0;
         const rate = parseFloat(mileageInput.dataset.rate) || 0;
-        transportCost += (mileage * rate) || 0;
+        const cost = (mileage * rate) || 0;
+        transportCost += cost;
+
+        // Update UI dynamically to show the user the calculated amount
+        const typeStr = type === 'car' ? '汽車' : '機車';
+        if (mileage > 0) {
+            mileageRateHint.innerHTML = `${typeStr}：每公里補助 $${rate}<br><span class="text-primary fw-bold">總計費：${mileage}km × $${rate} = $${cost}</span>`;
+        } else {
+            mileageRateHint.innerHTML = `${typeStr}：每公里補助 $${rate}`;
+        }
     }
 
     let notesArr = [];
