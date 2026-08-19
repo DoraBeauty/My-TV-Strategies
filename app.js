@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
-    getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut
+    getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
     getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, getDocs, setDoc, getDoc
@@ -171,13 +171,12 @@ let currentRecords = [];
 
 // --- Auth & Setup ---
 
-const handleLogin = () => {
+const handleLogin = async () => {
     try {
         const provider = new GoogleAuthProvider();
-        // 改用跳轉模式登入
-        signInWithRedirect(auth, provider);
+        await signInWithPopup(auth, provider);
     } catch (error) {
-        alert("登入跳轉失敗：" + error.message);
+        alert("登入失敗：" + error.message);
     }
 };
 
