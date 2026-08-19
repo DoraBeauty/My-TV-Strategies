@@ -26,6 +26,26 @@ const storage = getStorage(app);
 
 let currentUser = null;
 
+// Helper to get complete transport cost for display/stats
+function getCompleteTransportCost(record) {
+    let cost = parseFloat(record.transportCost) || 0;
+    if (record.transportCostIncludesTickets) {
+        return cost;
+    }
+    // Backward compatibility for old records
+    if (record.tickets) {
+        if (record.tickets.hsr) {
+            cost += parseFloat(record.tickets.hsr.go?.amount) || 0;
+            cost += parseFloat(record.tickets.hsr.return?.amount) || 0;
+        }
+        if (record.tickets.bus) {
+            cost += parseFloat(record.tickets.bus.go?.amount) || 0;
+            cost += parseFloat(record.tickets.bus.return?.amount) || 0;
+        }
+    }
+    return cost;
+}
+
 // UI Elements
 const loginView = document.getElementById('loginView');
 const dashboardView = document.getElementById('dashboardView');
@@ -848,19 +868,18 @@ function calculateTotal() {
         transportCost += (mileage * rate) || 0;
     }
 
-    let publicTransportTickets = 0;
     let notesArr = [];
 
     const routeFees = getRouteFees();
 
     if (hsrRadio.checked) {
-        publicTransportTickets += parseFloat(hsrGoPrice.value) || 0;
-        publicTransportTickets += parseFloat(hsrReturnPrice.value) || 0;
+        transportCost += parseFloat(hsrGoPrice.value) || 0;
+        transportCost += parseFloat(hsrReturnPrice.value) || 0;
         transportCost += (routeFees.hsr.fee || 0);
         notesArr.push(`已含高鐵路程費 $${routeFees.hsr.fee}（來回${routeFees.hsr.roundTripKm}km）`);
     } else if (busRadio.checked) {
-        publicTransportTickets += parseFloat(busGoPrice.value) || 0;
-        publicTransportTickets += parseFloat(busReturnPrice.value) || 0;
+        transportCost += parseFloat(busGoPrice.value) || 0;
+        transportCost += parseFloat(busReturnPrice.value) || 0;
         transportCost += (routeFees.bus.fee || 0);
         notesArr.push(`已含客運路程費 $${routeFees.bus.fee}（來回${routeFees.bus.roundTripKm}km）`);
     }
@@ -876,7 +895,7 @@ function calculateTotal() {
         receiptTotal += parseFloat(input.value) || 0;
     });
 
-    const total = allowance + transportCost + publicTransportTickets + receiptTotal;
+    const total = allowance + transportCost + receiptTotal;
     totalAmountInput.value = Math.round(total) || 0;
     totalAmountDisplay.textContent = Math.round(total) || 0;
 }
@@ -1045,6 +1064,8 @@ saveRecordBtn.addEventListener('click', async () => {
             tickets.hsr.return.imageUrl = hsrReturnUploaded.url; tickets.hsr.return.imagePath = hsrReturnUploaded.path;
 
             transportCostVal += (tickets.hsr.routeFee || 0);
+            transportCostVal += parseFloat(tickets.hsr.go.amount) || 0;
+            transportCostVal += parseFloat(tickets.hsr.return.amount) || 0;
         }
 
         if (busRadio.checked) {
@@ -1055,6 +1076,8 @@ saveRecordBtn.addEventListener('click', async () => {
             tickets.bus.return.imageUrl = busReturnUploaded.url; tickets.bus.return.imagePath = busReturnUploaded.path;
 
             transportCostVal += (tickets.bus.routeFee || 0);
+            transportCostVal += parseFloat(tickets.bus.go.amount) || 0;
+            transportCostVal += parseFloat(tickets.bus.return.amount) || 0;
         }
 
         const totalVal = parseInt(totalAmountInput.value) || 0;
@@ -1073,6 +1096,7 @@ saveRecordBtn.addEventListener('click', async () => {
             driver,
             mileage: mileageVal,
             transportCost: transportCostVal,
+            transportCostIncludesTickets: true,
             receipts,
             totalAmount: totalVal,
             transportTypes,
@@ -1187,17 +1211,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
 
     const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
 
-    let totalTransportDisplay = parseFloat(record.transportCost) || 0;
-    if (record.tickets) {
-        if (record.tickets.hsr) {
-            totalTransportDisplay += parseFloat(record.tickets.hsr.go.amount) || 0;
-            totalTransportDisplay += parseFloat(record.tickets.hsr.return.amount) || 0;
-        }
-        if (record.tickets.bus) {
-            totalTransportDisplay += parseFloat(record.tickets.bus.go.amount) || 0;
-            totalTransportDisplay += parseFloat(record.tickets.bus.return.amount) || 0;
-        }
-    }
+    let totalTransportDisplay = getCompleteTransportCost(record);
 
     let detailsHtml = '';
     if (record.leader) {
@@ -1561,24 +1575,61 @@ const cleanupOldImages = async (records) => {
     const { db, storage, doc, updateDoc, ref, deleteObject } = window.firebaseData;
     const now = new Date();
     for (const record of records) {
-        if (record.isSettled && record.settledAt && record.receipts) {
+        if (record.isSettled && record.settledAt) {
             const diffDays = Math.ceil(Math.abs(now - new Date(record.settledAt)) / (1000 * 60 * 60 * 24));
             if (diffDays > 30) {
-                let updated = false;
-                const newReceipts = [...record.receipts];
-                for (let i = 0; i < newReceipts.length; i++) {
-                    const r = newReceipts[i];
-                    if (r.path && r.url) {
-                        try {
-                            await deleteObject(ref(storage, r.path));
-                            newReceipts[i].path = null;
-                            newReceipts[i].url = null;
-                            updated = true;
-                        } catch(e){}
+                let updatedReceipts = false;
+                let updatedTickets = false;
+
+                // Cleanup Receipts
+                if (record.receipts) {
+                    const newReceipts = [...record.receipts];
+                    for (let i = 0; i < newReceipts.length; i++) {
+                        const r = newReceipts[i];
+                        if (r.path && r.url) {
+                            try {
+                                await deleteObject(ref(storage, r.path));
+                                newReceipts[i].path = null;
+                                newReceipts[i].url = null;
+                                updatedReceipts = true;
+                            } catch (e) {
+                                console.error('Failed to delete receipt image', e);
+                            }
+                        }
+                    }
+                    if (updatedReceipts) {
+                        await updateDoc(doc(db, 'records', record.id), { receipts: newReceipts });
                     }
                 }
-                if (updated) {
-                    await updateDoc(doc(db, 'records', record.id), { receipts: newReceipts });
+
+                // Cleanup Tickets
+                if (record.tickets) {
+                    const newTickets = JSON.parse(JSON.stringify(record.tickets)); // Deep clone
+                    const checkAndDeleteTicketImage = async (ticketNode) => {
+                        if (ticketNode && ticketNode.imagePath) {
+                            try {
+                                await deleteObject(ref(storage, ticketNode.imagePath));
+                                ticketNode.imagePath = null;
+                                ticketNode.imageUrl = null;
+                                updatedTickets = true;
+                            } catch (e) {
+                                console.error('Failed to delete ticket image', e);
+                            }
+                        }
+                    };
+
+                    if (newTickets.hsr) {
+                        await checkAndDeleteTicketImage(newTickets.hsr.go);
+                        await checkAndDeleteTicketImage(newTickets.hsr.return);
+                    }
+                    if (newTickets.bus) {
+                        await checkAndDeleteTicketImage(newTickets.bus.go);
+                        await checkAndDeleteTicketImage(newTickets.bus.return);
+                    }
+
+                    if (updatedTickets) {
+                        await updateDoc(doc(db, 'records', record.id), { tickets: newTickets });
+                    }
                 }
             }
         }
@@ -1633,7 +1684,7 @@ exportBtn.addEventListener('click', () => {
             typeMap[r.transportType] || '',
             r.driver === 'self' ? '自己' : r.driver || '',
             r.mileage !== null ? r.mileage : '',
-            r.transportCost || 0,
+            getCompleteTransportCost(r),
             receiptTotal,
             r.totalAmount || 0,
             r.isSettled ? '已入帳' : '未入帳'
@@ -2009,7 +2060,7 @@ const calculateAndRenderStats = () => {
         const allowance = record.allowance || 0;
         totalAllowance += allowance;
 
-        let transport = record.transportCost || 0;
+        let transport = getCompleteTransportCost(record);
         let accommodation = 0;
         let other = 0;
 
