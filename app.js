@@ -3,7 +3,7 @@ import {
     getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
-    getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, getDocs
+    getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, getDocs, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import {
     getStorage, ref, uploadBytes, getDownloadURL, deleteObject
@@ -293,7 +293,7 @@ onAuthStateChanged(auth, (user) => {
         unsettledBadgeBtn.style.display = 'inline-block';
 
         window.firebaseData = {
-            db, storage, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, getDocs, deleteObject, currentUser
+            db, storage, collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, ref, uploadBytes, getDownloadURL, getDocs, deleteObject, setDoc, getDoc, currentUser
         };
 
         window.dispatchEvent(new Event('authReady'));
@@ -2582,8 +2582,7 @@ const loadSettings = async () => {
     // 2. Overwrite with Cloud Sync if logged in
     if (window.firebaseData && window.firebaseData.currentUser && !(currentUser && currentUser.isGuest)) {
         try {
-            const { db, doc } = window.firebaseData;
-            const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            const { db, doc, getDoc } = window.firebaseData;
             const docSnap = await getDoc(doc(db, "userSettings", window.firebaseData.currentUser.uid));
             if (docSnap.exists()) {
                 userSettings = { ...userSettings, ...docSnap.data() };
@@ -2621,13 +2620,12 @@ if (saveRouteSettingsBtn) {
         // Sync to cloud
         if (window.firebaseData && window.firebaseData.currentUser && !(currentUser && currentUser.isGuest)) {
             try {
-                const { db, doc } = window.firebaseData;
-                const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                const { db, doc, setDoc } = window.firebaseData;
                 await setDoc(doc(db, "userSettings", window.firebaseData.currentUser.uid), newSettings, { merge: true });
                 console.log("Settings synced to Firestore successfully.");
             } catch (error) {
                 console.error("Error syncing settings to Firestore:", error);
-                alert('雲端同步失敗，但已儲存在本機');
+                alert(`雲端同步失敗 (${error.code || 'unknown'}): ${error.message || '發生未知錯誤'}，但已儲存在本機`);
             }
         }
 
