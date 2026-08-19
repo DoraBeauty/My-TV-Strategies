@@ -1,0 +1,72 @@
+--- app.js
++++ app.js
+@@ -1543,6 +1543,59 @@
+
+     if (record.mileage !== null) mileageInput.value = record.mileage;
+
++    // Handle public transit selections & tickets without triggering event listeners that clear them
++    let transportTypes = record.transportTypes || [];
++
++    // Legacy fallback inference if transportTypes is empty but tickets exist
++    if (transportTypes.length === 0 && record.tickets) {
++        if (record.tickets.hsr && (record.tickets.hsr.go?.amount || record.tickets.hsr.return?.amount || record.tickets.hsr.go?.imageUrl || record.tickets.hsr.return?.imageUrl)) {
++            transportTypes.push('hsr');
++        }
++        if (record.tickets.bus && (record.tickets.bus.go?.amount || record.tickets.bus.return?.amount || record.tickets.bus.go?.imageUrl || record.tickets.bus.return?.imageUrl)) {
++            transportTypes.push('bus');
++        }
++    }
++
++    // Set radio buttons and show sections manually
++    hsrRadio.checked = transportTypes.includes('hsr');
++    busRadio.checked = transportTypes.includes('bus');
++
++    if (hsrRadio.checked) hsrSection.classList.add('show');
++    else hsrSection.classList.remove('show');
++
++    if (busRadio.checked) busSection.classList.add('show');
++    else busSection.classList.remove('show');
++
++    clearPublicTransitBtn.style.display = (hsrRadio.checked || busRadio.checked) ? 'inline-block' : 'none';
++
++    // Helper to setup ticket UI
++    const setupTicketUI = (ticketData, priceInputId, thumbContainerId) => {
++        const priceInput = document.getElementById(priceInputId);
++        const thumbContainer = document.getElementById(thumbContainerId);
++
++        if (ticketData) {
++            if (ticketData.amount !== undefined && ticketData.amount !== null) {
++                priceInput.value = ticketData.amount;
++            } else {
++                priceInput.value = '';
++            }
++
++            if (ticketData.imageUrl) {
++                thumbContainer.innerHTML = `<img src="${ticketData.imageUrl}" class="img-thumbnail mt-2" style="max-height: 100px;">`;
++                thumbContainer.dataset.url = ticketData.imageUrl;
++                thumbContainer.dataset.path = ticketData.imagePath;
++            } else if (ticketData.amount > 0) {
++                thumbContainer.innerHTML = `<span class="badge bg-secondary mt-2">圖片已清除</span>`;
++                thumbContainer.dataset.url = '';
++                thumbContainer.dataset.path = '';
++            } else {
++                thumbContainer.innerHTML = '';
++                thumbContainer.dataset.url = '';
++                thumbContainer.dataset.path = '';
++            }
++        }
++    };
++
++    if (record.tickets) {
++        if (record.tickets.hsr) {
++            setupTicketUI(record.tickets.hsr.go, 'hsrGoPrice', 'hsrGoThumb');
++            setupTicketUI(record.tickets.hsr.return, 'hsrReturnPrice', 'hsrReturnThumb');
++        }
++        if (record.tickets.bus) {
++            setupTicketUI(record.tickets.bus.go, 'busGoPrice', 'busGoThumb');
++            setupTicketUI(record.tickets.bus.return, 'busReturnPrice', 'busReturnThumb');
++        }
++    }
++
+     receiptsContainer.innerHTML = '';
+     if (record.receipts) {
