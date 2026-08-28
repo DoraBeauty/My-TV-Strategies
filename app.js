@@ -130,76 +130,153 @@ const modalTitle = document.getElementById('modalTitle');
 const saveRecordBtn = document.getElementById('saveRecordBtn');
 const saveSpinner = document.getElementById('saveSpinner');
 
-const equipmentContainer = document.getElementById('equipmentContainer');
-const equipmentTotalQtyDisplay = document.getElementById('equipmentTotalQty');
-const equipmentNoteInput = document.getElementById('equipmentNote');
+// New Equipment Variables
+const equipmentSummary = document.getElementById('equipmentSummary');
+const equipmentNotePreview = document.getElementById('equipmentNotePreview');
+const modalEquipmentContent = document.getElementById('equipmentModalContent');
+const modalEquipmentTotalQty = document.getElementById('modalEquipmentTotalQty');
+const modalEquipmentNote = document.getElementById('modalEquipmentNote');
+const confirmEquipmentBtn = document.getElementById('confirmEquipmentBtn');
+const equipmentModalEl = document.getElementById('equipmentModal');
+let equipmentModalInstance = null;
 
-const FIXED_EQUIPMENT_LIST = [
-    '60迫砲',
-    'T75式81迫砲',
-    'M29A1式81迫砲',
-    '120迫砲',
-    'M42迫砲',
-    '105榴砲',
-    '155榴砲',
-    '155加農砲',
-    '8吋榴砲',
-    'T82T式20機砲（牽引式）',
-    'T82F式20機砲（固定式）',
-    'M240榴砲'
-];
+// Equipment State (In-Memory for Form)
+let currentEquipmentList = [];
+let currentEquipmentTotalQty = 0;
+let currentEquipmentNote = '';
+
+const EQUIPMENT_CATEGORIES = {
+    '迫砲': ['60迫砲', 'T75式81迫砲', 'M29A1式81迫砲', '120迫砲', 'M42迫砲'],
+    '榴砲': ['105榴砲', '155榴砲', '8吋榴砲', 'M240榴砲', '155加農砲'],
+    '機砲': ['T82T式20機砲（牽引式）', 'T82F式20機砲（固定式）']
+};
 
 function initEquipmentUI() {
-    if (!equipmentContainer) return;
-    equipmentContainer.innerHTML = '';
-    FIXED_EQUIPMENT_LIST.forEach((eqName, index) => {
-        const row = document.createElement('div');
-        row.className = 'd-flex justify-content-between align-items-center bg-custom-light rounded-3 px-3 py-2';
+    if (!modalEquipmentContent) return;
+    equipmentModalInstance = new bootstrap.Modal(equipmentModalEl);
+    modalEquipmentContent.innerHTML = '';
 
-        const label = document.createElement('span');
-        label.className = 'fw-bold text-main-custom small';
-        label.textContent = eqName;
+    for (const [category, items] of Object.entries(EQUIPMENT_CATEGORIES)) {
+        const catContainer = document.createElement('div');
+        catContainer.className = 'mb-4';
 
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.className = 'ios-input equipment-qty-input border-0 bg-transparent text-end p-0 fw-bold';
-        input.style.width = '60px';
-        input.min = '0';
-        input.step = '1';
-        input.placeholder = '0';
-        input.dataset.name = eqName;
+        const catTitle = document.createElement('h6');
+        catTitle.className = 'fw-bold text-primary mb-2 border-bottom pb-1';
+        catTitle.style.borderColor = 'var(--border-color) !important';
+        catTitle.textContent = category;
+        catContainer.appendChild(catTitle);
 
-        input.addEventListener('input', () => {
-            // Ensure integer and non-negative
-            if (input.value !== '') {
-                const val = parseInt(input.value);
-                if (isNaN(val) || val < 0) {
-                    input.value = '0';
-                } else {
-                    input.value = val;
-                }
-            }
-            calculateEquipmentTotal();
+        const listContainer = document.createElement('div');
+        listContainer.className = 'd-flex flex-column gap-2';
+
+        items.forEach(eqName => {
+            const row = document.createElement('div');
+            row.className = 'd-flex justify-content-between align-items-center bg-custom-light rounded-3 px-3 py-2';
+
+            const label = document.createElement('span');
+            label.className = 'fw-bold text-main-custom small';
+            label.textContent = eqName;
+
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'ios-input equipment-modal-qty-input border-0 bg-transparent text-end p-0 fw-bold w-25';
+            input.value = '';
+            input.min = '0';
+            input.step = '1';
+            input.placeholder = '0';
+            input.dataset.name = eqName;
+
+            input.addEventListener('input', calculateModalEquipmentTotal);
+
+            row.appendChild(label);
+            row.appendChild(input);
+            listContainer.appendChild(row);
         });
 
-        row.appendChild(label);
-        row.appendChild(input);
-        equipmentContainer.appendChild(row);
-    });
+        catContainer.appendChild(listContainer);
+        modalEquipmentContent.appendChild(catContainer);
+    }
 }
 
-function calculateEquipmentTotal() {
-    if (!equipmentContainer) return;
+function calculateModalEquipmentTotal() {
+    if (!modalEquipmentContent) return;
     let total = 0;
-    const inputs = equipmentContainer.querySelectorAll('.equipment-qty-input');
+    const inputs = modalEquipmentContent.querySelectorAll('.equipment-modal-qty-input');
     inputs.forEach(input => {
         const val = parseInt(input.value) || 0;
-        total += val;
+        if (val > 0) total += val;
     });
-    equipmentTotalQtyDisplay.textContent = total;
+    modalEquipmentTotalQty.textContent = total;
 }
 
-document.addEventListener('DOMContentLoaded', initEquipmentUI);
+function updateEquipmentSummaryUI() {
+    if (currentEquipmentTotalQty === 0) {
+        equipmentSummary.textContent = '未選擇';
+        equipmentNotePreview.style.display = 'none';
+    } else {
+        const displayList = currentEquipmentList.slice(0, 3).map(eq => `${eq.name}×${eq.qty}`);
+        let summaryText = displayList.join('、');
+        if (currentEquipmentList.length > 3) {
+            summaryText += '...';
+        }
+        summaryText += `（共 ${currentEquipmentTotalQty} 門）`;
+        equipmentSummary.textContent = summaryText;
+
+        if (currentEquipmentNote) {
+            equipmentNotePreview.textContent = currentEquipmentNote;
+            equipmentNotePreview.style.display = 'block';
+        } else {
+            equipmentNotePreview.style.display = 'none';
+        }
+    }
+}
+
+// When confirm button is clicked in modal
+if (confirmEquipmentBtn) {
+    confirmEquipmentBtn.addEventListener('click', () => {
+        currentEquipmentList = [];
+        currentEquipmentTotalQty = 0;
+
+        const inputs = modalEquipmentContent.querySelectorAll('.equipment-modal-qty-input');
+        inputs.forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            if (qty > 0) {
+                currentEquipmentList.push({ name: input.dataset.name, qty: qty });
+                currentEquipmentTotalQty += qty;
+            }
+        });
+
+        currentEquipmentNote = modalEquipmentNote.value.trim();
+        updateEquipmentSummaryUI();
+        const equipmentModalEl = document.getElementById('equipmentModal');
+        const equipmentModal = bootstrap.Modal.getInstance(equipmentModalEl) || new bootstrap.Modal(equipmentModalEl);
+        equipmentModal.hide();
+    });
+}
+
+// When modal is opened, restore values from current state
+if (equipmentModalEl) {
+    document.getElementById('openEquipmentModalBtn').addEventListener('click', () => {
+        const equipmentModal = bootstrap.Modal.getInstance(equipmentModalEl) || new bootstrap.Modal(equipmentModalEl);
+        equipmentModal.show();
+    });
+
+    equipmentModalEl.addEventListener('show.bs.modal', () => {
+        const inputs = modalEquipmentContent.querySelectorAll('.equipment-modal-qty-input');
+        inputs.forEach(input => input.value = '');
+
+        currentEquipmentList.forEach(eq => {
+            const input = modalEquipmentContent.querySelector(`.equipment-modal-qty-input[data-name="${eq.name}"]`);
+            if (input) input.value = eq.qty;
+        });
+
+        modalEquipmentNote.value = currentEquipmentNote;
+        calculateModalEquipmentTotal();
+    });
+}
+
+
+initEquipmentUI();
 
 const startTimeInput = document.getElementById('startTime');
 const endTimeInput = document.getElementById('endTime');
@@ -214,6 +291,8 @@ const driverSelect = document.getElementById('driverSelect');
 const mileageSection = document.getElementById('mileageSection');
 const mileageInput = document.getElementById('mileage');
 const mileageRateHint = document.getElementById('mileageRateHint');
+const roundTripBtn = document.getElementById('roundTripBtn');
+let isRoundTripActive = false;
 
 // HSR / Bus Form Elements
 const hsrRadio = document.getElementById('hsrRadio');
@@ -856,11 +935,38 @@ const handleDriverChange = () => {
         // Someone else is driving, no mileage for self
         mileageSection.classList.remove('show');
         mileageInput.value = '';
+        isRoundTripActive = false;
+        roundTripBtn.classList.remove('active', 'btn-secondary');
+        roundTripBtn.classList.add('btn-outline-secondary');
     }
     calculateTotal();
 };
 driverSelect.addEventListener('change', handleDriverChange);
-mileageInput.addEventListener('input', calculateTotal);
+
+mileageInput.addEventListener('input', () => {
+    if (isRoundTripActive) {
+        isRoundTripActive = false;
+        roundTripBtn.classList.remove('active', 'btn-secondary');
+        roundTripBtn.classList.add('btn-outline-secondary');
+    }
+    calculateTotal();
+});
+
+roundTripBtn.addEventListener('click', () => {
+    const currentVal = parseFloat(mileageInput.value) || 0;
+    if (isRoundTripActive) {
+        isRoundTripActive = false;
+        roundTripBtn.classList.remove('active', 'btn-secondary');
+        roundTripBtn.classList.add('btn-outline-secondary');
+        mileageInput.value = currentVal / 2;
+    } else {
+        isRoundTripActive = true;
+        roundTripBtn.classList.remove('btn-outline-secondary');
+        roundTripBtn.classList.add('active', 'btn-secondary');
+        mileageInput.value = currentVal * 2;
+    }
+    calculateTotal();
+});
 
 // Dynamic Receipts
 const createReceiptEl = (data = null) => {
@@ -997,11 +1103,10 @@ document.addEventListener('DOMContentLoaded', () => {
             receiptsContainer.innerHTML = '';
 
             // Reset equipment
-            if (equipmentContainer) {
-                equipmentContainer.querySelectorAll('.equipment-qty-input').forEach(input => input.value = '');
-            }
-            if (equipmentTotalQtyDisplay) equipmentTotalQtyDisplay.textContent = '0';
-            if (equipmentNoteInput) equipmentNoteInput.value = '';
+            currentEquipmentList = [];
+            currentEquipmentTotalQty = 0;
+            currentEquipmentNote = '';
+            updateEquipmentSummaryUI();
 
             // Set default start/end times
             const now = new Date();
@@ -1173,19 +1278,9 @@ saveRecordBtn.addEventListener('click', async () => {
 
         const totalVal = parseInt(totalAmountInput.value) || 0;
 
-        let equipmentList = [];
-        let equipmentTotalQty = 0;
-        if (equipmentContainer) {
-            const inputs = equipmentContainer.querySelectorAll('.equipment-qty-input');
-            inputs.forEach(input => {
-                const qty = parseInt(input.value) || 0;
-                if (qty > 0) {
-                    equipmentList.push({ name: input.dataset.name, qty: qty });
-                    equipmentTotalQty += qty;
-                }
-            });
-        }
-        const equipmentNote = equipmentNoteInput ? equipmentNoteInput.value.trim() : '';
+        let equipmentList = currentEquipmentList;
+        let equipmentTotalQty = currentEquipmentTotalQty;
+        const equipmentNote = currentEquipmentNote;
 
         const recordData = {
             userId: currentUser.uid,
@@ -1646,20 +1741,10 @@ const openEditModal = (record) => {
     document.getElementById('leader').value = record.leader || '';
 
     // Reset and populate equipment
-    if (equipmentContainer) {
-        equipmentContainer.querySelectorAll('.equipment-qty-input').forEach(input => input.value = '');
-    }
-    if (equipmentNoteInput) equipmentNoteInput.value = record.equipmentNote || '';
-
-    if (record.equipmentList && Array.isArray(record.equipmentList) && equipmentContainer) {
-        record.equipmentList.forEach(eq => {
-            const input = equipmentContainer.querySelector(`.equipment-qty-input[data-name="${eq.name}"]`);
-            if (input) {
-                input.value = eq.qty;
-            }
-        });
-    }
-    calculateEquipmentTotal();
+    currentEquipmentList = Array.isArray(record.equipmentList) ? record.equipmentList : [];
+    currentEquipmentTotalQty = record.equipmentTotalQty || 0;
+    currentEquipmentNote = record.equipmentNote || '';
+    updateEquipmentSummaryUI();
 
     // Clear and populate companions
     companionsContainer.innerHTML = '';
@@ -1682,6 +1767,9 @@ const openEditModal = (record) => {
     handleDriverChange();
 
     if (record.mileage !== null) mileageInput.value = record.mileage;
+    isRoundTripActive = false;
+    roundTripBtn.classList.remove('active', 'btn-secondary');
+    roundTripBtn.classList.add('btn-outline-secondary');
 
     // Handle public transit selections & tickets without triggering event listeners that clear them
     let transportTypes = record.transportTypes || [];
