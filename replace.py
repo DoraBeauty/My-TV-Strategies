@@ -209,4 +209,3 @@ content = re.sub(
 
 with open('app.js', 'w') as f:
     f.write(content)
-
