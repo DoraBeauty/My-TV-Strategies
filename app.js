@@ -145,209 +145,37 @@ let currentEquipmentList = [];
 let currentEquipmentTotalQty = 0;
 let currentEquipmentNote = '';
 
-
-const DEFAULT_EQUIPMENT_CATALOG = [
-    {
-        id: 'group_mortar',
-        name: '迫砲',
-        items: [
-            { id: 'eq_m1', name: '60迫砲' },
-            { id: 'eq_m2', name: 'T75式81迫砲' },
-            { id: 'eq_m3', name: 'M29A1式81迫砲' },
-            { id: 'eq_m4', name: '120迫砲' },
-            { id: 'eq_m5', name: 'M42迫砲' }
-        ]
-    },
-    {
-        id: 'group_howitzer',
-        name: '榴砲',
-        items: [
-            { id: 'eq_h1', name: '105榴砲' },
-            { id: 'eq_h2', name: '155榴砲' },
-            { id: 'eq_h3', name: '8吋榴砲' },
-            { id: 'eq_h4', name: 'M240榴砲' },
-            { id: 'eq_h5', name: '155加農砲' }
-        ]
-    },
-    {
-        id: 'group_autocannon',
-        name: '機砲',
-        items: [
-            { id: 'eq_a1', name: 'T82T式20機砲（牽引式）' },
-            { id: 'eq_a2', name: 'T82F式20機砲（固定式）' }
-        ]
-    }
-];
-
-let currentEquipmentCatalog = [];
-
-// Equipment Settings UI
-const equipmentSettingsContent = document.getElementById('equipmentSettingsContent');
-const addEquipmentGroupBtn = document.getElementById('addEquipmentGroupBtn');
-
-async function saveEquipmentCatalog() {
-    if (currentUser && currentUser.isGuest) {
-        localStorage.setItem('guest_equipment_catalog', JSON.stringify(currentEquipmentCatalog));
-    } else if (currentUser) {
-        try {
-            const { db, doc, setDoc } = window.firebaseData;
-            const userRef = doc(db, 'userSettings', currentUser.uid);
-            await setDoc(userRef, { equipmentCatalog: currentEquipmentCatalog }, { merge: true });
-        } catch (error) {
-            console.error('Error saving equipment catalog:', error);
-            alert('儲存裝備設定失敗，請稍後再試。');
-        }
-    }
-    initEquipmentUI();
-    renderEquipmentSettings();
-}
-
-
-function renderEquipmentSettings() {
-    if (!equipmentSettingsContent) return;
-    equipmentSettingsContent.innerHTML = '';
-
-    currentEquipmentCatalog.forEach((group, groupIndex) => {
-        const groupEl = document.createElement('div');
-        groupEl.className = 'bg-custom-card border rounded-4 p-3 mb-3 shadow-sm';
-
-        // Group Header
-        const headerEl = document.createElement('div');
-        headerEl.className = 'd-flex justify-content-between align-items-center mb-3 border-bottom pb-2';
-        headerEl.style.borderColor = 'var(--border-color) !important';
-
-        const titleEl = document.createElement('h6');
-        titleEl.className = 'fw-bold text-primary m-0';
-        titleEl.textContent = group.name;
-
-        const headerBtns = document.createElement('div');
-        headerBtns.innerHTML = `
-            <button class="btn btn-sm btn-link text-muted p-0 me-2" onclick="editEquipmentGroup(${groupIndex})"><i class="bi bi-pencil-square"></i></button>
-            <button class="btn btn-sm btn-link text-danger p-0" onclick="deleteEquipmentGroup(${groupIndex})"><i class="bi bi-trash3"></i></button>
-        `;
-
-        headerEl.appendChild(titleEl);
-        headerEl.appendChild(headerBtns);
-        groupEl.appendChild(headerEl);
-
-        // Group Items
-        const itemsList = document.createElement('div');
-        itemsList.className = 'd-flex flex-column gap-2 mb-3';
-
-        group.items.forEach((item, itemIndex) => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'd-flex justify-content-between align-items-center bg-custom-light rounded-3 px-3 py-2';
-
-            const itemNameEl = document.createElement('span');
-            itemNameEl.className = 'fw-bold text-main-custom small';
-            itemNameEl.textContent = item.name;
-
-            const itemBtns = document.createElement('div');
-            itemBtns.innerHTML = `
-                <button class="btn btn-sm btn-link text-muted p-0 me-2" onclick="editEquipmentItem(${groupIndex}, ${itemIndex})"><i class="bi bi-pencil-square"></i></button>
-                <button class="btn btn-sm btn-link text-danger p-0" onclick="deleteEquipmentItem(${groupIndex}, ${itemIndex})"><i class="bi bi-trash3"></i></button>
-            `;
-
-            itemEl.appendChild(itemNameEl);
-            itemEl.appendChild(itemBtns);
-            itemsList.appendChild(itemEl);
-        });
-        groupEl.appendChild(itemsList);
-
-        // Add Item Button
-        const addItemBtn = document.createElement('button');
-        addItemBtn.className = 'btn btn-sm btn-custom-light w-100 rounded-pill text-primary fw-bold';
-        addItemBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>新增裝備種類';
-        addItemBtn.onclick = () => addEquipmentItem(groupIndex);
-        groupEl.appendChild(addItemBtn);
-
-        equipmentSettingsContent.appendChild(groupEl);
-    });
-}
-
-// Global functions for inline onclick handlers
-window.editEquipmentGroup = (groupIndex) => {
-    const group = currentEquipmentCatalog[groupIndex];
-    const newName = prompt('請輸入群組新名稱', group.name);
-    if (newName && newName.trim() !== '') {
-        group.name = newName.trim();
-        saveEquipmentCatalog();
-    }
+const EQUIPMENT_CATEGORIES = {
+    '迫砲': ['60迫砲', 'T75式81迫砲', 'M29A1式81迫砲', '120迫砲', 'M42迫砲'],
+    '榴砲': ['105榴砲', '155榴砲', '8吋榴砲', 'M240榴砲', '155加農砲'],
+    '機砲': ['T82T式20機砲（牽引式）', 'T82F式20機砲（固定式）']
 };
-
-window.deleteEquipmentGroup = (groupIndex) => {
-    if (confirm('確定要刪除此群組及其下所有裝備種類嗎？')) {
-        currentEquipmentCatalog.splice(groupIndex, 1);
-        saveEquipmentCatalog();
-    }
-};
-
-window.editEquipmentItem = (groupIndex, itemIndex) => {
-    const item = currentEquipmentCatalog[groupIndex].items[itemIndex];
-    const newName = prompt('請輸入裝備新名稱', item.name);
-    if (newName && newName.trim() !== '') {
-        item.name = newName.trim();
-        saveEquipmentCatalog();
-    }
-};
-
-window.deleteEquipmentItem = (groupIndex, itemIndex) => {
-    if (confirm('確定要刪除此裝備嗎？')) {
-        currentEquipmentCatalog[groupIndex].items.splice(itemIndex, 1);
-        saveEquipmentCatalog();
-    }
-};
-
-window.addEquipmentItem = (groupIndex) => {
-    const newName = prompt('請輸入新裝備名稱');
-    if (newName && newName.trim() !== '') {
-        currentEquipmentCatalog[groupIndex].items.push({
-            id: 'eq_' + Date.now(),
-            name: newName.trim()
-        });
-        saveEquipmentCatalog();
-    }
-};
-
-if (addEquipmentGroupBtn) {
-    addEquipmentGroupBtn.addEventListener('click', () => {
-        const newName = prompt('請輸入新群組名稱');
-        if (newName && newName.trim() !== '') {
-            currentEquipmentCatalog.push({
-                id: 'group_' + Date.now(),
-                name: newName.trim(),
-                items: []
-            });
-            saveEquipmentCatalog();
-        }
-    });
-}
-
 
 function initEquipmentUI() {
     if (!modalEquipmentContent) return;
+    equipmentModalInstance = new bootstrap.Modal(equipmentModalEl);
     modalEquipmentContent.innerHTML = '';
 
-    currentEquipmentCatalog.forEach(group => {
+    for (const [category, items] of Object.entries(EQUIPMENT_CATEGORIES)) {
         const catContainer = document.createElement('div');
         catContainer.className = 'mb-4';
 
         const catTitle = document.createElement('h6');
         catTitle.className = 'fw-bold text-primary mb-2 border-bottom pb-1';
         catTitle.style.borderColor = 'var(--border-color) !important';
-        catTitle.textContent = group.name;
+        catTitle.textContent = category;
         catContainer.appendChild(catTitle);
 
         const listContainer = document.createElement('div');
         listContainer.className = 'd-flex flex-column gap-2';
 
-        group.items.forEach(item => {
+        items.forEach(eqName => {
             const row = document.createElement('div');
             row.className = 'd-flex justify-content-between align-items-center bg-custom-light rounded-3 px-3 py-2';
 
             const label = document.createElement('span');
             label.className = 'fw-bold text-main-custom small';
-            label.textContent = item.name;
+            label.textContent = eqName;
 
             const input = document.createElement('input');
             input.type = 'number';
@@ -356,7 +184,7 @@ function initEquipmentUI() {
             input.min = '0';
             input.step = '1';
             input.placeholder = '0';
-            input.dataset.name = item.name;
+            input.dataset.name = eqName;
 
             input.addEventListener('input', calculateModalEquipmentTotal);
 
@@ -367,9 +195,8 @@ function initEquipmentUI() {
 
         catContainer.appendChild(listContainer);
         modalEquipmentContent.appendChild(catContainer);
-    });
+    }
 }
-
 
 function calculateModalEquipmentTotal() {
     if (!modalEquipmentContent) return;
@@ -430,64 +257,11 @@ if (confirmEquipmentBtn) {
 // When modal is opened, restore values from current state
 if (equipmentModalEl) {
     document.getElementById('openEquipmentModalBtn').addEventListener('click', () => {
-        if (!equipmentModalInstance) equipmentModalInstance = new bootstrap.Modal(equipmentModalEl);
-        equipmentModalInstance.show();
+        const equipmentModal = bootstrap.Modal.getInstance(equipmentModalEl) || new bootstrap.Modal(equipmentModalEl);
+        equipmentModal.show();
     });
 
-
     equipmentModalEl.addEventListener('show.bs.modal', () => {
-        // 1. Re-render the base UI to clear any previously injected 'removed' groups
-        initEquipmentUI();
-
-        // 2. Identify removed items
-        const currentCatalogNames = new Set();
-        currentEquipmentCatalog.forEach(g => g.items.forEach(i => currentCatalogNames.add(i.name)));
-
-        const removedItems = currentEquipmentList.filter(eq => !currentCatalogNames.has(eq.name));
-
-        // 3. Inject removed items UI if necessary
-        if (removedItems.length > 0) {
-            const catContainer = document.createElement('div');
-            catContainer.className = 'mb-4';
-
-            const catTitle = document.createElement('h6');
-            catTitle.className = 'fw-bold text-danger mb-2 border-bottom pb-1';
-            catTitle.style.borderColor = 'var(--border-color) !important';
-            catTitle.textContent = '其他／已移除裝備';
-            catContainer.appendChild(catTitle);
-
-            const listContainer = document.createElement('div');
-            listContainer.className = 'd-flex flex-column gap-2';
-
-            removedItems.forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'd-flex justify-content-between align-items-center bg-custom-light rounded-3 px-3 py-2 border border-danger border-opacity-25';
-
-                const label = document.createElement('span');
-                label.className = 'fw-bold text-danger small';
-                label.textContent = item.name;
-
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.className = 'ios-input equipment-modal-qty-input border-0 bg-transparent text-end p-0 fw-bold w-25 text-danger';
-                input.value = '';
-                input.min = '0';
-                input.step = '1';
-                input.placeholder = '0';
-                input.dataset.name = item.name;
-
-                input.addEventListener('input', calculateModalEquipmentTotal);
-
-                row.appendChild(label);
-                row.appendChild(input);
-                listContainer.appendChild(row);
-            });
-
-            catContainer.appendChild(listContainer);
-            modalEquipmentContent.appendChild(catContainer);
-        }
-
-        // 4. Populate values
         const inputs = modalEquipmentContent.querySelectorAll('.equipment-modal-qty-input');
         inputs.forEach(input => input.value = '');
 
@@ -499,7 +273,6 @@ if (equipmentModalEl) {
         modalEquipmentNote.value = currentEquipmentNote;
         calculateModalEquipmentTotal();
     });
-
 }
 
 
@@ -3177,10 +2950,6 @@ const loadSettings = async () => {
             userSettings = { ...userSettings, ...JSON.parse(localStr) };
         } catch (e) { console.error('Failed to parse local settings'); }
     }
-    const localCatalog = localStorage.getItem('guest_equipment_catalog');
-    if (localCatalog) {
-        try { currentEquipmentCatalog = JSON.parse(localCatalog); } catch(e) { }
-    }
 
     // 2. Overwrite with Cloud Sync if logged in
     if (window.firebaseData && window.firebaseData.currentUser && !(currentUser && currentUser.isGuest)) {
@@ -3188,32 +2957,17 @@ const loadSettings = async () => {
             const { db, doc, getDoc } = window.firebaseData;
             const docSnap = await getDoc(doc(db, "userSettings", window.firebaseData.currentUser.uid));
             if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data.hsrKm !== undefined) userSettings.hsrKm = data.hsrKm;
-                if (data.busKm !== undefined) userSettings.busKm = data.busKm;
+                userSettings = { ...userSettings, ...docSnap.data() };
                 localStorage.setItem('userSettings', JSON.stringify(userSettings)); // sync to local
-
-                if (data.equipmentCatalog) {
-                    currentEquipmentCatalog = data.equipmentCatalog;
-                    localStorage.setItem('guest_equipment_catalog', JSON.stringify(currentEquipmentCatalog));
-                }
             }
         } catch(error) {
             console.error("Error loading settings from Firestore:", error);
         }
     }
 
-    if (!currentEquipmentCatalog || currentEquipmentCatalog.length === 0) {
-        currentEquipmentCatalog = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT_CATALOG));
-        saveEquipmentCatalog();
-    }
-
     if (settingHsrKm) settingHsrKm.value = userSettings.hsrKm;
     if (settingBusKm) settingBusKm.value = userSettings.busKm;
     updateSettingsUI();
-
-    initEquipmentUI();
-    renderEquipmentSettings();
 };
 
 if (saveRouteSettingsBtn) {

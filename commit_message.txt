@@ -1,9 +1,0 @@
-feat: add customizable equipment catalog and round-trip toggle
-
-- Extracted hardcoded equipment arrays into a configurable, user-specific catalog (saved to Firestore or localStorage).
-- Added an Equipment Settings UI allowing users to dynamically add, edit, rename, and delete groups and individual equipment items.
-- Configured `#equipmentModal` to populate dynamically based on the customized catalog.
-- Handled legacy records by grouping and displaying previously saved but currently deleted equipment items under a specialized "其他／已移除裝備" section.
-- Eliminated implicit `* 2` transport cost algorithms to align accurately with user input values.
-- Integrated explicit visual "Round-trip" toggle logic beside the `#mileage` input field, replacing abstract background multiplication.
-- Resolved git merge conflicts against `main`, successfully integrating the round-trip toggle, modal configurations, memory fixes, and UI cleanup with the latest backend implementations.

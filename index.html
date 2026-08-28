@@ -509,11 +509,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item d-flex align-items-center py-2" data-bs-toggle="modal" data-bs-target="#equipmentSettingsModal" style="color: var(--text-main);">
-                                <i class="bi bi-tools me-2 text-muted"></i> 驗證裝備設定
-                            </button>
-                        </li>
-                        <li>
                             <button id="btnAuditLog" class="dropdown-item d-flex align-items-center py-2" style="color: var(--text-main);">
                                 <i class="bi bi-clock-history me-2 text-muted"></i> 編輯紀錄
                             </button>
@@ -1358,31 +1353,6 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                     <button type="button" class="btn btn-custom-light text-main-custom rounded-pill px-4 fw-bold" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="confirmEquipmentBtn">
                         確定
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Equipment Settings Modal -->
-    <div class="modal fade" id="equipmentSettingsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold">驗證裝備設定</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body pt-3 pb-4">
-                    <div id="equipmentSettingsContent">
-                        <!-- Injected by JS -->
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0 pb-3 justify-content-between">
-                    <button type="button" class="btn btn-outline-primary rounded-pill px-4 fw-bold" id="addEquipmentGroupBtn">
-                        <i class="bi bi-plus-lg me-1"></i>新增群組
-                    </button>
-                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" data-bs-dismiss="modal">
-                        完成
                     </button>
                 </div>
             </div>
