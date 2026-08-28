@@ -130,6 +130,77 @@ const modalTitle = document.getElementById('modalTitle');
 const saveRecordBtn = document.getElementById('saveRecordBtn');
 const saveSpinner = document.getElementById('saveSpinner');
 
+const equipmentContainer = document.getElementById('equipmentContainer');
+const equipmentTotalQtyDisplay = document.getElementById('equipmentTotalQty');
+const equipmentNoteInput = document.getElementById('equipmentNote');
+
+const FIXED_EQUIPMENT_LIST = [
+    '60迫砲',
+    'T75式81迫砲',
+    'M29A1式81迫砲',
+    '120迫砲',
+    'M42迫砲',
+    '105榴砲',
+    '155榴砲',
+    '155加農砲',
+    '8吋榴砲',
+    'T82T式20機砲（牽引式）',
+    'T82F式20機砲（固定式）',
+    'M240榴砲'
+];
+
+function initEquipmentUI() {
+    if (!equipmentContainer) return;
+    equipmentContainer.innerHTML = '';
+    FIXED_EQUIPMENT_LIST.forEach((eqName, index) => {
+        const row = document.createElement('div');
+        row.className = 'd-flex justify-content-between align-items-center bg-custom-light rounded-3 px-3 py-2';
+
+        const label = document.createElement('span');
+        label.className = 'fw-bold text-main-custom small';
+        label.textContent = eqName;
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'ios-input equipment-qty-input border-0 bg-transparent text-end p-0 fw-bold';
+        input.style.width = '60px';
+        input.min = '0';
+        input.step = '1';
+        input.placeholder = '0';
+        input.dataset.name = eqName;
+
+        input.addEventListener('input', () => {
+            // Ensure integer and non-negative
+            if (input.value !== '') {
+                const val = parseInt(input.value);
+                if (isNaN(val) || val < 0) {
+                    input.value = '0';
+                } else {
+                    input.value = val;
+                }
+            }
+            calculateEquipmentTotal();
+        });
+
+        row.appendChild(label);
+        row.appendChild(input);
+        equipmentContainer.appendChild(row);
+    });
+}
+
+function calculateEquipmentTotal() {
+    if (!equipmentContainer) return;
+    let total = 0;
+    const inputs = equipmentContainer.querySelectorAll('.equipment-qty-input');
+    inputs.forEach(input => {
+        const val = parseInt(input.value) || 0;
+        total += val;
+    });
+    equipmentTotalQtyDisplay.textContent = total;
+}
+
+document.addEventListener('DOMContentLoaded', initEquipmentUI);
+
 const startTimeInput = document.getElementById('startTime');
 const endTimeInput = document.getElementById('endTime');
 const allowanceInput = document.getElementById('allowance');
@@ -925,6 +996,13 @@ document.addEventListener('DOMContentLoaded', () => {
             modalTitle.textContent = '新增紀錄';
             receiptsContainer.innerHTML = '';
 
+            // Reset equipment
+            if (equipmentContainer) {
+                equipmentContainer.querySelectorAll('.equipment-qty-input').forEach(input => input.value = '');
+            }
+            if (equipmentTotalQtyDisplay) equipmentTotalQtyDisplay.textContent = '0';
+            if (equipmentNoteInput) equipmentNoteInput.value = '';
+
             // Set default start/end times
             const now = new Date();
             const yyyy = now.getFullYear();
@@ -1095,6 +1173,20 @@ saveRecordBtn.addEventListener('click', async () => {
 
         const totalVal = parseInt(totalAmountInput.value) || 0;
 
+        let equipmentList = [];
+        let equipmentTotalQty = 0;
+        if (equipmentContainer) {
+            const inputs = equipmentContainer.querySelectorAll('.equipment-qty-input');
+            inputs.forEach(input => {
+                const qty = parseInt(input.value) || 0;
+                if (qty > 0) {
+                    equipmentList.push({ name: input.dataset.name, qty: qty });
+                    equipmentTotalQty += qty;
+                }
+            });
+        }
+        const equipmentNote = equipmentNoteInput ? equipmentNoteInput.value.trim() : '';
+
         const recordData = {
             userId: currentUser.uid,
             tripName,
@@ -1114,7 +1206,10 @@ saveRecordBtn.addEventListener('click', async () => {
             totalAmount: totalVal,
             transportTypes,
             tickets,
-            note: recordNote.value
+            note: recordNote.value,
+            equipmentList,
+            equipmentTotalQty,
+            equipmentNote
         };
 
         if (isEdit) {
@@ -1247,6 +1342,22 @@ const renderRecordCard = (record, container = recordsContainer) => {
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
         detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
     }
+
+    // Equipment Display
+    if (record.equipmentList && record.equipmentTotalQty > 0) {
+        let equipmentStr = '';
+        const eqCount = record.equipmentList.length;
+        const displayList = record.equipmentList.slice(0, 3).map(eq => `${eq.name}×${eq.qty}`);
+
+        equipmentStr = displayList.join('、');
+        if (eqCount > 3) {
+            equipmentStr += '...';
+        }
+        equipmentStr += `（共 ${record.equipmentTotalQty} 門）`;
+
+        detailsHtml += `<div class="text-muted small">驗證裝備：${escapeHtml(equipmentStr)}</div>`;
+    }
+
     if (record.note && record.note !== "無自動路程費") {
         const notes = record.note.split('\n');
         notes.forEach(n => {
@@ -1534,6 +1645,22 @@ const openEditModal = (record) => {
     endTimeInput.value = record.endTime || '';
     document.getElementById('leader').value = record.leader || '';
 
+    // Reset and populate equipment
+    if (equipmentContainer) {
+        equipmentContainer.querySelectorAll('.equipment-qty-input').forEach(input => input.value = '');
+    }
+    if (equipmentNoteInput) equipmentNoteInput.value = record.equipmentNote || '';
+
+    if (record.equipmentList && Array.isArray(record.equipmentList) && equipmentContainer) {
+        record.equipmentList.forEach(eq => {
+            const input = equipmentContainer.querySelector(`.equipment-qty-input[data-name="${eq.name}"]`);
+            if (input) {
+                input.value = eq.qty;
+            }
+        });
+    }
+    calculateEquipmentTotal();
+
     // Clear and populate companions
     companionsContainer.innerHTML = '';
     let companionsList = [];
@@ -1761,12 +1888,20 @@ const renderCalendarList = () => {
 exportBtn.addEventListener('click', () => {
     if (!currentRecords || currentRecords.length === 0) return alert('沒有可匯出的紀錄。');
 
-    const headers = ['出差名稱', '地點', '拜訪單位', '帶隊官', '同行', '開始時間', '結束時間', '雜費', '交通方式', '駕駛', '里程數', '交通費', '發票總計', '總計金額', '狀態'];
+    const headers = ['出差名稱', '地點', '拜訪單位', '帶隊官', '同行', '開始時間', '結束時間', '雜費', '交通方式', '駕駛', '里程數', '交通費', '發票總計', '總計金額', '狀態', '驗證裝備', '裝備備註'];
 
     const rows = currentRecords.map(r => {
         const typeMap = { 'car': '自行開車', 'motorcycle': '自行騎車', 'public': '大眾/其他' };
         let receiptTotal = 0;
         if (r.receipts) r.receipts.forEach(x => receiptTotal += x.price);
+
+        let equipmentStr = '';
+        if (r.equipmentList && r.equipmentTotalQty > 0) {
+            const displayList = r.equipmentList.map(eq => `${eq.name}×${eq.qty}`);
+            equipmentStr = `${displayList.join('、')}（共 ${r.equipmentTotalQty} 門）`;
+        }
+
+        let equipmentNoteStr = r.equipmentNote || '';
 
         const row = [
             `"${(r.tripName || '').replace(/"/g, '""')}"`,
@@ -1783,7 +1918,9 @@ exportBtn.addEventListener('click', () => {
             getCompleteTransportCost(r),
             receiptTotal,
             r.totalAmount || 0,
-            r.isSettled ? '已入帳' : '未入帳'
+            r.isSettled ? '已入帳' : '未入帳',
+            `"${equipmentStr.replace(/"/g, '""')}"`,
+            `"${equipmentNoteStr.replace(/"/g, '""')}"`
         ];
         return row.join(',');
     });
