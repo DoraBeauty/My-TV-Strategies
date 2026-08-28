@@ -1072,16 +1072,11 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         <!-- Equipment Section -->
                         <div class="ios-input-label">驗證裝備 (選填)</div>
                         <div class="ios-input-group border rounded-4 p-3 shadow-sm bg-custom-card mb-4" style="border-color: var(--border-color) !important;">
-                            <div class="d-flex flex-column gap-2 mb-3" id="equipmentContainer">
-                                <!-- Injected by JS -->
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" style="border-color: var(--border-color) !important;">
-                                <span class="fw-bold text-main-custom">總數量</span>
-                                <span class="fw-bold text-primary fs-5"><span id="equipmentTotalQty">0</span> 門</span>
-                            </div>
-                            <div class="mt-3">
-                                <textarea class="ios-input text-main-custom bg-custom-light border-0" id="equipmentNote" rows="2" placeholder="裝備備註 (選填)"></textarea>
-                            </div>
+                            <button type="button" class="btn btn-outline-primary w-100 rounded-pill py-2 fw-bold shadow-sm mb-2" id="openEquipmentModalBtn">
+                                <i class="bi bi-box-seam me-1"></i>驗證裝備
+                            </button>
+                            <div id="equipmentSummary" class="text-main-custom fw-bold small text-center">未選擇</div>
+                            <div id="equipmentNotePreview" class="text-muted small text-center mt-1" style="display: none;"></div>
                         </div>
 
                         <div class="ios-input-label">時間與雜費</div>
@@ -1190,6 +1185,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                 <label class="fw-bold small text-muted mb-2">里程數 (公里)</label>
                                 <div class="d-flex align-items-center justify-content-center">
                                     <input type="number" class="ios-input text-center w-50 fw-bold fs-5 me-2" id="mileage" min="0" step="0.1" placeholder="0">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm fw-bold rounded-pill" id="roundTripBtn" style="white-space: nowrap;">來回</button>
                                 </div>
                                 <div id="mileageRateHint" class="text-muted small mt-2"></div>
                             </div>
@@ -1326,6 +1322,37 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                     <button type="button" class="btn btn-custom-light text-main-custom rounded-pill px-4 fw-bold" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="saveRouteSettingsBtn">
                         儲存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Equipment Modal -->
+    <div class="modal fade" id="equipmentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">驗證裝備</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3 pb-4">
+                    <div id="equipmentModalContent">
+                        <!-- Injected by JS -->
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                        <span class="fw-bold text-main-custom">總數量</span>
+                        <span class="fw-bold text-primary fs-5"><span id="modalEquipmentTotalQty">0</span> 門</span>
+                    </div>
+                    <div class="mt-3">
+                        <textarea class="ios-input text-main-custom bg-custom-light border-0" id="modalEquipmentNote" rows="2" placeholder="裝備備註 (選填)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-3">
+                    <button type="button" class="btn btn-custom-light text-main-custom rounded-pill px-4 fw-bold" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="confirmEquipmentBtn">
+                        確定
                     </button>
                 </div>
             </div>
