@@ -6,4 +6,4 @@ feat: add customizable equipment catalog and round-trip toggle
 - Handled legacy records by grouping and displaying previously saved but currently deleted equipment items under a specialized "其他／已移除裝備" section.
 - Eliminated implicit `* 2` transport cost algorithms to align accurately with user input values.
 - Integrated explicit visual "Round-trip" toggle logic beside the `#mileage` input field, replacing abstract background multiplication.
-- Fixed overlapping bootstrap modal instantiations that could trigger DOM leaks.
+- Resolved git merge conflicts against `main`, successfully integrating the round-trip toggle, modal configurations, memory fixes, and UI cleanup with the latest backend implementations.
