@@ -2492,7 +2492,7 @@ const logAction = async (actionType, tripName, details = null) => {
 };
 
 const fetchAndRenderAuditLogs = async () => {
-    const { db, collection, query, where, orderBy, getDocs, currentUser } = window.firebaseData;
+    const { db, collection, query, where, orderBy, getDocs, doc, deleteDoc, currentUser } = window.firebaseData;
     if (!currentUser || !db) return;
 
     const container = document.getElementById('auditLogsContainer');
@@ -2502,37 +2502,56 @@ const fetchAndRenderAuditLogs = async () => {
 
     try {
         let fetchedLogs = [];
+        const cutoffTime = Date.now() - (3 * 24 * 60 * 60 * 1000); // 72 hours ago
 
         if (db === 'mock_db') {
             const raw = localStorage.getItem('guest_audit_logs');
-            fetchedLogs = raw ? JSON.parse(raw) : [];
+            let allLogs = raw ? JSON.parse(raw) : [];
+
+            // Filter logs strictly within 3 days
+            fetchedLogs = allLogs.filter(log => {
+                const logTime = new Date(log.createdAt).getTime();
+                return logTime >= cutoffTime;
+            });
+
+            // If we removed anything, update local storage
+            if (fetchedLogs.length !== allLogs.length) {
+                localStorage.setItem('guest_audit_logs', JSON.stringify(fetchedLogs));
+            }
         } else {
             // Note: This requires a composite index in Firestore on 'userId' ASC and 'createdAt' DESC.
-            /*
-            Firestore Security Rules required:
-            rules_version = '2';
-            service cloud.firestore {
-              match /databases/{database}/documents {
-                match /records/{id} {
-                  allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
-                  allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-                }
-                match /auditLogs/{id} {
-                  allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
-                  allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-                }
-              }
-            }
-            */
             const q = query(
                 collection(db, 'auditLogs'),
                 where('userId', '==', currentUser.uid),
                 orderBy('createdAt', 'desc')
             );
             const snapshot = await getDocs(q);
+
+            // Use Promise.all to handle deletions asynchronously without blocking the render
+            const deletePromises = [];
+
             snapshot.forEach(docSnap => {
-                fetchedLogs.push({ id: docSnap.id, ...docSnap.data() });
+                const data = docSnap.data();
+                // Handle both Firestore Timestamps and ISO strings
+                let logTime = 0;
+                if (data.createdAt && data.createdAt.toDate) {
+                    logTime = data.createdAt.toDate().getTime();
+                } else if (data.createdAt) {
+                    logTime = new Date(data.createdAt).getTime();
+                }
+
+                if (logTime >= cutoffTime) {
+                    fetchedLogs.push({ id: docSnap.id, ...data });
+                } else {
+                    // Log is too old, delete it from Firestore
+                    deletePromises.push(deleteDoc(doc(db, 'auditLogs', docSnap.id)).catch(e => console.error("Error deleting old audit log", e)));
+                }
             });
+
+            // Execute deletions in background
+            if (deletePromises.length > 0) {
+                Promise.all(deletePromises);
+            }
         }
 
         auditLogs = fetchedLogs;
