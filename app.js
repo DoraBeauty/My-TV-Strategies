@@ -1348,6 +1348,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return new bootstrap.Popover(popoverTriggerEl);
     });
 
+    // Handle info icons inside dropdowns to prevent dropdown from closing
+    document.querySelectorAll('.info-icon-dropdown').forEach(icon => {
+        icon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+    });
+
+
+
     const modalEl = document.getElementById('recordModal');
     if (modalEl) {
         bootstrapModalInstance = new bootstrap.Modal(modalEl);
