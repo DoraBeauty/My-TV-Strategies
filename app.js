@@ -30,7 +30,7 @@ let userSettings = {
     hsrKm: 20,
     busKm: 10,
     pricePerKm: 3,
-    equipmentCatalog: null
+    equipmentCatalog: []
 };
 
 // Helper to get complete transport cost for display/stats
@@ -153,42 +153,13 @@ let currentEquipmentList = [];
 let currentEquipmentTotalQty = 0;
 let currentEquipmentNote = '';
 
-const DEFAULT_EQUIPMENT_CATALOG = [
-    {
-        id: 'group_default_1',
-        name: '迫砲',
-        items: [
-            { id: 'eq_default_1_1', name: '60迫砲' },
-            { id: 'eq_default_1_2', name: 'T75式81迫砲' },
-            { id: 'eq_default_1_3', name: 'M29A1式81迫砲' },
-            { id: 'eq_default_1_4', name: '120迫砲' },
-            { id: 'eq_default_1_5', name: 'M42迫砲' }
-        ]
-    },
-    {
-        id: 'group_default_2',
-        name: '榴砲',
-        items: [
-            { id: 'eq_default_2_1', name: '105榴砲' },
-            { id: 'eq_default_2_2', name: '155榴砲' },
-            { id: 'eq_default_2_3', name: '8吋榴砲' },
-            { id: 'eq_default_2_4', name: 'M240榴砲' },
-            { id: 'eq_default_2_5', name: '155加農砲' }
-        ]
-    },
-    {
-        id: 'group_default_3',
-        name: '機砲',
-        items: [
-            { id: 'eq_default_3_1', name: 'T82T式20機砲（牽引式）' },
-            { id: 'eq_default_3_2', name: 'T82F式20機砲（固定式）' }
-        ]
-    }
-];
 
 function saveEquipmentSettings() {
-    localStorage.setItem('userSettings', JSON.stringify(userSettings));
     const current = window.firebaseData ? window.firebaseData.currentUser : (typeof currentUser !== 'undefined' ? currentUser : null);
+    const storageKey = (current && current.isGuest) ? 'userSettings_guest' : (current ? 'userSettings_' + current.uid : null);
+    if (storageKey) {
+        localStorage.setItem(storageKey, JSON.stringify(userSettings));
+    }
     if (current && !current.isGuest) {
         const { db, doc, setDoc } = window.firebaseData;
         setDoc(doc(db, "userSettings", current.uid), userSettings, { merge: true })
@@ -203,7 +174,7 @@ function renderEquipmentSettings() {
     container.innerHTML = '';
 
     if (!userSettings.equipmentCatalog) {
-        userSettings.equipmentCatalog = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT_CATALOG));
+        userSettings.equipmentCatalog = [];
     }
 
     userSettings.equipmentCatalog.forEach((group, groupIndex) => {
@@ -346,7 +317,7 @@ function renderEquipmentSettings() {
     });
 
     if (userSettings.equipmentCatalog.length === 0) {
-        container.innerHTML = '<div class="text-center text-muted my-4">尚無任何裝備群組</div>';
+        container.innerHTML = '<div class="text-center text-muted my-4">尚無任何裝備群組，請點擊右上方「新增群組」</div>';
     }
 }
 
@@ -384,8 +355,12 @@ function initEquipmentUI() {
     }
     modalEquipmentContent.innerHTML = '';
 
-    const catalog = userSettings.equipmentCatalog || DEFAULT_EQUIPMENT_CATALOG;
+    const catalog = userSettings.equipmentCatalog || [];
     const knownEquipmentNames = new Set();
+
+    if (catalog.length === 0) {
+        modalEquipmentContent.innerHTML = '<div class="text-center text-muted my-4">尚未設定裝備，請至右上角『驗證裝備設定』新增</div>';
+    }
 
     catalog.forEach(group => {
         const catContainer = document.createElement('div');
@@ -1640,6 +1615,7 @@ saveRecordBtn.addEventListener('click', async () => {
 // Load & Display Records
 let unsubscribeRecords = null;
 window.addEventListener('authReady', () => {
+    loadSettings();
     const { db, collection, query, where, orderBy, onSnapshot, currentUser } = window.firebaseData;
 
     if (unsubscribeRecords) unsubscribeRecords();
@@ -3247,35 +3223,45 @@ if (settingHsrKm) settingHsrKm.addEventListener('input', updateSettingsUI);
 if (settingBusKm) settingBusKm.addEventListener('input', updateSettingsUI);
 
 const loadSettings = async () => {
-    // 1. Load from localStorage
-    const localStr = localStorage.getItem('userSettings');
-    if (localStr) {
-        try {
-            const parsed = JSON.parse(localStr);
-            userSettings = { ...userSettings, ...parsed };
-            // Ensure equipmentCatalog exists even if old settings format
-            if (!userSettings.equipmentCatalog) {
-                userSettings.equipmentCatalog = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT_CATALOG));
-            }
-        } catch (e) { console.error('Failed to parse local settings'); }
-    } else {
-        if (!userSettings.equipmentCatalog) {
-            userSettings.equipmentCatalog = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT_CATALOG));
+    // Reset global state for new load
+    userSettings = {
+        hsrKm: 20,
+        busKm: 10,
+        pricePerKm: 3,
+        equipmentCatalog: []
+    };
+
+    const current = window.firebaseData ? window.firebaseData.currentUser : (typeof currentUser !== 'undefined' ? currentUser : null);
+    const storageKey = (current && current.isGuest) ? 'userSettings_guest' : (current ? 'userSettings_' + current.uid : null);
+
+    // 1. Try local storage for the specific user/guest first
+    if (storageKey) {
+        const localStr = localStorage.getItem(storageKey);
+        if (localStr) {
+            try {
+                const parsed = JSON.parse(localStr);
+                userSettings = { ...userSettings, ...parsed };
+                if (!userSettings.equipmentCatalog) {
+                    userSettings.equipmentCatalog = [];
+                }
+            } catch (e) { console.error('Failed to parse local settings'); }
         }
     }
 
-    // 2. Overwrite with Cloud Sync if logged in
-    if (window.firebaseData && window.firebaseData.currentUser && !(currentUser && currentUser.isGuest)) {
+    // 2. Overwrite with Cloud Sync if logged in (not guest)
+    if (current && !current.isGuest) {
         try {
             const { db, doc, getDoc } = window.firebaseData;
-            const docSnap = await getDoc(doc(db, "userSettings", window.firebaseData.currentUser.uid));
+            const docSnap = await getDoc(doc(db, "userSettings", current.uid));
             if (docSnap.exists()) {
                 const cloudData = docSnap.data();
                 userSettings = { ...userSettings, ...cloudData };
                 if (!userSettings.equipmentCatalog) {
-                    userSettings.equipmentCatalog = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT_CATALOG));
+                    userSettings.equipmentCatalog = [];
                 }
-                localStorage.setItem('userSettings', JSON.stringify(userSettings)); // sync to local
+                if (storageKey) {
+                    localStorage.setItem(storageKey, JSON.stringify(userSettings)); // sync to local
+                }
             }
         } catch(error) {
             console.error("Error loading settings from Firestore:", error);
