@@ -26,6 +26,13 @@ const storage = getStorage(app);
 
 let currentUser = null;
 
+let userSettings = {
+    hsrKm: 20,
+    busKm: 10,
+    pricePerKm: 3,
+    equipmentCatalog: null
+};
+
 // Helper to get complete transport cost for display/stats
 function getCompleteTransportCost(record) {
     let cost = parseFloat(record.transportCost) || 0;
@@ -3195,13 +3202,6 @@ const settingBusRoundTrip = document.getElementById('settingBusRoundTrip');
 const settingBusFee = document.getElementById('settingBusFee');
 const saveRouteSettingsBtn = document.getElementById('saveRouteSettingsBtn');
 const routeSettingsForm = document.getElementById('routeSettingsForm');
-
-let userSettings = {
-    hsrKm: 20,
-    busKm: 10,
-    pricePerKm: 3,
-    equipmentCatalog: null
-};
 
 // Update local UI when inputs change
 const updateSettingsUI = () => {
