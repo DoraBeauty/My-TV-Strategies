@@ -54,6 +54,7 @@ function getCompleteTransportCost(record) {
 }
 
 // UI Elements
+const appLoading = document.getElementById('appLoading');
 const loginView = document.getElementById('loginView');
 const dashboardView = document.getElementById('dashboardView');
 const loginBtn = document.getElementById('loginBtn');
@@ -632,6 +633,7 @@ const startGuestMode = () => {
 
     currentUser = { uid: 'guest_user', isGuest: true };
 
+    if (appLoading) appLoading.style.display = 'none';
     loginView.style.display = 'none';
     dashboardView.style.display = 'block';
     loginBtn.classList.remove('d-flex');
@@ -729,6 +731,7 @@ logoutBtn.addEventListener('click', handleLogout);
 onAuthStateChanged(auth, (user) => {
     if (currentUser && currentUser.isGuest) return;
 
+    if (appLoading) appLoading.style.display = 'none';
     if (user) {
         currentUser = user;
         loginView.style.display = 'none';
