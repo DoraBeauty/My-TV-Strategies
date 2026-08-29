@@ -497,37 +497,31 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             <button class="dropdown-item d-flex align-items-center py-2 flex-grow-1" data-bs-toggle="modal" data-bs-target="#zonesModal" style="color: var(--text-main);">
                                 <i class="bi bi-map me-2 text-muted"></i> 戰區
                             </button>
-                            <i class="bi bi-info-circle text-muted ms-2 info-icon-dropdown" style="cursor: pointer;" data-bs-toggle="popover" data-bs-placement="left" data-bs-trigger="focus" tabindex="0" data-bs-content="查作戰區與後勤保修參考"></i>
                         </li>
                         <li class="d-flex align-items-center pe-3">
                             <button class="dropdown-item d-flex align-items-center py-2 flex-grow-1" data-bs-toggle="modal" data-bs-target="#rulesModal" style="color: var(--text-main);">
                                 <i class="bi bi-journal-text me-2 text-muted"></i> 規定
                             </button>
-                            <i class="bi bi-info-circle text-muted ms-2 info-icon-dropdown" style="cursor: pointer;" data-bs-toggle="popover" data-bs-placement="left" data-bs-trigger="focus" tabindex="0" data-bs-content="國軍出差旅費報支重點"></i>
                         </li>
                         <li class="d-flex align-items-center pe-3">
                             <button class="dropdown-item d-flex align-items-center py-2 flex-grow-1" data-bs-toggle="modal" data-bs-target="#routeSettingsModal" style="color: var(--text-main);">
                                 <i class="bi bi-gear me-2 text-muted"></i> 路程設定
                             </button>
-                            <i class="bi bi-info-circle text-muted ms-2 info-icon-dropdown" style="cursor: pointer;" data-bs-toggle="popover" data-bs-placement="left" data-bs-trigger="focus" tabindex="0" data-bs-content="設定高鐵／客運路程補貼公里"></i>
                         </li>
                         <li class="d-flex align-items-center pe-3">
                             <button class="dropdown-item d-flex align-items-center py-2 flex-grow-1" data-bs-toggle="modal" data-bs-target="#equipmentSettingsModal" style="color: var(--text-main);">
                                 <i class="bi bi-tools me-2 text-muted"></i> 驗證裝備設定
                             </button>
-                            <i class="bi bi-info-circle text-muted ms-2 info-icon-dropdown" style="cursor: pointer;" data-bs-toggle="popover" data-bs-placement="left" data-bs-trigger="focus" tabindex="0" data-bs-content="自訂要驗證的裝備群組與項目（僅自己看得到）"></i>
                         </li>
                         <li class="d-flex align-items-center pe-3">
                             <button id="btnAuditLog" class="dropdown-item d-flex align-items-center py-2 flex-grow-1" style="color: var(--text-main);">
                                 <i class="bi bi-clock-history me-2 text-muted"></i> 編輯紀錄
                             </button>
-                            <i class="bi bi-info-circle text-muted ms-2 info-icon-dropdown" style="cursor: pointer;" data-bs-toggle="popover" data-bs-placement="left" data-bs-trigger="focus" tabindex="0" data-bs-content="查看新增／修改／入帳等操作紀錄"></i>
                         </li>
                         <li class="d-flex align-items-center pe-3">
                             <button id="themeToggleBtn" class="dropdown-item d-flex align-items-center py-2 flex-grow-1" style="color: var(--text-main);">
                                 <i class="bi bi-moon-stars me-2 text-muted" id="themeIcon"></i> 主題切換
                             </button>
-                            <i class="bi bi-info-circle text-muted ms-2 info-icon-dropdown" style="cursor: pointer;" data-bs-toggle="popover" data-bs-placement="left" data-bs-trigger="focus" tabindex="0" data-bs-content="淺色／深色模式"></i>
                         </li>
                         <li><hr class="dropdown-divider" style="border-color: var(--border-color);"></li>
                         <li>
@@ -632,7 +626,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                 <button id="backFromAuditBtn" class="btn btn-custom-light text-main-custom rounded-pill px-3 fw-bold">
                     <i class="bi bi-arrow-left me-1"></i> 返回
                 </button>
-                <h4 class="fw-bold m-0 text-main-custom"><i class="bi bi-clock-history me-2 text-primary"></i>編輯紀錄</h4>
+                <h4 class="fw-bold m-0 text-main-custom d-flex align-items-center"><i class="bi bi-clock-history me-2 text-primary"></i>編輯紀錄 <i class="bi bi-info-circle text-muted ms-2" style="font-size: 1.1rem; cursor: pointer;" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="focus" tabindex="0" data-bs-content="查看近期的所有新增、修改、刪除及入帳等操作紀錄。紀錄預設保留 72 小時。"></i></h4>
             </div>
             <div id="auditLogsContainer" class="row g-3">
                 <!-- Audit logs injected by JS -->
@@ -781,7 +775,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content bg-custom-card border-0 shadow-lg" style="border-radius: 1.5rem;">
                 <div class="modal-header border-0 pb-0 pt-4 px-4">
-                    <h5 class="modal-title fw-bold text-main-custom" id="zonesModalLabel">國軍作戰區與後勤保修參考</h5>
+                    <h5 class="modal-title fw-bold text-main-custom d-flex align-items-center" id="zonesModalLabel">國軍作戰區與後勤保修參考<i class="bi bi-info-circle text-muted ms-2" style="font-size: 1.1rem; cursor: pointer;" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="focus" tabindex="0" data-bs-content="供查詢作戰區與後勤保修廠所對應的單位與地理位置，方便報帳時參考。"></i></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-4 py-4 text-main-custom">
@@ -1006,7 +1000,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content bg-custom-card border-0 shadow-lg" style="border-radius: 1.5rem;">
                 <div class="modal-header border-0 pb-0 pt-4 px-4">
-                    <h5 class="modal-title fw-bold text-main-custom" id="rulesModalLabel">國軍國內出差旅費報支規定重點</h5>
+                    <h5 class="modal-title fw-bold text-main-custom d-flex align-items-center" id="rulesModalLabel">國軍國內出差旅費報支規定重點<i class="bi bi-info-circle text-muted ms-2" style="font-size: 1.1rem; cursor: pointer;" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="focus" tabindex="0" data-bs-content="包含國軍出差旅費報支的雜費、交通費、住宿費等各項規定重點。"></i></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-4 py-4 text-main-custom">
@@ -1318,7 +1312,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold">驗證裝備設定</h5>
+                    <h5 class="modal-title fw-bold d-flex align-items-center">驗證裝備設定<i class="bi bi-info-circle text-muted ms-2" style="font-size: 1.1rem; cursor: pointer;" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="focus" tabindex="0" data-bs-content="可自訂您常驗證的裝備群組與項目。這些設定僅儲存於您的帳號中，其他人無法看到。"></i></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body pt-3 pb-4">
