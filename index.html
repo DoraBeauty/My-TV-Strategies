@@ -1326,7 +1326,10 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold">路程設定</h5>
+                    <h5 class="modal-title fw-bold d-flex align-items-center">
+                        路程設定
+                        <i class="bi bi-info-circle text-muted ms-2" style="font-size: 1.1rem; cursor: pointer;" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="focus" tabindex="0" data-bs-content="此功能用於設定駐地到搭乘站（如高鐵站、客運站）的單趟路程距離。系統會自動以每公里 3 元計算來回車資補貼，並在新增差旅時自動帶入此設定值。"></i>
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body pt-3 pb-4">
