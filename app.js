@@ -1064,8 +1064,7 @@ const updateDriverOptions = () => {
         radioLastChecked = null;
         hsrRadio.checked = false;
         busRadio.checked = false;
-        hsrRadio.dispatchEvent(new Event('change'));
-        busRadio.dispatchEvent(new Event('change'));
+        handlePublicTransitChange();
         clearPublicTransitBtn.style.display = 'none';
 
         // Clear driver/mileage
@@ -1085,8 +1084,7 @@ const updateDriverOptions = () => {
         radioLastChecked = null;
         hsrRadio.checked = false;
         busRadio.checked = false;
-        hsrRadio.dispatchEvent(new Event('change'));
-        busRadio.dispatchEvent(new Event('change'));
+        handlePublicTransitChange();
         clearPublicTransitBtn.style.display = 'none';
 
         driverSection.classList.add('show');
@@ -1310,16 +1308,19 @@ function calculateTotal() {
 
     const routeFees = getRouteFees();
 
-    if (hsrRadio.checked) {
-        transportCost += parseFloat(hsrGoPrice.value) || 0;
-        transportCost += parseFloat(hsrReturnPrice.value) || 0;
-        transportCost += (routeFees.hsr.fee || 0);
-        notesArr.push(`已含高鐵路程費 $${routeFees.hsr.fee}（來回${routeFees.hsr.roundTripKm}km）`);
-    } else if (busRadio.checked) {
-        transportCost += parseFloat(busGoPrice.value) || 0;
-        transportCost += parseFloat(busReturnPrice.value) || 0;
-        transportCost += (routeFees.bus.fee || 0);
-        notesArr.push(`已含客運路程費 $${routeFees.bus.fee}（來回${routeFees.bus.roundTripKm}km）`);
+    if (type === 'public') {
+        if (hsrRadio.checked) {
+            transportCost += parseFloat(hsrGoPrice.value) || 0;
+            transportCost += parseFloat(hsrReturnPrice.value) || 0;
+            transportCost += (routeFees.hsr.fee || 0);
+            notesArr.push(`已含高鐵路程費 $${routeFees.hsr.fee}（來回${routeFees.hsr.roundTripKm}km）`);
+        }
+        if (busRadio.checked) {
+            transportCost += parseFloat(busGoPrice.value) || 0;
+            transportCost += parseFloat(busReturnPrice.value) || 0;
+            transportCost += (routeFees.bus.fee || 0);
+            notesArr.push(`已含客運路程費 $${routeFees.bus.fee}（來回${routeFees.bus.roundTripKm}km）`);
+        }
     }
 
     if (notesArr.length > 0) {
@@ -1496,59 +1497,63 @@ saveRecordBtn.addEventListener('click', async () => {
 
         // Process HSR/Bus Tickets
         let transportTypes = [];
-        if (hsrRadio.checked) transportTypes.push('hsr');
-        if (busRadio.checked) transportTypes.push('bus');
-
-        const currentRouteFees = getRouteFees();
-
         let tickets = {
             hsr: null,
             bus: null
         };
 
-        if (hsrRadio.checked || hsrGoPrice.value !== '' || hsrReturnPrice.value !== '' || document.getElementById('hsrGoThumb').dataset.url || document.getElementById('hsrReturnThumb').dataset.url) {
-            tickets.hsr = {
-                go: { amount: hsrGoPrice.value !== '' ? parseFloat(hsrGoPrice.value) : null, imageUrl: document.getElementById('hsrGoThumb').dataset.url || null, imagePath: document.getElementById('hsrGoThumb').dataset.path || null },
-                return: { amount: hsrReturnPrice.value !== '' ? parseFloat(hsrReturnPrice.value) : null, imageUrl: document.getElementById('hsrReturnThumb').dataset.url || null, imagePath: document.getElementById('hsrReturnThumb').dataset.path || null },
-                routeFee: currentRouteFees.hsr.fee,
-                routeKmRoundTrip: currentRouteFees.hsr.roundTripKm
-            };
-        }
+        if (transportTypeVal === 'public') {
+            if (hsrRadio.checked) transportTypes.push('hsr');
+            if (busRadio.checked) transportTypes.push('bus');
 
-        if (busRadio.checked || busGoPrice.value !== '' || busReturnPrice.value !== '' || document.getElementById('busGoThumb').dataset.url || document.getElementById('busReturnThumb').dataset.url) {
-            tickets.bus = {
-                go: { amount: busGoPrice.value !== '' ? parseFloat(busGoPrice.value) : null, imageUrl: document.getElementById('busGoThumb').dataset.url || null, imagePath: document.getElementById('busGoThumb').dataset.path || null },
-                return: { amount: busReturnPrice.value !== '' ? parseFloat(busReturnPrice.value) : null, imageUrl: document.getElementById('busReturnThumb').dataset.url || null, imagePath: document.getElementById('busReturnThumb').dataset.path || null },
-                routeFee: currentRouteFees.bus.fee,
-                routeKmRoundTrip: currentRouteFees.bus.roundTripKm
-            };
-        }
+            const currentRouteFees = getRouteFees();
 
-        if (tickets.hsr) {
-            const hsrGoUploaded = await uploadFileIfPresent(document.querySelector('.hsr-go-file'), tickets.hsr.go.imagePath, tickets.hsr.go.imageUrl);
-            tickets.hsr.go.imageUrl = hsrGoUploaded.url; tickets.hsr.go.imagePath = hsrGoUploaded.path;
+            if (hsrRadio.checked || hsrGoPrice.value !== '' || hsrReturnPrice.value !== '' || document.getElementById('hsrGoThumb').dataset.url || document.getElementById('hsrReturnThumb').dataset.url) {
+                tickets.hsr = {
+                    go: { amount: hsrGoPrice.value !== '' ? parseFloat(hsrGoPrice.value) : null, imageUrl: document.getElementById('hsrGoThumb').dataset.url || null, imagePath: document.getElementById('hsrGoThumb').dataset.path || null },
+                    return: { amount: hsrReturnPrice.value !== '' ? parseFloat(hsrReturnPrice.value) : null, imageUrl: document.getElementById('hsrReturnThumb').dataset.url || null, imagePath: document.getElementById('hsrReturnThumb').dataset.path || null },
+                    routeFee: currentRouteFees.hsr.fee,
+                    routeKmRoundTrip: currentRouteFees.hsr.roundTripKm
+                };
+            }
 
-            const hsrReturnUploaded = await uploadFileIfPresent(document.querySelector('.hsr-return-file'), tickets.hsr.return.imagePath, tickets.hsr.return.imageUrl);
-            tickets.hsr.return.imageUrl = hsrReturnUploaded.url; tickets.hsr.return.imagePath = hsrReturnUploaded.path;
-
-            if (hsrRadio.checked) {
-                transportCostVal += (tickets.hsr.routeFee || 0);
-                transportCostVal += parseFloat(tickets.hsr.go.amount) || 0;
-                transportCostVal += parseFloat(tickets.hsr.return.amount) || 0;
+            if (busRadio.checked || busGoPrice.value !== '' || busReturnPrice.value !== '' || document.getElementById('busGoThumb').dataset.url || document.getElementById('busReturnThumb').dataset.url) {
+                tickets.bus = {
+                    go: { amount: busGoPrice.value !== '' ? parseFloat(busGoPrice.value) : null, imageUrl: document.getElementById('busGoThumb').dataset.url || null, imagePath: document.getElementById('busGoThumb').dataset.path || null },
+                    return: { amount: busReturnPrice.value !== '' ? parseFloat(busReturnPrice.value) : null, imageUrl: document.getElementById('busReturnThumb').dataset.url || null, imagePath: document.getElementById('busReturnThumb').dataset.path || null },
+                    routeFee: currentRouteFees.bus.fee,
+                    routeKmRoundTrip: currentRouteFees.bus.roundTripKm
+                };
             }
         }
 
-        if (tickets.bus) {
-            const busGoUploaded = await uploadFileIfPresent(document.querySelector('.bus-go-file'), tickets.bus.go.imagePath, tickets.bus.go.imageUrl);
-            tickets.bus.go.imageUrl = busGoUploaded.url; tickets.bus.go.imagePath = busGoUploaded.path;
+        if (transportTypeVal === 'public') {
+            if (tickets.hsr) {
+                const hsrGoUploaded = await uploadFileIfPresent(document.querySelector('.hsr-go-file'), tickets.hsr.go.imagePath, tickets.hsr.go.imageUrl);
+                tickets.hsr.go.imageUrl = hsrGoUploaded.url; tickets.hsr.go.imagePath = hsrGoUploaded.path;
 
-            const busReturnUploaded = await uploadFileIfPresent(document.querySelector('.bus-return-file'), tickets.bus.return.imagePath, tickets.bus.return.imageUrl);
-            tickets.bus.return.imageUrl = busReturnUploaded.url; tickets.bus.return.imagePath = busReturnUploaded.path;
+                const hsrReturnUploaded = await uploadFileIfPresent(document.querySelector('.hsr-return-file'), tickets.hsr.return.imagePath, tickets.hsr.return.imageUrl);
+                tickets.hsr.return.imageUrl = hsrReturnUploaded.url; tickets.hsr.return.imagePath = hsrReturnUploaded.path;
 
-            if (busRadio.checked) {
-                transportCostVal += (tickets.bus.routeFee || 0);
-                transportCostVal += parseFloat(tickets.bus.go.amount) || 0;
-                transportCostVal += parseFloat(tickets.bus.return.amount) || 0;
+                if (hsrRadio.checked) {
+                    transportCostVal += (tickets.hsr.routeFee || 0);
+                    transportCostVal += parseFloat(tickets.hsr.go.amount) || 0;
+                    transportCostVal += parseFloat(tickets.hsr.return.amount) || 0;
+                }
+            }
+
+            if (tickets.bus) {
+                const busGoUploaded = await uploadFileIfPresent(document.querySelector('.bus-go-file'), tickets.bus.go.imagePath, tickets.bus.go.imageUrl);
+                tickets.bus.go.imageUrl = busGoUploaded.url; tickets.bus.go.imagePath = busGoUploaded.path;
+
+                const busReturnUploaded = await uploadFileIfPresent(document.querySelector('.bus-return-file'), tickets.bus.return.imagePath, tickets.bus.return.imageUrl);
+                tickets.bus.return.imageUrl = busReturnUploaded.url; tickets.bus.return.imagePath = busReturnUploaded.path;
+
+                if (busRadio.checked) {
+                    transportCostVal += (tickets.bus.routeFee || 0);
+                    transportCostVal += parseFloat(tickets.bus.go.amount) || 0;
+                    transportCostVal += parseFloat(tickets.bus.return.amount) || 0;
+                }
             }
         }
 
@@ -2049,15 +2054,18 @@ const openEditModal = (record) => {
     roundTripBtn.classList.add('btn-outline-secondary');
 
     // Handle public transit selections & tickets without triggering event listeners that clear them
-    let transportTypes = record.transportTypes || [];
+    let transportTypes = [];
+    if (record.transportType === 'public') {
+        transportTypes = record.transportTypes || [];
 
-    // Legacy fallback inference if transportTypes is empty but tickets exist
-    if (transportTypes.length === 0 && record.tickets) {
-        if (record.tickets.hsr && ((record.tickets.hsr.go && (record.tickets.hsr.go.amount !== undefined && record.tickets.hsr.go.amount !== null || record.tickets.hsr.go.imageUrl)) || (record.tickets.hsr.return && (record.tickets.hsr.return.amount !== undefined && record.tickets.hsr.return.amount !== null || record.tickets.hsr.return.imageUrl)))) {
-            transportTypes.push('hsr');
-        }
-        if (record.tickets.bus && ((record.tickets.bus.go && (record.tickets.bus.go.amount !== undefined && record.tickets.bus.go.amount !== null || record.tickets.bus.go.imageUrl)) || (record.tickets.bus.return && (record.tickets.bus.return.amount !== undefined && record.tickets.bus.return.amount !== null || record.tickets.bus.return.imageUrl)))) {
-            transportTypes.push('bus');
+        // Legacy fallback inference if transportTypes is empty but tickets exist
+        if (transportTypes.length === 0 && record.tickets) {
+            if (record.tickets.hsr && ((record.tickets.hsr.go && (record.tickets.hsr.go.amount !== undefined && record.tickets.hsr.go.amount !== null || record.tickets.hsr.go.imageUrl)) || (record.tickets.hsr.return && (record.tickets.hsr.return.amount !== undefined && record.tickets.hsr.return.amount !== null || record.tickets.hsr.return.imageUrl)))) {
+                transportTypes.push('hsr');
+            }
+            if (record.tickets.bus && ((record.tickets.bus.go && (record.tickets.bus.go.amount !== undefined && record.tickets.bus.go.amount !== null || record.tickets.bus.go.imageUrl)) || (record.tickets.bus.return && (record.tickets.bus.return.amount !== undefined && record.tickets.bus.return.amount !== null || record.tickets.bus.return.imageUrl)))) {
+                transportTypes.push('bus');
+            }
         }
     }
 
@@ -2107,7 +2115,7 @@ const openEditModal = (record) => {
         }
     };
 
-    if (record.tickets) {
+    if (record.transportType === 'public' && record.tickets) {
         if (record.tickets.hsr) {
             setupTicketUI(record.tickets.hsr.go, 'hsrGoPrice', 'hsrGoThumb');
             setupTicketUI(record.tickets.hsr.return, 'hsrReturnPrice', 'hsrReturnThumb');
