@@ -1446,11 +1446,9 @@ document.addEventListener('DOMContentLoaded', () => {
             updateDriverOptions();
 
             totalAmountDisplay.textContent = '0';
-            timeCalcHint.textContent = '請輸入起訖時間計算雜費';
 
-            // Trigger time inputs to calculate allowance and total
-            startTimeInput.dispatchEvent(new Event('input'));
-            endTimeInput.dispatchEvent(new Event('input'));
+            // Directly calculate allowance (which also updates timeCalcHint and calls calculateTotal)
+            calculateAllowance();
         });
     }
 });
