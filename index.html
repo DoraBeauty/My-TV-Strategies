@@ -1107,7 +1107,12 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                             </div>
                             <div class="bg-custom-light rounded-3 p-3 mt-2">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="fw-bold text-main-custom">雜費小計</span>
+                                    <div class="d-flex align-items-center">
+                                        <span class="fw-bold text-main-custom me-2">雜費小計</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2" style="font-size: 0.75rem;" id="btnSetDailyRate">
+                                            設定每日金額
+                                        </button>
+                                    </div>
                                     <div class="d-flex align-items-center justify-content-end" style="width: 120px;">
                                         <span class="fw-bold text-primary fs-5 me-1">$</span>
                                         <input type="number" class="ios-input border-0 bg-transparent text-primary fw-bold fs-4 p-0 text-end w-100" id="allowance" value="0" min="0" step="1">
@@ -1405,6 +1410,31 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                     <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="confirmEquipmentBtn">
                         確定
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Rate Modal (Nested) -->
+    <div class="modal fade" id="dailyRateModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow bg-custom-card text-main-custom" style="border-radius: 20px;">
+                <div class="modal-body p-4">
+                    <h6 class="fw-bold mb-3 text-center">設定本筆每日雜費</h6>
+                    <div class="ios-input-group border rounded p-2 mb-3 bg-custom-light">
+                        <div class="d-flex align-items-center">
+                            <span class="fw-bold text-muted me-2">$</span>
+                            <input type="number" class="ios-input border-0 bg-transparent w-100 p-1" id="dailyRateInput" min="0" step="1">
+                        </div>
+                    </div>
+                    <div class="text-muted small mb-3 text-center" style="font-size: 0.75rem;">
+                        此設定僅套用於目前編輯的紀錄。<br>
+                        出差滿 4 小時以上以全額計算，未滿 4 小時則為半額。
+                    </div>
+                    <div class="d-flex gap-2 w-100 mt-2">
+                        <button type="button" class="btn btn-custom-light text-main-custom flex-grow-1 rounded-pill fw-bold" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary flex-grow-1 rounded-pill fw-bold shadow-sm" id="saveDailyRateBtn">確認</button>
+                    </div>
                 </div>
             </div>
         </div>

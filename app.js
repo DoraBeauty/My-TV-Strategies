@@ -153,6 +153,7 @@ let equipmentModalInstance = null;
 let currentEquipmentList = [];
 let currentEquipmentTotalQty = 0;
 let currentEquipmentNote = '';
+let currentDailyRate = 400; // Track daily rate for the active form
 
 
 function saveEquipmentSettings() {
@@ -920,6 +921,37 @@ function updateCalendarRecords(date) {
 
 // --- Form Dynamic Logic ---
 
+const btnSetDailyRate = document.getElementById('btnSetDailyRate');
+const dailyRateInput = document.getElementById('dailyRateInput');
+const saveDailyRateBtn = document.getElementById('saveDailyRateBtn');
+let dailyRateModalInstance = null;
+
+if (btnSetDailyRate) {
+    btnSetDailyRate.addEventListener('click', () => {
+        dailyRateInput.value = currentDailyRate;
+        const modalEl = document.getElementById('dailyRateModal');
+        if (!dailyRateModalInstance) {
+            dailyRateModalInstance = new bootstrap.Modal(modalEl);
+        }
+        dailyRateModalInstance.show();
+    });
+}
+
+if (saveDailyRateBtn) {
+    saveDailyRateBtn.addEventListener('click', () => {
+        const val = parseInt(dailyRateInput.value, 10);
+        if (!isNaN(val) && val >= 0) {
+            currentDailyRate = val;
+            // Clear manual override since they are explicitly setting the rate
+            delete allowanceInput.dataset.manualOverride;
+            calculateAllowance();
+            if (dailyRateModalInstance) dailyRateModalInstance.hide();
+        } else {
+            alert('請輸入有效的金額');
+        }
+    });
+}
+
 const calculateAllowance = (systemOnly = false) => {
     const startVal = startTimeInput.value;
     const endVal = endTimeInput.value;
@@ -966,7 +998,7 @@ const calculateAllowance = (systemOnly = false) => {
 
         if (overlapMs > 0) {
             const overlapHours = overlapMs / (1000 * 60 * 60);
-            const defaultAllowance = userSettings.defaultDailyAllowance || 400;
+            const defaultAllowance = currentDailyRate;
             if (overlapHours >= 4) {
                 totalAllowance += defaultAllowance;
             } else {
@@ -983,7 +1015,7 @@ const calculateAllowance = (systemOnly = false) => {
 
     if (!allowanceInput.dataset.manualOverride) {
         allowanceInput.value = totalAllowance;
-        timeCalcHint.innerHTML = `<span class="badge bg-primary">系統試算</span> 依規定按日計算：共 ${daysCount} 天，雜費合計 ${totalAllowance}`;
+        timeCalcHint.innerHTML = `<span class="badge bg-primary">系統試算</span> 每日 $${currentDailyRate}｜共 ${daysCount} 天｜雜費小計 $${totalAllowance}`;
     } else {
          timeCalcHint.innerHTML = `<span class="badge bg-warning text-dark">手動修改</span> 已手動調整雜費（原系統估算為 ${allowanceInput.dataset.systemEstimate || 0}）`;
     }
@@ -1387,6 +1419,9 @@ document.addEventListener('DOMContentLoaded', () => {
             currentEquipmentNote = '';
             updateEquipmentSummaryUI();
 
+            // Set default daily rate for new records
+            currentDailyRate = userSettings.defaultDailyAllowance || 400;
+
             // Set default start/end times
             const now = new Date();
             const yyyy = now.getFullYear();
@@ -1573,6 +1608,7 @@ saveRecordBtn.addEventListener('click', async () => {
             startTime: startVal,
             endTime: endVal,
             allowance: allowanceVal,
+            dailyAllowanceRate: currentDailyRate,
             leader: leaderVal,
             companions,
             transportType: transportTypeVal,
@@ -2016,6 +2052,9 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
 const openEditModal = (record) => {
     recordIdInput.value = record.id;
     modalTitle.textContent = '編輯紀錄';
+
+    // Set daily rate for this record (fallback to global setting, then 400)
+    currentDailyRate = record.dailyAllowanceRate || userSettings.defaultDailyAllowance || 400;
 
     document.getElementById('tripName').value = record.tripName || '';
     document.getElementById('location').value = record.location || '';
