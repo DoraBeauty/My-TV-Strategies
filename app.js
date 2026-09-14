@@ -30,7 +30,8 @@ let userSettings = {
     hsrKm: 20,
     busKm: 10,
     pricePerKm: 3,
-    equipmentCatalog: []
+    equipmentCatalog: [],
+    defaultDailyAllowance: 400
 };
 
 // Helper to get complete transport cost for display/stats
@@ -965,10 +966,11 @@ const calculateAllowance = (systemOnly = false) => {
 
         if (overlapMs > 0) {
             const overlapHours = overlapMs / (1000 * 60 * 60);
+            const defaultAllowance = userSettings.defaultDailyAllowance || 400;
             if (overlapHours >= 4) {
-                totalAllowance += 400;
+                totalAllowance += defaultAllowance;
             } else {
-                totalAllowance += 200;
+                totalAllowance += defaultAllowance / 2;
             }
         }
         currentDay.setDate(currentDay.getDate() + 1);
@@ -3222,6 +3224,7 @@ const settingHsrFee = document.getElementById('settingHsrFee');
 const settingBusKm = document.getElementById('settingBusKm');
 const settingBusRoundTrip = document.getElementById('settingBusRoundTrip');
 const settingBusFee = document.getElementById('settingBusFee');
+const settingDailyAllowance = document.getElementById('settingDailyAllowance');
 const saveRouteSettingsBtn = document.getElementById('saveRouteSettingsBtn');
 const routeSettingsForm = document.getElementById('routeSettingsForm');
 
@@ -3246,7 +3249,8 @@ const loadSettings = async () => {
         hsrKm: 20,
         busKm: 10,
         pricePerKm: 3,
-        equipmentCatalog: []
+        equipmentCatalog: [],
+        defaultDailyAllowance: 400
     };
 
     const current = window.firebaseData ? window.firebaseData.currentUser : (typeof currentUser !== 'undefined' ? currentUser : null);
@@ -3302,6 +3306,17 @@ if (equipmentSettingsModalEl) {
     });
 }
 
+// Populate modal inputs when opening Route Settings
+const routeSettingsModalEl = document.getElementById('routeSettingsModal');
+if (routeSettingsModalEl) {
+    routeSettingsModalEl.addEventListener('show.bs.modal', () => {
+        if (settingHsrKm) settingHsrKm.value = userSettings.hsrKm;
+        if (settingBusKm) settingBusKm.value = userSettings.busKm;
+        if (settingDailyAllowance) settingDailyAllowance.value = userSettings.defaultDailyAllowance || 400;
+        updateSettingsUI();
+    });
+}
+
 if (saveRouteSettingsBtn) {
     saveRouteSettingsBtn.addEventListener('click', async () => {
         if (routeSettingsForm && !routeSettingsForm.checkValidity()) {
@@ -3312,7 +3327,8 @@ if (saveRouteSettingsBtn) {
         const newSettings = {
             hsrKm: parseFloat(settingHsrKm.value) || 0,
             busKm: parseFloat(settingBusKm.value) || 0,
-            pricePerKm: 3
+            pricePerKm: 3,
+            defaultDailyAllowance: parseFloat(settingDailyAllowance.value) || 400
         };
 
         // Save locally

@@ -1115,7 +1115,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                                 </div>
                                 <div class="small text-muted" id="timeCalcHint" style="line-height: 1.4;">請輸入起訖時間計算雜費</div>
                                 <div class="small text-muted mt-2 pt-2 border-top" style="font-size: 0.75rem; border-color: var(--border-color) !important; opacity: 0.75;">
-                                    雜費依《國軍國內出差旅費報支規定》以每日計算（每日上限400元，未滿4小時為200元）。系統為自動估算，實際報支請依規定及單位審核為準。
+                                    雜費依《國軍國內出差旅費報支規定》以每日計算，預設可於設定中調整。系統為自動估算，實際報支請依規定及單位審核為準。
                                 </div>
                             </div>
                         </div>
@@ -1339,7 +1339,7 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold d-flex align-items-center">
                         路程設定
-                        <i class="bi bi-info-circle text-muted ms-2" style="font-size: 1.1rem; cursor: pointer;" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="focus" tabindex="0" data-bs-content="此功能用於設定駐地到搭乘站（如高鐵站、客運站）的單趟路程距離。系統會自動以每公里 3 元計算來回車資補貼，並在新增差旅時自動帶入此設定值。"></i>
+                        <i class="bi bi-info-circle text-muted ms-2" style="font-size: 1.1rem; cursor: pointer;" data-bs-toggle="popover" data-bs-placement="bottom" data-bs-trigger="focus" tabindex="0" data-bs-content="此功能用於設定駐地到搭乘站（如高鐵站、客運站）的單趟路程距離，並可設定每日雜費的預設金額。系統會依此設定自動帶入差旅計算。"></i>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -1354,11 +1354,18 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                         </div>
 
                         <div class="ios-input-label">客運</div>
-                        <div class="ios-input-group bg-custom-card border rounded-4 p-3 shadow-sm">
+                        <div class="ios-input-group bg-custom-card border rounded-4 p-3 mb-3 shadow-sm">
                             <label class="fw-bold small text-muted mb-2">單趟距離 (公里)</label>
                             <input type="number" class="ios-input mb-2" id="settingBusKm" min="0" step="0.1" value="10" required>
                             <div class="text-muted small">來回距離: <span id="settingBusRoundTrip" class="fw-bold text-main-custom">20</span> km</div>
                             <div class="text-muted small">補貼金額: $<span id="settingBusFee" class="fw-bold text-main-custom">60</span> (每公里 $3)</div>
+                        </div>
+
+                        <div class="ios-input-label">雜費設定</div>
+                        <div class="ios-input-group bg-custom-card border rounded-4 p-3 shadow-sm">
+                            <label class="fw-bold small text-muted mb-2">每日雜費預設（元）</label>
+                            <input type="number" class="ios-input mb-2" id="settingDailyAllowance" min="0" step="1" value="400" required>
+                            <div class="text-muted small">預設為 400 元。出差滿 4 小時以上以全額計算，未滿 4 小時則為半額。</div>
                         </div>
                     </form>
                 </div>
