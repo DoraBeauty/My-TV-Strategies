@@ -1793,6 +1793,12 @@ const renderRecordCard = (record, container = recordsContainer) => {
     let comboLabel = [mainTypeLabel, ptLabel].filter(Boolean).join(' + ');
     if (!comboLabel) comboLabel = '無';
 
+    let receiptSum = 0;
+    if (record.receipts && record.receipts.length > 0) {
+        receiptSum = record.receipts.reduce((sum, r) => sum + (parseFloat(r.price) || 0), 0);
+    }
+    const allTicketsAndReceipts = totalTransportDisplay + receiptSum;
+
     let hasTicketAmount = false;
     if (record.tickets) {
         if (record.tickets.hsr) {
@@ -1806,7 +1812,9 @@ const renderRecordCard = (record, container = recordsContainer) => {
             }
         }
     }
-    const ticketHint = (record.transportCostIncludesTickets === true && hasTicketAmount) ? ' (已含票價)' : '';
+
+    const hasReceipts = record.receipts && record.receipts.length > 0;
+    const hasTicketsHint = (hasTicketAmount || hasReceipts) ? ' (含票價與發票)' : '';
 
     let receiptsHtml = '';
 
@@ -1876,7 +1884,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
                     <span>雜費</span><span>$${record.allowance}</span>
                 </div>
                 <div class="d-flex justify-content-between text-muted small">
-                    <span>交通費 (${comboLabel})</span><span>$${totalTransportDisplay}${ticketHint}</span>
+                    <span>車票與發票合計</span><span>$${allTicketsAndReceipts}${hasTicketsHint}</span>
                 </div>
                 ${detailsHtml}
                 ${receiptsHtml}
