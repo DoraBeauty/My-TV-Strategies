@@ -1752,8 +1752,15 @@ const renderRecordCard = (record, container = recordsContainer) => {
         }
     }
 
+    const isSelfDrive = (record.transportType === 'car' || record.transportType === 'motorcycle') && record.driver === 'self';
+    const mileageCost = isSelfDrive ? (parseFloat(record.transportCost) || 0) : 0;
+
     if (record.transportType === 'car' || record.transportType === 'motorcycle') {
-        detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
+        if (isSelfDrive && mileageCost > 0) {
+            detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)　<span class="text-primary">里程補助 $${mileageCost}</span></div>`;
+        } else {
+            detailsHtml += `<div class="text-muted small">駕駛：${escapeHtml(record.driver === 'self' ? '自己' : record.driver)} (里程: ${record.mileage || 0}km)</div>`;
+        }
     }
 
     // Equipment Display
@@ -1903,9 +1910,7 @@ const renderRecordCard = (record, container = recordsContainer) => {
                 <div class="d-flex justify-content-between text-muted small border-top pt-2 mt-2" style="border-color: var(--border-color) !important;">
                     <span>雜費</span><span>$${record.allowance}</span>
                 </div>
-                <div class="d-flex justify-content-between text-muted small">
-                    <span>車票與發票合計</span><span>$${allTicketsAndReceipts}${hasTicketsHint}</span>
-                </div>
+                ${isSelfDrive ? (receiptSum > 0 ? `<div class="d-flex justify-content-between text-muted small"><span>發票合計</span><span>$${receiptSum}</span></div>` : '') : `<div class="d-flex justify-content-between text-muted small"><span>車票與發票合計</span><span>$${allTicketsAndReceipts}${hasTicketsHint}</span></div>`}
                 ${detailsHtml}
                 ${receiptsHtml}
 
