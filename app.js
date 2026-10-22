@@ -1819,8 +1819,28 @@ const renderRecordCard = (record, container = recordsContainer) => {
     let receiptsHtml = '';
 
     let allReceipts = [];
+
+    if (record.tickets) {
+        if (record.tickets.hsr) {
+            if (record.tickets.hsr.go && (record.tickets.hsr.go.amount > 0 || record.tickets.hsr.go.imageUrl)) {
+                allReceipts.push({ name: '高鐵去程', price: record.tickets.hsr.go.amount || 0, url: record.tickets.hsr.go.imageUrl });
+            }
+            if (record.tickets.hsr.return && (record.tickets.hsr.return.amount > 0 || record.tickets.hsr.return.imageUrl)) {
+                allReceipts.push({ name: '高鐵回程', price: record.tickets.hsr.return.amount || 0, url: record.tickets.hsr.return.imageUrl });
+            }
+        }
+        if (record.tickets.bus) {
+            if (record.tickets.bus.go && (record.tickets.bus.go.amount > 0 || record.tickets.bus.go.imageUrl)) {
+                allReceipts.push({ name: '客運去程', price: record.tickets.bus.go.amount || 0, url: record.tickets.bus.go.imageUrl });
+            }
+            if (record.tickets.bus.return && (record.tickets.bus.return.amount > 0 || record.tickets.bus.return.imageUrl)) {
+                allReceipts.push({ name: '客運回程', price: record.tickets.bus.return.amount || 0, url: record.tickets.bus.return.imageUrl });
+            }
+        }
+    }
+
     if (record.receipts && record.receipts.length > 0) {
-        allReceipts = [...record.receipts];
+        allReceipts.push(...record.receipts);
     }
 
     if (allReceipts.length > 0) {
