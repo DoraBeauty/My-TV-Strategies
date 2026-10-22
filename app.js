@@ -1911,7 +1911,10 @@ const renderRecordCard = (record, container = recordsContainer) => {
 
                 <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
                     <span class="fw-bold text-main-custom">總計</span>
-                    <span class="fw-bold text-danger fs-5">$${record.totalAmount}</span>
+                    <div class="text-end">
+                        <span class="fw-bold text-danger fs-5">$${record.totalAmount}</span>
+                        ${(record.isSettled && typeof record.settledAmount === 'number' && record.settledAmount !== record.totalAmount) ? `<div class="small text-muted fw-bold">實際入帳：$${record.settledAmount.toLocaleString()}</div>` : ''}
+                    </div>
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
@@ -1935,6 +1938,13 @@ document.getElementById('confirmSettleBtn').addEventListener('click', async () =
         return;
     }
 
+    const settleAmountStr = document.getElementById('settleAmountInput').value;
+    const settleAmount = parseFloat(settleAmountStr);
+    if (isNaN(settleAmount) || settleAmount < 0) {
+        alert("請輸入實際入帳金額");
+        return;
+    }
+
     if (!window.firebaseData) {
         alert('系統尚未就緒，請重新整理後再試');
         return;
@@ -1950,12 +1960,13 @@ document.getElementById('confirmSettleBtn').addEventListener('click', async () =
         const settleDateObj = new Date(settleDateStr);
         await updateDoc(doc(db, 'records', pendingSettleDocId), {
             isSettled: true,
-            settledAt: settleDateObj.toISOString()
+            settledAt: settleDateObj.toISOString(),
+            settledAmount: settleAmount
         });
 
         const record = currentRecords.find(r => r.id === pendingSettleDocId);
         if (record) {
-            logAction('settle', record.tripName, { settledDate: settleDateStr.replace(/-/g, '/') });
+            logAction('settle', record.tripName, { settledDate: settleDateStr.replace(/-/g, '/'), settledAmount: settleAmount });
         }
 
         const modalEl = document.getElementById('settleDateModal');
@@ -1991,6 +2002,13 @@ document.getElementById('dashboardView').addEventListener('click', async (e) => 
             const offset = now.getTimezoneOffset() * 60000;
             const localDateStr = new Date(now.getTime() - offset).toISOString().split('T')[0];
             document.getElementById('settleDateInput').value = localDateStr;
+
+            const record = currentRecords.find(r => r.id === docId);
+            const amountInput = document.getElementById('settleAmountInput');
+            if (amountInput && record) {
+                amountInput.value = (typeof record.settledAmount === 'number') ? record.settledAmount : (record.totalAmount || 0);
+            }
+
             settleDateModal.show();
         } else if (action === 'undo') {
             // Undo immediately
@@ -1999,7 +2017,8 @@ document.getElementById('dashboardView').addEventListener('click', async (e) => 
                 settleBtn.disabled = true;
                 await updateDoc(doc(db, 'records', docId), {
                     isSettled: false,
-                    settledAt: null
+                    settledAt: null,
+                    settledAmount: null
                 });
 
                 const record = currentRecords.find(r => r.id === docId);

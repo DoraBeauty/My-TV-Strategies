@@ -758,8 +758,18 @@ input.text-main-custom, .text-main-custom { color: var(--text-main) !important; 
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body px-4 py-4 text-main-custom">
-                    <label for="settleDateInput" class="form-label text-muted small fw-bold">入帳日期</label>
-                    <input type="date" id="settleDateInput" class="form-control ios-input">
+                    <div class="mb-3">
+                        <label for="settleDateInput" class="form-label text-muted small fw-bold">入帳日期</label>
+                        <input type="date" id="settleDateInput" class="form-control ios-input">
+                    </div>
+                    <div class="mb-1">
+                        <label for="settleAmountInput" class="form-label text-muted small fw-bold">實際入帳金額</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="settleAmountInput" class="form-control ios-input" min="0" step="1" placeholder="請輸入實際核發金額">
+                        </div>
+                        <div class="form-text text-muted small">系統計算金額會自動帶入，可依實際核發金額修改</div>
+                    </div>
                 </div>
                 <div class="modal-footer border-0 pt-0 pb-4 px-4 d-flex gap-2">
                     <button type="button" class="btn btn-custom-light text-main-custom rounded-pill flex-grow-1 fw-bold" data-bs-dismiss="modal">取消</button>
